@@ -1,10 +1,72 @@
-# Universal Swagger → MCP Server Converter
+# 🚀 Universal Swagger → MCP Server Converter
 
-[![CI](https://github.com/bmad-dev/swagger-mcp-server/workflows/CI/badge.svg)](https://github.com/bmad-dev/swagger-mcp-server/actions)
-[![Coverage](https://codecov.io/gh/bmad-dev/swagger-mcp-server/branch/main/graph/badge.svg)](https://codecov.io/gh/bmad-dev/swagger-mcp-server)
+> **Stop wrestling with massive API docs in your AI assistant's context window. Start having intelligent conversations about any API.**
+
+[![CI](https://github.com/salacoste/openapi-mcp-swagger/workflows/CI/badge.svg)](https://github.com/salacoste/openapi-mcp-swagger/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![GitHub stars](https://img.shields.io/github/stars/salacoste/openapi-mcp-swagger?style=social)](https://github.com/salacoste/openapi-mcp-swagger/stargazers)
 
-Transform any Swagger (OpenAPI) JSON file into an MCP server with intelligent search and retrieval capabilities, enabling AI agents to efficiently access and use API documentation without context window limitations.
+[![MCP Compatible](https://img.shields.io/badge/MCP-Compatible-blue.svg)](https://modelcontextprotocol.io)
+[![Cursor](https://img.shields.io/badge/Cursor-Ready-green.svg)](https://cursor.sh/)
+[![Claude](https://img.shields.io/badge/Claude-Integration-orange.svg)](https://claude.ai/)
+[![VS Code](https://img.shields.io/badge/VS%20Code-Extension-blue.svg)](https://code.visualstudio.com/)
+
+## 💡 **The Problem Every Developer Faces**
+
+You're building an integration with a complex API. The Swagger documentation is **2MB+ of JSON**. Your AI assistant can only see tiny fragments at a time. You end up:
+
+- ❌ **Copy-pasting documentation chunks** into chat windows
+- ❌ **Missing crucial schema relationships** between endpoints  
+- ❌ **Getting outdated or incomplete code examples**
+- ❌ **Losing context** when working across multiple API endpoints
+- ❌ **Wasting hours** on what should be simple integrations
+
+## ✨ **The Solution: Intelligent API Knowledge for AI**
+
+Transform any Swagger/OpenAPI specification into an intelligent MCP server that gives your AI assistant **superpowers**:
+
+### 🎯 **What Your AI Can Now Do:**
+
+```bash
+# Instead of this painful workflow:
+"Here's a 500KB Swagger file, please help me integrate..."
+# Error: Context window exceeded
+
+# You get this magical experience:
+AI: "I need to create a user and get their profile data"
+→ Instantly finds relevant endpoints: POST /users, GET /users/{id}
+→ Generates complete TypeScript client with proper types
+→ Includes error handling and authentication patterns
+→ Shows example requests/responses for testing
+```
+
+### 🚀 **From 0 to AI-Powered API Integration in 30 Seconds:**
+
+```bash
+# 1. Convert any Swagger file to intelligent MCP server
+swagger-mcp-server convert your-api.json
+
+# 2. Connect to Cursor, Claude, or VS Code
+# Your AI assistant now knows EVERYTHING about your API
+
+# 3. Start building with superhuman API knowledge
+"Create a React hook for user authentication with retry logic"
+"Generate Python client for the payment endpoints"
+"Show me all endpoints that return user data"
+```
+
+### 🌟 **Real-World Impact:**
+
+- **⚡ 10x Faster Integration:** From hours to minutes for complex APIs
+- **🎯 Perfect Code Generation:** AI understands full API context and relationships  
+- **🔍 Instant API Discovery:** Natural language search across any documentation size
+- **🛡️ Enterprise Ready:** Works offline, handles massive APIs (10MB+), production deployment
+- **🔌 Universal Compatibility:** Cursor, Claude, VS Code, or any MCP-compatible tool
+
+---
+
+**Ready to supercharge your API development workflow?** Jump to [🚀 Quick Start](#-quick-start) and experience the future of AI-assisted API integration.
 
 ## 📋 Table of Contents
 
