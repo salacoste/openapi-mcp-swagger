@@ -1,0 +1,42 @@
+{
+  "mcpServers": {
+    "ozon-performance": {
+      "command": "python3",
+      "args": [
+        "./scripts/standalone-mcp.py",
+        "./swagger-openapi-data/swagger.json",
+        "--stdio"
+      ],
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/src"
+      }
+    }
+  },
+  "contextProviders": [
+    {
+      "name": "mcp",
+      "params": {
+        "serverName": "ozon-performance",
+        "description": "Ozon Performance API documentation server"
+      }
+    }
+  ],
+  "slashCommands": [
+    {
+      "name": "ozon-search",
+      "description": "Search Ozon API endpoints",
+      "run": "async (input) => { return await mcp.searchEndpoints({ keywords: input, maxResults: 5 }); }"
+    },
+    {
+      "name": "ozon-schema",
+      "description": "Get Ozon API schema",
+      "run": "async (input) => { return await mcp.getSchema({ componentName: input }); }"
+    },
+    {
+      "name": "ozon-example",
+      "description": "Generate Ozon API code example",
+      "run": "async (input) => { return await mcp.getExample({ endpointId: input, language: 'javascript' }); }"
+    }
+  ]
+}

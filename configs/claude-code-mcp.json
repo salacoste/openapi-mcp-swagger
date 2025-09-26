@@ -1,0 +1,103 @@
+{
+  "name": "Ozon Performance API MCP Server",
+  "version": "1.0.0",
+  "description": "MCP server for Ozon Performance API documentation and code generation",
+
+  "server": {
+    "command": "python3",
+    "args": [
+      "./scripts/standalone-mcp.py",
+      "./swagger-openapi-data/swagger.json",
+      "--stdio"
+    ],
+    "cwd": "${workspaceFolder}",
+    "env": {
+      "PYTHONPATH": "${workspaceFolder}/src"
+    }
+  },
+
+  "tools": [
+    {
+      "name": "searchEndpoints",
+      "description": "Search for API endpoints by keywords",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "keywords": {
+            "type": "string",
+            "description": "Keywords to search for in endpoints"
+          },
+          "httpMethods": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Filter by HTTP methods (GET, POST, etc.)"
+          },
+          "maxResults": {
+            "type": "integer",
+            "default": 10,
+            "description": "Maximum number of results to return"
+          }
+        },
+        "required": ["keywords"]
+      }
+    },
+    {
+      "name": "getSchema",
+      "description": "Get schema definition for API components",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "componentName": {
+            "type": "string",
+            "description": "Name of the component/schema to retrieve"
+          },
+          "maxDepth": {
+            "type": "integer",
+            "default": 3,
+            "description": "Maximum depth for nested schema resolution"
+          }
+        },
+        "required": ["componentName"]
+      }
+    },
+    {
+      "name": "getExample",
+      "description": "Generate code examples for API endpoints",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "endpointId": {
+            "type": "string",
+            "description": "ID of the endpoint to generate example for"
+          },
+          "language": {
+            "type": "string",
+            "enum": ["javascript", "python", "curl"],
+            "default": "javascript",
+            "description": "Programming language for the example"
+          },
+          "style": {
+            "type": "string",
+            "enum": ["production", "development", "minimal"],
+            "default": "production",
+            "description": "Code style for the example"
+          }
+        },
+        "required": ["endpointId"]
+      }
+    }
+  ],
+
+  "prompts": [
+    {
+      "name": "ozon_api_helper",
+      "description": "Get help with Ozon Performance API",
+      "arguments": [
+        {
+          "name": "query",
+          "description": "What would you like to know about the Ozon API?"
+        }
+      ]
+    }
+  ]
+}
