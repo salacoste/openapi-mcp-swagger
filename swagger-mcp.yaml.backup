@@ -1,0 +1,7 @@
+custom:
+  nested:
+    value: test
+logging:
+  level: invalid
+server:
+  port: -1

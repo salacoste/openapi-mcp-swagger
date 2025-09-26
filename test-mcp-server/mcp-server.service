@@ -1,0 +1,29 @@
+[Unit]
+Description=Документация Ozon Performance API MCP Server
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=mcp
+Group=mcp
+WorkingDirectory=/opt/-ozon-performance-api
+Environment=PATH=/opt/-ozon-performance-api/venv/bin
+ExecStart=/opt/-ozon-performance-api/venv/bin/python server.py
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=always
+RestartSec=10
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/-ozon-performance-api/data
+
+# Environment variables
+Environment=MCP_HOST=0.0.0.0
+Environment=MCP_PORT=8080
+
+[Install]
+WantedBy=multi-user.target
