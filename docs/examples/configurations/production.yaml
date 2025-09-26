@@ -1,0 +1,211 @@
+# Production Configuration
+# Production-ready with security, performance, and monitoring
+
+# Server Configuration
+server:
+  # Server binding
+  host: 0.0.0.0                     # Accept connections from all interfaces
+  port: 8080                        # Standard HTTP port (use reverse proxy for 80/443)
+
+  # Connection management
+  max_connections: 100              # Higher limit for production traffic
+  connection_timeout: 30            # Shorter timeout for production
+
+  # Production features
+  debug_mode: false                 # Disable debug features
+  reload_on_change: false          # Disable auto-reload
+
+  # SSL Configuration
+  ssl:
+    enabled: true                   # Enable SSL for production
+    cert_file: /etc/ssl/certs/swagger-mcp-server.crt
+    key_file: /etc/ssl/private/swagger-mcp-server.key
+    ca_file: /etc/ssl/certs/ca-bundle.crt  # Certificate authority bundle
+    protocols: ["TLSv1.2", "TLSv1.3"]     # Modern TLS versions only
+    ciphers: "ECDHE+AESGCM:ECDHE+CHACHA20:DHE+AESGCM:DHE+CHACHA20:!aNULL:!MD5:!DSS"
+
+# Database Configuration
+database:
+  # Database file
+  path: /var/lib/swagger-mcp-server/mcp_server.db
+
+  # Connection pool
+  pool_size: 10                     # Larger pool for production
+  connection_timeout: 10            # Shorter timeout for production
+
+  # Production optimizations
+  synchronous: normal               # Safe mode for production
+  journal_mode: wal                 # Write-ahead logging for better concurrency
+
+  # Backup configuration
+  backup:
+    enabled: true                   # Enable automated backups
+    interval: 86400                 # Daily backups (24 hours)
+    retention_days: 7               # Keep 7 days of backups
+    backup_directory: /var/backups/swagger-mcp-server
+    compression: true               # Compress backup files
+
+# Search Engine Configuration
+search:
+  # Search engine
+  engine: whoosh                    # Production search engine
+
+  # Index location
+  index_directory: /var/lib/swagger-mcp-server/search_index
+
+  # Field weights (optimized for production)
+  field_weights:
+    endpoint_path: 1.5              # High relevance for exact path matches
+    summary: 1.3                    # High relevance for summaries
+    description: 1.0                # Standard relevance for descriptions
+    parameters: 0.8                 # Medium relevance for parameters
+    tags: 0.6                       # Lower relevance for tags
+
+  # Performance settings
+  performance:
+    cache_size_mb: 128              # Large cache for production
+    max_results: 1000               # Higher limit for production
+    highlight_results: false        # Disable highlighting for performance
+    fuzzy_matching: true            # Enable fuzzy search
+    min_score: 0.3                  # Higher threshold for production quality
+
+# Logging Configuration
+logging:
+  # Log level
+  level: INFO                       # Standard logging for production
+
+  # Log format
+  format: "%(asctime)s - %(name)s - %(levelname)s - [%(process)d] - %(message)s"
+
+  # Log output
+  file: /var/log/swagger-mcp-server/server.log
+  console: false                    # Disable console logging in production
+
+  # Log rotation
+  rotation:
+    enabled: true                   # Enable log rotation
+    max_size_mb: 10                 # Rotate at 10MB
+    backup_count: 5                 # Keep 5 backup files
+
+  # Structured logging for production
+  structured: true                  # Enable JSON structured logs
+  include_trace: false              # Disable stack traces in logs
+
+# Security Configuration
+security:
+  # Authentication
+  authentication:
+    enabled: true                   # Enable authentication
+    type: api_key                   # Use API key authentication
+    header: X-API-Key               # API key header name
+    require_https: true             # Require HTTPS for auth
+
+  # Rate limiting
+  rate_limiting:
+    enabled: true                   # Enable rate limiting
+    requests_per_minute: 100        # Limit to 100 requests per minute
+    burst_size: 20                  # Allow bursts of 20 requests
+    storage: redis                  # Use Redis for rate limit storage
+    redis_url: redis://localhost:6379
+
+  # Input validation
+  validation:
+    strict_mode: true               # Strict validation in production
+    max_request_size_mb: 5          # Limit request size
+    sanitize_input: true            # Sanitize all input
+
+  # CORS (restricted for production)
+  cors:
+    enabled: true                   # Enable CORS
+    origins: ["https://yourdomain.com"]  # Restrict origins
+    methods: ["GET", "POST"]        # Limited methods
+    headers: ["Content-Type", "Authorization", "X-API-Key"]
+
+# Monitoring Configuration
+monitoring:
+  # Health checks
+  health_check:
+    enabled: true                   # Enable health endpoint
+    endpoint: /health               # Health check endpoint
+    detailed: false                 # Basic health info only
+
+  # Metrics collection
+  metrics:
+    enabled: true                   # Enable metrics
+    endpoint: /metrics              # Prometheus metrics endpoint
+    include_database: true          # Include database metrics
+    include_search: true            # Include search metrics
+
+  # Alerting
+  alerting:
+    enabled: true                   # Enable alerting
+    webhook_url: https://hooks.slack.com/your-webhook
+    alert_on_errors: true           # Alert on error spikes
+    alert_on_high_latency: true     # Alert on latency issues
+    error_threshold: 10             # Alert after 10 errors in 5 minutes
+    latency_threshold_ms: 1000      # Alert if latency > 1 second
+
+# Performance Optimization
+performance:
+  # Worker processes
+  workers: 4                        # Multiple worker processes
+
+  # Memory management
+  max_memory_mb: 512                # Memory limit per worker
+
+  # Connection pooling
+  database_pool_size: 20            # Larger database pool
+  search_cache_size: 256            # Larger search cache
+
+  # Request handling
+  keep_alive_timeout: 5             # Keep-alive timeout
+  graceful_shutdown_timeout: 30     # Graceful shutdown time
+
+# Environment Configuration
+environment:
+  name: production                  # Environment name
+  description: "Production environment with security and monitoring"
+
+# Deployment Configuration
+deployment:
+  # Process management
+  pid_file: /var/run/swagger-mcp-server.pid
+  user: swagger-mcp               # Run as dedicated user
+  group: swagger-mcp              # Run as dedicated group
+
+  # System limits
+  max_file_descriptors: 65536       # Increase file descriptor limit
+  max_processes: 32768              # Increase process limit
+
+# External Services
+external_services:
+  # Redis for caching and rate limiting
+  redis:
+    url: redis://localhost:6379
+    password: ${REDIS_PASSWORD}     # Use environment variable
+    db: 0
+    timeout: 5
+
+  # Elasticsearch for advanced search (optional)
+  elasticsearch:
+    enabled: false                  # Disabled by default
+    # url: http://localhost:9200
+    # index: swagger-mcp-server
+
+# Environment Variables Expected:
+# - REDIS_PASSWORD: Redis authentication password
+# - SSL_CERT_PASSWORD: SSL certificate password (if encrypted)
+# - API_KEY_SECRET: Secret for generating API keys
+# - WEBHOOK_SECRET: Secret for webhook authentication
+
+# Production Checklist:
+# □ SSL certificates installed and configured
+# □ Database directory created with proper permissions
+# □ Log directory created with proper permissions
+# □ Backup directory created with proper permissions
+# □ Redis server running and accessible
+# □ API keys generated and distributed
+# □ Monitoring and alerting configured
+# □ Firewall rules configured
+# □ User and group created for service
+# □ systemd service file created and enabled

@@ -1,0 +1,1340 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "E-commerce Platform API",
+    "version": "1.2.0",
+    "description": "A comprehensive e-commerce platform API providing product management, user authentication, order processing, and payment integration capabilities.",
+    "contact": {
+      "name": "API Support",
+      "email": "api-support@ecommerce.example.com",
+      "url": "https://developers.ecommerce.example.com"
+    },
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/licenses/MIT"
+    },
+    "termsOfService": "https://ecommerce.example.com/terms"
+  },
+  "servers": [
+    {
+      "url": "https://api.ecommerce.example.com/v1",
+      "description": "Production server"
+    },
+    {
+      "url": "https://staging-api.ecommerce.example.com/v1",
+      "description": "Staging server"
+    }
+  ],
+  "paths": {
+    "/auth/login": {
+      "post": {
+        "operationId": "authenticateUser",
+        "summary": "User authentication",
+        "description": "Authenticate user with email and password, returns access token",
+        "tags": ["Authentication"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              },
+              "example": {
+                "email": "user@example.com",
+                "password": "securePassword123"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authentication successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                },
+                "example": {
+                  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                  "token_type": "Bearer",
+                  "expires_in": 3600,
+                  "refresh_token": "refresh_token_here",
+                  "user": {
+                    "id": 12345,
+                    "email": "user@example.com",
+                    "name": "John Doe"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many login attempts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users": {
+      "get": {
+        "operationId": "listUsers",
+        "summary": "List users",
+        "description": "Retrieve a paginated list of users with optional filtering",
+        "tags": ["Users"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number for pagination",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Number of users per page",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Search users by name or email",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filter by user status",
+            "schema": {
+              "type": "string",
+              "enum": ["active", "inactive", "pending"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Users retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      },
+      "post": {
+        "operationId": "createUser",
+        "summary": "Create new user",
+        "description": "Create a new user account with email verification",
+        "tags": ["Users"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserRequest"
+              },
+              "example": {
+                "email": "newuser@example.com",
+                "name": "Jane Smith",
+                "password": "securePassword456",
+                "profile": {
+                  "bio": "Software developer and tech enthusiast",
+                  "preferences": {
+                    "newsletter": true,
+                    "notifications": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "409": {
+            "description": "User already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/{userId}": {
+      "get": {
+        "operationId": "getUserById",
+        "summary": "Get user by ID",
+        "description": "Retrieve detailed user information by user ID",
+        "tags": ["Users"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/UserIdParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateUser",
+        "summary": "Update user",
+        "description": "Update user information (full update)",
+        "tags": ["Users"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/UserIdParam"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/products": {
+      "get": {
+        "operationId": "searchProducts",
+        "summary": "Search products",
+        "description": "Search and filter products with advanced options",
+        "tags": ["Products"],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Search query for product name, description, or SKU",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "description": "Filter by category ID",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "price_min",
+            "in": "query",
+            "description": "Minimum price filter",
+            "schema": {
+              "type": "number",
+              "format": "decimal",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "price_max",
+            "in": "query",
+            "description": "Maximum price filter",
+            "schema": {
+              "type": "number",
+              "format": "decimal",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "in_stock",
+            "in": "query",
+            "description": "Filter by stock availability",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "Sort order",
+            "schema": {
+              "type": "string",
+              "enum": ["name", "price_asc", "price_desc", "created_at", "popularity"]
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Products found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductListResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createProduct",
+        "summary": "Create product",
+        "description": "Create a new product with inventory tracking",
+        "tags": ["Products"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProductRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Product created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Product"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/orders": {
+      "get": {
+        "operationId": "listOrders",
+        "summary": "List orders",
+        "description": "Retrieve user's orders with filtering and pagination",
+        "tags": ["Orders"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filter by order status",
+            "schema": {
+              "type": "string",
+              "enum": ["pending", "processing", "shipped", "delivered", "cancelled"]
+            }
+          },
+          {
+            "name": "date_from",
+            "in": "query",
+            "description": "Filter orders from date (ISO 8601)",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "date_to",
+            "in": "query",
+            "description": "Filter orders to date (ISO 8601)",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Orders retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderListResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createOrder",
+        "summary": "Create order",
+        "description": "Create a new order with items and calculate totals",
+        "tags": ["Orders"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOrderRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Order created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Order"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          }
+        }
+      }
+    },
+    "/payments": {
+      "post": {
+        "operationId": "processPayment",
+        "summary": "Process payment",
+        "description": "Process payment for an order using various payment methods",
+        "tags": ["Payments"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaymentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Payment processed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "402": {
+            "description": "Payment failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "User": {
+        "type": "object",
+        "required": ["id", "email", "name", "createdAt", "isActive"],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unique user identifier",
+            "example": 12345
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "User email address",
+            "example": "user@example.com"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "User full name",
+            "example": "John Doe"
+          },
+          "profile": {
+            "$ref": "#/components/schemas/UserProfile"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Account creation timestamp",
+            "example": "2023-01-15T10:30:00Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Last update timestamp",
+            "example": "2023-01-20T14:25:00Z"
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Account active status",
+            "example": true
+          },
+          "status": {
+            "type": "string",
+            "enum": ["active", "inactive", "pending"],
+            "description": "User account status"
+          }
+        }
+      },
+      "UserProfile": {
+        "type": "object",
+        "properties": {
+          "avatar": {
+            "type": "string",
+            "format": "uri",
+            "description": "User avatar image URL",
+            "example": "https://api.example.com/avatars/user123.jpg"
+          },
+          "bio": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "User biography",
+            "example": "Software developer and API enthusiast"
+          },
+          "preferences": {
+            "$ref": "#/components/schemas/UserPreferences"
+          },
+          "address": {
+            "$ref": "#/components/schemas/Address"
+          }
+        }
+      },
+      "UserPreferences": {
+        "type": "object",
+        "properties": {
+          "newsletter": {
+            "type": "boolean",
+            "description": "Newsletter subscription",
+            "default": false
+          },
+          "notifications": {
+            "type": "boolean",
+            "description": "Email notifications",
+            "default": true
+          },
+          "theme": {
+            "type": "string",
+            "enum": ["light", "dark", "auto"],
+            "description": "UI theme preference",
+            "default": "auto"
+          }
+        }
+      },
+      "Address": {
+        "type": "object",
+        "required": ["street", "city", "country"],
+        "properties": {
+          "street": {
+            "type": "string",
+            "description": "Street address",
+            "example": "123 Main St"
+          },
+          "city": {
+            "type": "string",
+            "description": "City name",
+            "example": "San Francisco"
+          },
+          "state": {
+            "type": "string",
+            "description": "State or province",
+            "example": "CA"
+          },
+          "zipCode": {
+            "type": "string",
+            "description": "ZIP or postal code",
+            "example": "94105"
+          },
+          "country": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 2,
+            "description": "ISO 3166-1 alpha-2 country code",
+            "example": "US"
+          }
+        }
+      },
+      "Product": {
+        "type": "object",
+        "required": ["id", "name", "price", "sku", "categoryId"],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unique product identifier"
+          },
+          "name": {
+            "type": "string",
+            "description": "Product name",
+            "example": "Wireless Bluetooth Headphones"
+          },
+          "description": {
+            "type": "string",
+            "description": "Product description",
+            "example": "High-quality wireless headphones with noise cancellation"
+          },
+          "price": {
+            "type": "number",
+            "format": "decimal",
+            "minimum": 0,
+            "description": "Product price in USD",
+            "example": 199.99
+          },
+          "sku": {
+            "type": "string",
+            "description": "Stock Keeping Unit",
+            "example": "WBH-001"
+          },
+          "categoryId": {
+            "type": "integer",
+            "description": "Product category ID"
+          },
+          "inventory": {
+            "$ref": "#/components/schemas/Inventory"
+          },
+          "images": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uri"
+            },
+            "description": "Product image URLs"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Product tags for search and categorization"
+          }
+        }
+      },
+      "Inventory": {
+        "type": "object",
+        "properties": {
+          "quantity": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Available quantity"
+          },
+          "reserved": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Reserved quantity (in pending orders)"
+          },
+          "lowStockThreshold": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Alert threshold for low stock"
+          }
+        }
+      },
+      "Order": {
+        "type": "object",
+        "required": ["id", "userId", "status", "items", "total"],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unique order identifier"
+          },
+          "userId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID of the user who placed the order"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "processing", "shipped", "delivered", "cancelled"],
+            "description": "Current order status"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrderItem"
+            },
+            "description": "List of ordered items"
+          },
+          "shippingAddress": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "billingAddress": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "subtotal": {
+            "type": "number",
+            "format": "decimal",
+            "description": "Subtotal before tax and shipping"
+          },
+          "tax": {
+            "type": "number",
+            "format": "decimal",
+            "description": "Tax amount"
+          },
+          "shipping": {
+            "type": "number",
+            "format": "decimal",
+            "description": "Shipping cost"
+          },
+          "total": {
+            "type": "number",
+            "format": "decimal",
+            "description": "Total order amount"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Order creation timestamp"
+          }
+        }
+      },
+      "OrderItem": {
+        "type": "object",
+        "required": ["productId", "quantity", "price"],
+        "properties": {
+          "productId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Product ID"
+          },
+          "quantity": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Quantity ordered"
+          },
+          "price": {
+            "type": "number",
+            "format": "decimal",
+            "description": "Price per unit at time of order"
+          },
+          "product": {
+            "$ref": "#/components/schemas/Product"
+          }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "required": ["email", "password"],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "User email address"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "description": "User password"
+          },
+          "rememberMe": {
+            "type": "boolean",
+            "description": "Remember login for extended period",
+            "default": false
+          }
+        }
+      },
+      "AuthResponse": {
+        "type": "object",
+        "required": ["access_token", "token_type", "expires_in"],
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "description": "JWT access token",
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          },
+          "token_type": {
+            "type": "string",
+            "description": "Token type",
+            "example": "Bearer"
+          },
+          "expires_in": {
+            "type": "integer",
+            "description": "Token expiration time in seconds",
+            "example": 3600
+          },
+          "refresh_token": {
+            "type": "string",
+            "description": "Refresh token for obtaining new access tokens"
+          },
+          "user": {
+            "$ref": "#/components/schemas/User"
+          }
+        }
+      },
+      "PaymentRequest": {
+        "type": "object",
+        "required": ["orderId", "paymentMethod", "amount"],
+        "properties": {
+          "orderId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Order ID to process payment for"
+          },
+          "paymentMethod": {
+            "type": "string",
+            "enum": ["credit_card", "debit_card", "paypal", "apple_pay", "google_pay"],
+            "description": "Payment method"
+          },
+          "amount": {
+            "type": "number",
+            "format": "decimal",
+            "minimum": 0.01,
+            "description": "Payment amount"
+          },
+          "cardDetails": {
+            "$ref": "#/components/schemas/CardDetails"
+          }
+        }
+      },
+      "CardDetails": {
+        "type": "object",
+        "required": ["number", "expiryMonth", "expiryYear", "cvv"],
+        "properties": {
+          "number": {
+            "type": "string",
+            "pattern": "^[0-9]{13,19}$",
+            "description": "Card number (PCI compliant)",
+            "example": "4111111111111111"
+          },
+          "expiryMonth": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 12,
+            "description": "Card expiry month"
+          },
+          "expiryYear": {
+            "type": "integer",
+            "minimum": 2023,
+            "description": "Card expiry year"
+          },
+          "cvv": {
+            "type": "string",
+            "pattern": "^[0-9]{3,4}$",
+            "description": "Card verification value"
+          },
+          "holderName": {
+            "type": "string",
+            "description": "Cardholder name"
+          }
+        }
+      },
+      "PaymentResponse": {
+        "type": "object",
+        "required": ["id", "status", "amount"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Payment transaction ID"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["success", "failed", "pending"],
+            "description": "Payment status"
+          },
+          "amount": {
+            "type": "number",
+            "format": "decimal",
+            "description": "Payment amount"
+          },
+          "transactionId": {
+            "type": "string",
+            "description": "External payment processor transaction ID"
+          },
+          "processedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Payment processing timestamp"
+          }
+        }
+      },
+      "CreateUserRequest": {
+        "type": "object",
+        "required": ["email", "name", "password"],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8
+          },
+          "profile": {
+            "$ref": "#/components/schemas/UserProfile"
+          }
+        }
+      },
+      "UpdateUserRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "profile": {
+            "$ref": "#/components/schemas/UserProfile"
+          }
+        }
+      },
+      "CreateProductRequest": {
+        "type": "object",
+        "required": ["name", "price", "sku", "categoryId"],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "price": {
+            "type": "number",
+            "format": "decimal",
+            "minimum": 0
+          },
+          "sku": {
+            "type": "string"
+          },
+          "categoryId": {
+            "type": "integer"
+          },
+          "inventory": {
+            "$ref": "#/components/schemas/Inventory"
+          }
+        }
+      },
+      "CreateOrderRequest": {
+        "type": "object",
+        "required": ["items", "shippingAddress"],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["productId", "quantity"],
+              "properties": {
+                "productId": {
+                  "type": "integer"
+                },
+                "quantity": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            }
+          },
+          "shippingAddress": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "billingAddress": {
+            "$ref": "#/components/schemas/Address"
+          }
+        }
+      },
+      "UserListResponse": {
+        "type": "object",
+        "properties": {
+          "users": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/User"
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        }
+      },
+      "ProductListResponse": {
+        "type": "object",
+        "properties": {
+          "products": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Product"
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          },
+          "facets": {
+            "type": "object",
+            "properties": {
+              "categories": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {"type": "integer"},
+                    "name": {"type": "string"},
+                    "count": {"type": "integer"}
+                  }
+                }
+              },
+              "priceRanges": {
+                "type": "object",
+                "properties": {
+                  "min": {"type": "number"},
+                  "max": {"type": "number"}
+                }
+              }
+            }
+          }
+        }
+      },
+      "OrderListResponse": {
+        "type": "object",
+        "properties": {
+          "orders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Order"
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        }
+      },
+      "Pagination": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer",
+            "description": "Current page number"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Items per page"
+          },
+          "total": {
+            "type": "integer",
+            "description": "Total number of items"
+          },
+          "totalPages": {
+            "type": "integer",
+            "description": "Total number of pages"
+          },
+          "hasNext": {
+            "type": "boolean",
+            "description": "Whether there are more pages"
+          },
+          "hasPrevious": {
+            "type": "boolean",
+            "description": "Whether there are previous pages"
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "required": ["error", "message"],
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Error code"
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable error message"
+          },
+          "details": {
+            "type": "object",
+            "description": "Additional error details"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Error timestamp"
+          }
+        }
+      },
+      "PaymentError": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Error"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "paymentErrorCode": {
+                "type": "string",
+                "enum": ["insufficient_funds", "invalid_card", "card_expired", "processing_error"],
+                "description": "Specific payment error code"
+              },
+              "retryable": {
+                "type": "boolean",
+                "description": "Whether the payment can be retried"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "parameters": {
+      "UserIdParam": {
+        "name": "userId",
+        "in": "path",
+        "required": true,
+        "description": "Unique user identifier",
+        "schema": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
+        },
+        "example": 12345
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Bad request - invalid parameters",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": "validation_error",
+              "message": "The request contains invalid parameters",
+              "details": {
+                "email": "Invalid email format",
+                "password": "Password must be at least 8 characters"
+              }
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Unauthorized - authentication required",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": "unauthorized",
+              "message": "Authentication required"
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "Forbidden - insufficient permissions",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": "forbidden",
+              "message": "Insufficient permissions to access this resource"
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Resource not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": "not_found",
+              "message": "The requested resource was not found"
+            }
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "JWT token obtained from /auth/login endpoint"
+      },
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key",
+        "description": "API key for server-to-server authentication"
+      }
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Authentication",
+      "description": "User authentication and session management"
+    },
+    {
+      "name": "Users",
+      "description": "User account management and profiles"
+    },
+    {
+      "name": "Products",
+      "description": "Product catalog and inventory management"
+    },
+    {
+      "name": "Orders",
+      "description": "Order processing and management"
+    },
+    {
+      "name": "Payments",
+      "description": "Payment processing and billing"
+    }
+  ]
+}

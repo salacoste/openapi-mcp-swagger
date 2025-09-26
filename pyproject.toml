@@ -1,0 +1,232 @@
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[project]
+name = "swagger-mcp-server"
+version = "0.1.0"
+description = "Universal Swagger → MCP Server Converter"
+authors = [{name = "BMAD Development Team"}]
+readme = "README.md"
+requires-python = ">=3.11"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+dependencies = [
+    # Core framework
+    "mcp>=1.0.0",
+    # Database and storage
+    "sqlalchemy>=2.0.0",
+    "aiosqlite>=0.19.0",
+    "greenlet>=3.0.0",  # Required for SQLAlchemy async support
+    # JSON and API processing
+    "ijson>=3.2.3",
+    "pydantic>=2.5.0",
+    "openapi-spec-validator>=0.7.1",
+    "jsonref>=1.1.0",
+    # Search and indexing
+    "whoosh>=2.7.4",
+    "rank-bm25>=0.2.2",
+    # CLI and logging
+    "click>=8.1.7",
+    "structlog>=23.2.0",
+    "pyyaml>=6.0.1",
+    # Template generation
+    "jinja2>=3.1.2",
+    "aiohttp (>=3.12.15,<4.0.0)",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.3",
+    "pytest-asyncio>=0.21.1",
+    "pytest-cov>=4.1.0",
+    "pytest-benchmark>=4.0.0",
+    "faker>=20.1.0",
+    "black>=23.11.0",
+    "isort>=5.12.0",
+    "flake8>=6.1.0",
+    "flake8-docstrings>=1.7.0",
+    "flake8-type-checking>=2.7.0",
+    "mypy>=1.7.0",
+    "pre-commit>=3.5.0",
+    "tox>=4.11.0",
+]
+
+[project.scripts]
+swagger-mcp-server = "swagger_mcp_server.main:cli"
+
+[tool.poetry]
+name = "swagger-mcp-server"
+version = "0.1.0"
+description = "Universal Swagger → MCP Server Converter"
+authors = ["BMAD Development Team"]
+readme = "README.md"
+packages = [{include = "swagger_mcp_server", from = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+# MCP Protocol
+mcp = "^1.0.0"
+# JSON Processing
+ijson = "^3.2.3"
+pydantic = "^2.5.0"
+# Database
+aiosqlite = "^0.19.0"
+# CLI
+click = "^8.1.7"
+pyyaml = "^6.0.1"
+# Logging
+structlog = "^23.2.0"
+# Search
+whoosh = "^2.7.4"
+rank-bm25 = "^0.2.2"
+# OpenAPI
+openapi-spec-validator = "^0.7.1"
+jsonref = "^1.1.0"
+# Templates
+jinja2 = "^3.1.2"
+# System utilities
+psutil = "^5.9.0"
+
+[tool.poetry.group.dev.dependencies]
+# Testing
+pytest = "^7.4.3"
+pytest-asyncio = "^0.21.1"
+pytest-cov = "^4.1.0"
+pytest-benchmark = "^4.0.0"
+faker = "^20.1.0"
+# Code Quality
+black = "^23.11.0"
+isort = "^5.12.0"
+flake8 = "^6.1.0"
+flake8-docstrings = "^1.7.0"
+flake8-type-checking = "^2.7.0"
+mypy = "^1.7.0"
+# Development
+pre-commit = "^3.5.0"
+tox = "^4.11.0"
+
+[tool.poetry.scripts]
+swagger-mcp-server = "swagger_mcp_server.main:cli"
+
+[tool.black]
+line-length = 88
+target-version = ['py311']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+known_first_party = ["swagger_mcp_server"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+[[tool.mypy.overrides]]
+module = [
+    "ijson.*",
+    "whoosh.*",
+    "rank_bm25.*",
+    "mcp.*",
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+    "--cov=swagger_mcp_server",
+    "--cov-branch",
+    "--cov-report=term-missing",
+    "--cov-report=html:htmlcov",
+    "--cov-fail-under=80",
+]
+testpaths = ["src/tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+asyncio_mode = "auto"
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests",
+    "performance: Performance/benchmark tests",
+    "slow: Slow running tests",
+]
+
+[tool.coverage.run]
+source = ["src"]
+omit = [
+    "*/tests/*",
+    "*/conftest.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+
+[tool.flake8]
+max-line-length = 88
+extend-ignore = [
+    "E203",  # whitespace before ':'
+    "E501",  # line too long (handled by black)
+    "W503",  # line break before binary operator
+]
+exclude = [
+    ".git",
+    "__pycache__",
+    ".tox",
+    ".eggs",
+    "*.egg",
+    "build",
+    "dist",
+    ".venv",
+]
+per-file-ignores = [
+    "__init__.py:F401",
+    "tests/*:D100,D101,D102,D103,D104",
+]

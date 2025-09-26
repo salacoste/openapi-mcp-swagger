@@ -1,0 +1,511 @@
+# Universal Swagger → MCP Server Converter
+
+[![CI](https://github.com/bmad-dev/swagger-mcp-server/workflows/CI/badge.svg)](https://github.com/bmad-dev/swagger-mcp-server/actions)
+[![Coverage](https://codecov.io/gh/bmad-dev/swagger-mcp-server/branch/main/graph/badge.svg)](https://codecov.io/gh/bmad-dev/swagger-mcp-server)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+
+Transform any Swagger (OpenAPI) JSON file into an MCP server with intelligent search and retrieval capabilities, enabling AI agents to efficiently access and use API documentation without context window limitations.
+
+## 📋 Table of Contents
+
+- [✨ What is swagger-mcp-server?](#-what-is-swagger-mcp-server)
+- [🚀 Quick Start](#-quick-start) - Get running in 5 minutes
+- [🏗️ Architecture](#️-architecture) - System overview
+- [🔍 MCP Server Methods](#-mcp-server-methods) - API reference
+- [🔧 CLI Commands](#-cli-commands) - Command reference
+- [🤖 AI Tool Integrations](#-ai-tool-integrations) - VS Code, Cursor setup
+- [📝 Configuration](#-configuration) - Basic setup
+- [💡 Examples](#-examples) - Sample APIs and use cases
+- [🔧 Troubleshooting](#-troubleshooting) - Common issues
+- [📚 Complete Documentation](#-complete-documentation) - All guides
+- [🆘 Getting Help](#-getting-help) - Support resources
+
+## ✨ What is swagger-mcp-server?
+
+swagger-mcp-server bridges the gap between API documentation and AI coding assistants. Instead of AI agents struggling with large API docs in their context window, they can now query specific information on-demand through the Model Context Protocol (MCP).
+
+### Key Benefits
+- **🔍 Intelligent Search**: Find relevant endpoints using natural language queries
+- **📊 Schema Awareness**: Get complete type information and relationships
+- **💻 Code Generation**: Generate working examples in multiple languages
+- **⚡ Fast Responses**: Sub-200ms search, optimized for AI agent workflows
+- **🔌 Easy Integration**: Works with VS Code, Cursor, and custom AI tools
+- **🛡️ Production Ready**: SSL, authentication, monitoring, and deployment guides
+
+### Use Cases
+- **API Integration**: Help AI assistants understand and use your APIs correctly
+- **Documentation Search**: Quickly find specific endpoints and schemas
+- **Code Generation**: Generate accurate API client code and examples
+- **API Exploration**: Discover API capabilities through intelligent search
+- **Development Workflow**: Integrate API knowledge into your coding environment
+
+## 🚀 Quick Start
+
+### Installation
+
+```bash
+# Option 1: Install from PyPI (coming soon)
+pip install swagger-mcp-server
+
+# Option 2: Install from source
+git clone https://github.com/bmad-dev/swagger-mcp-server.git
+cd swagger-mcp-server
+poetry install
+
+# Option 3: Development installation
+pip install -e .
+```
+
+> **📖 Complete Installation Guide**: See [docs/INSTALLATION.md](docs/INSTALLATION.md) for detailed installation instructions, system requirements, and troubleshooting.
+
+### 5-Minute Tutorial
+
+```bash
+# 1. Install the tool
+pip install swagger-mcp-server
+
+# 2. Convert your Swagger file
+swagger-mcp-server convert your-api.json --name my-api
+
+# 3. Start the MCP server
+cd mcp-server-my-api
+swagger-mcp-server serve
+
+# 4. Test with AI agents or curl
+curl -X POST http://localhost:8080 \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"searchEndpoints","params":{"keywords":"user"}}'
+```
+
+> **📖 Complete Quick Start**: Follow our step-by-step [Quick Start Tutorial](docs/guides/QUICKSTART.md) to get your first MCP server running in 5 minutes with sample data.
+
+## 🏗️ Architecture
+
+The system consists of four main components:
+
+```
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   AI Agent      │◄──►│   MCP Server     │◄──►│  Search Engine  │
+│                 │    │                  │    │                 │
+│ • Claude        │    │ • JSON-RPC API   │    │ • Endpoint Index│
+│ • GPT-4         │    │ • Authentication │    │ • Schema Index  │
+│ • Cursor        │    │ • Rate Limiting  │    │ • Full-Text     │
+│ • VS Code       │    │ • Monitoring     │    │ • Relationships │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+                                │
+                                ▼
+                       ┌──────────────────┐
+                       │  Swagger Parser  │
+                       │                  │
+                       │ • Validation     │
+                       │ • Schema Extract │
+                       │ • Relationship   │
+                       │ • Indexing       │
+                       └──────────────────┘
+```
+
+### Core Components
+- **🔍 Parser**: Stream-based JSON parsing for large OpenAPI files (up to 10MB)
+- **💾 Storage**: SQLite database with optimized search indexes and relationships
+- **🌐 Server**: MCP protocol implementation with JSON-RPC over HTTP
+- **🔗 Search**: Intelligent endpoint and schema search with relevance ranking
+- **💻 Examples**: Multi-language code generation (cURL, JavaScript, Python, Go)
+
+> **📖 Detailed Architecture**: See [docs/architecture/](docs/architecture/) for complete technical documentation and design decisions.
+
+## 🔧 Development Setup
+
+### Prerequisites
+
+- **Python 3.11 or higher** (tested with Python 3.13.3)
+- **Poetry** (recommended for dependency management) or pip
+- **pipx** (for Poetry installation)
+- **Git**
+
+### System Dependencies
+
+Install system dependencies first:
+
+```bash
+# macOS (using Homebrew)
+brew install python@3.13 pipx
+
+# Ubuntu/Debian
+sudo apt update
+sudo apt install python3.11-dev python3.11-venv python3-pip pipx
+
+# Install Poetry
+pipx install poetry
+```
+
+### Local Development
+
+1. **Clone and setup:**
+   ```bash
+   git clone https://github.com/bmad-dev/swagger-mcp-server.git
+   cd swagger-mcp-server
+   ```
+
+2. **Setup virtual environment and install dependencies:**
+
+   **Option A: Using Poetry (Recommended):**
+   ```bash
+   # Install all dependencies including dev dependencies
+   poetry install --with dev
+
+   # Activate virtual environment
+   poetry shell
+   ```
+
+   **Option B: Using pip with virtual environment:**
+   ```bash
+   # Create virtual environment
+   python3 -m venv .venv
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+   # Upgrade pip
+   pip install --upgrade pip
+
+   # Install essential dependencies for development
+   pip install pytest pytest-asyncio aiosqlite sqlalchemy structlog greenlet
+
+   # Install optional dev dependencies
+   pip install black isort flake8 mypy pytest-cov
+   ```
+
+3. **Verify installation:**
+   ```bash
+   # Test import of main modules
+   python -c "
+   import sys; sys.path.append('src')
+   from swagger_mcp_server.storage.migrations import Migration
+   print('✅ Installation successful!')
+   "
+   ```
+
+4. **Run tests:**
+   ```bash
+   # With Poetry
+   poetry run pytest src/tests/unit/test_storage/ -v
+
+   # With pip/venv (make sure .venv is activated)
+   PYTHONPATH=src python -m pytest src/tests/unit/test_storage/ -v
+
+   # Run performance tests
+   PYTHONPATH=src python -m pytest src/tests/performance/ -v
+
+   # Run with coverage
+   pytest --cov=src/swagger_mcp_server --cov-report=html
+   ```
+
+5. **Run linting:**
+   ```bash
+   # Format code
+   black src/
+   isort src/
+
+   # Check linting
+   flake8 src/
+   mypy src/swagger_mcp_server/
+   ```
+
+## 🧪 Testing
+
+The project uses a comprehensive testing strategy:
+
+- **Unit Tests**: 80%+ coverage requirement, focused on individual components
+- **Integration Tests**: Full MCP server workflow testing
+- **Performance Tests**: Validation of response time requirements (<200ms search, <500ms schema)
+- **Fixtures**: Sample OpenAPI specifications for consistent testing
+
+### Running Tests
+
+```bash
+# All tests with coverage
+poetry run pytest --cov=swagger_mcp_server --cov-report=html
+
+# Unit tests only
+poetry run pytest -m unit
+
+# Integration tests only
+poetry run pytest -m integration
+
+# Performance/benchmark tests
+poetry run pytest -m performance --benchmark-only
+```
+
+## 📁 Project Structure
+
+```
+swagger-mcp-server/
+├── src/
+│   ├── swagger_mcp_server/        # Main package
+│   │   ├── parser/                # OpenAPI parsing
+│   │   ├── storage/               # Database layer
+│   │   ├── server/                # MCP implementation
+│   │   ├── config/                # Configuration
+│   │   └── examples/              # Code generation
+│   └── tests/                     # Test suite
+├── scripts/                       # Utility scripts
+├── data/                          # Sample data
+├── docs/                          # Documentation
+├── .github/                       # CI/CD workflows
+└── pyproject.toml                 # Project configuration
+```
+
+## 🔍 MCP Server Methods
+
+The server implements three core MCP methods:
+
+### `searchEndpoints(keywords, httpMethods)`
+Search for API endpoints using keywords and HTTP method filters.
+
+```javascript
+// Example usage
+const results = await mcpClient.call('searchEndpoints', {
+  keywords: ['user', 'authentication'],
+  httpMethods: ['GET', 'POST']
+});
+```
+
+### `getSchema(componentName)`
+Retrieve complete schema definitions with dependencies.
+
+```javascript
+const schema = await mcpClient.call('getSchema', {
+  componentName: 'User'
+});
+```
+
+### `getExample(endpoint, format)`
+Generate working code examples in multiple formats.
+
+```javascript
+const example = await mcpClient.call('getExample', {
+  endpoint: '/api/users',
+  format: 'curl'  // 'curl', 'javascript', 'python'
+});
+```
+
+> **📖 Complete API Reference**: See [docs/api/MCP_PROTOCOL.md](docs/api/MCP_PROTOCOL.md) for detailed protocol documentation, client libraries, and integration examples.
+
+## 🔧 CLI Commands
+
+Essential commands for everyday use:
+
+```bash
+# Convert Swagger to MCP server
+swagger-mcp-server convert api.json --name my-api --port 8080
+
+# Start server
+swagger-mcp-server serve --config config.yaml
+
+# Check server status
+swagger-mcp-server status --all
+
+# Configuration management
+swagger-mcp-server config create production --output prod-config.yaml
+
+# Setup and installation
+swagger-mcp-server setup --verify
+```
+
+> **📖 Complete CLI Reference**: See [docs/reference/CLI_REFERENCE.md](docs/reference/CLI_REFERENCE.md) for all commands, options, and usage examples.
+
+## ⚡ Performance Requirements
+
+- **Search Response**: < 200ms target, < 500ms maximum
+- **Schema Retrieval**: < 500ms target, < 1s maximum
+- **File Processing**: < 2s for files up to 5MB
+- **Memory Usage**: Process 10MB files within 2GB RAM
+- **Concurrency**: Support 100+ concurrent AI agent connections
+
+> **📖 Performance Tuning**: See [docs/guides/PERFORMANCE.md](docs/guides/PERFORMANCE.md) for optimization strategies and scaling guidelines.
+
+## 🤖 AI Tool Integrations
+
+swagger-mcp-server works seamlessly with popular AI coding assistants:
+
+### VS Code + Continue
+```json
+{
+  "mcpServers": {
+    "my-api": {
+      "command": "swagger-mcp-server",
+      "args": ["serve", "--config", "config.yaml"]
+    }
+  }
+}
+```
+
+### Cursor AI
+```json
+{
+  "mcp": {
+    "servers": {
+      "api-docs": "http://localhost:8080"
+    }
+  }
+}
+```
+
+> **📖 Integration Guides**: See [docs/examples/integrations/](docs/examples/integrations/) for complete setup instructions for VS Code, Cursor, and custom AI agents.
+
+## 📝 Configuration
+
+### Basic Configuration
+```yaml
+# config.yaml
+server:
+  host: localhost
+  port: 8080
+
+database:
+  path: ./mcp_server.db
+
+search:
+  index_directory: ./search_index
+
+logging:
+  level: INFO
+  console: true
+```
+
+### Environment-Specific Configs
+- **Development**: [docs/examples/configurations/development.yaml](docs/examples/configurations/development.yaml)
+- **Production**: [docs/examples/configurations/production.yaml](docs/examples/configurations/production.yaml)
+
+> **📖 Configuration Guide**: See [docs/guides/BASIC_CONFIG.md](docs/guides/BASIC_CONFIG.md) for configuration basics and [docs/reference/CONFIGURATION.md](docs/reference/CONFIGURATION.md) for complete reference.
+
+## 💡 Examples
+
+### Sample APIs
+We provide realistic sample APIs for testing:
+
+- **E-commerce Platform** (45 endpoints): [docs/examples/swagger-files/ecommerce-api.json](docs/examples/swagger-files/ecommerce-api.json)
+- **Banking API** (67 endpoints): [docs/examples/swagger-files/banking-api.json](docs/examples/swagger-files/banking-api.json)
+- **Healthcare API** (52 endpoints): [docs/examples/swagger-files/healthcare-api.json](docs/examples/swagger-files/healthcare-api.json)
+
+### Quick Test
+```bash
+# Use our sample e-commerce API
+swagger-mcp-server examples create-sample --type ecommerce --output sample-api.json
+swagger-mcp-server convert sample-api.json --name demo
+cd mcp-server-demo && swagger-mcp-server serve
+```
+
+> **📖 Examples Catalog**: See [docs/examples/swagger-files/README.md](docs/examples/swagger-files/README.md) for all available sample APIs and use cases.
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [contribution guidelines](CONTRIBUTING.md) for details.
+
+### Development Workflow
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feat/my-feature`
+3. Make your changes with tests
+4. Run the test suite: `pytest`
+5. Run linting: `black src/ && flake8 src/`
+6. Commit with conventional commits: `git commit -m "feat: add new feature"`
+7. Push and create a pull request
+
+### Code Quality Standards
+
+- **Code Coverage**: Minimum 80% (target 85%+)
+- **Type Hints**: Required for all public functions
+- **Documentation**: Comprehensive docstrings for public APIs
+- **Performance**: All changes must meet response time requirements
+- **Security**: No credentials in logs, input validation required
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🏷️ Version History
+
+- **v0.1.0**: Initial release with core parsing and MCP server functionality
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+**Installation Problems**:
+```bash
+# Python version issues
+python --version  # Should be 3.9+
+
+# Permission errors
+pip install --user swagger-mcp-server
+
+# Package conflicts
+python -m venv venv && source venv/bin/activate
+```
+
+**Runtime Issues**:
+```bash
+# Port already in use
+swagger-mcp-server serve --port 9000
+
+# Database locked
+swagger-mcp-server stop --all
+
+# Search index corruption
+rm -rf search_index/ && swagger-mcp-server serve
+```
+
+> **📖 Comprehensive Troubleshooting**: See [docs/troubleshooting/COMMON_ISSUES.md](docs/troubleshooting/COMMON_ISSUES.md) for detailed solutions to installation, configuration, and runtime problems.
+
+## 📚 Complete Documentation
+
+### 🚀 Getting Started
+- **[Installation Guide](docs/INSTALLATION.md)** - System requirements, installation methods, verification
+- **[Quick Start Tutorial](docs/guides/QUICKSTART.md)** - 5-minute setup with sample API
+- **[Basic Configuration](docs/guides/BASIC_CONFIG.md)** - Essential configuration for new users
+
+### 📖 Reference Documentation
+- **[CLI Reference](docs/reference/CLI_REFERENCE.md)** - Complete command reference with examples
+- **[Configuration Reference](docs/reference/CONFIGURATION.md)** - All configuration options and settings
+- **[MCP Protocol API](docs/api/MCP_PROTOCOL.md)** - Protocol documentation and client libraries
+
+### 💡 Examples and Integrations
+- **[Sample APIs](docs/examples/swagger-files/README.md)** - Realistic APIs for testing and learning
+- **[Configuration Templates](docs/examples/configurations/)** - Environment-specific configurations
+- **[AI Tool Integrations](docs/examples/integrations/)** - VS Code, Cursor, and custom integrations
+
+### 🔧 Advanced Topics
+- **[Deployment Guide](docs/guides/DEPLOYMENT.md)** - Production deployment and scaling
+- **[Performance Tuning](docs/guides/PERFORMANCE.md)** - Optimization and monitoring
+- **[Security Configuration](docs/guides/SECURITY.md)** - Hardening and best practices
+
+### 🆘 Support and Troubleshooting
+- **[Common Issues](docs/troubleshooting/COMMON_ISSUES.md)** - Frequently encountered problems
+- **[Error Reference](docs/troubleshooting/ERROR_REFERENCE.md)** - Error messages and solutions
+- **[Diagnostic Tools](docs/troubleshooting/DIAGNOSTICS.md)** - Debugging and analysis tools
+
+### 🛠️ Development
+- **[Development Setup](DEVELOPMENT.md)** - Complete development environment setup
+- **[Contributing Guide](CONTRIBUTING.md)** - How to contribute to the project
+- **[Architecture Documentation](docs/architecture/)** - Technical design and decisions
+
+> **📖 Main Documentation Hub**: See [docs/README.md](docs/README.md) for the complete documentation index with detailed navigation.
+
+## 🆘 Getting Help
+
+### Quick Help
+- **🚀 New Users**: Start with [Quick Start Tutorial](docs/guides/QUICKSTART.md)
+- **🔧 Problems**: Check [Common Issues](docs/troubleshooting/COMMON_ISSUES.md)
+- **⚙️ Configuration**: See [Basic Configuration](docs/guides/BASIC_CONFIG.md)
+- **🤖 AI Integration**: Follow [Integration Guides](docs/examples/integrations/)
+
+### Community Support
+- **🐛 Issues**: [GitHub Issues](https://github.com/bmad-dev/swagger-mcp-server/issues) for bugs and feature requests
+- **💬 Discussions**: [GitHub Discussions](https://github.com/bmad-dev/swagger-mcp-server/discussions) for questions and community support
+- **📖 Documentation**: [Complete docs](docs/README.md) with searchable content
+- **💡 Examples**: [Working examples](docs/examples/) for common use cases
+
+### Before Reporting Issues
+1. ✅ Check [Common Issues](docs/troubleshooting/COMMON_ISSUES.md)
+2. ✅ Search [existing issues](https://github.com/bmad-dev/swagger-mcp-server/issues)
+3. ✅ Try with [minimal configuration](docs/guides/BASIC_CONFIG.md)
+4. ✅ Include system info and logs in your report

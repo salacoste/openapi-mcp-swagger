@@ -1,0 +1,63 @@
+# MCP Server Configuration - Container Template
+# Generated on: 2024-01-15 10:30:00
+# File: container.yaml
+
+# Container deployment configuration optimized for:
+# - Container deployment
+# - Environment variable configuration
+# - Stateless operation
+# - Health checks
+# - Minimal file system usage
+
+server:
+  host: 0.0.0.0
+  port: 8080
+  max_connections: 100
+  timeout: 30
+  ssl:
+    enabled: false  # Usually handled by ingress/load balancer
+    cert_file: null
+    key_file: null
+
+database:
+  path: /data/mcp_server.db
+  pool_size: 10
+  timeout: 10
+  backup:
+    enabled: false  # Usually handled externally in containers
+    interval: 86400
+    retention: 1
+
+search:
+  engine: whoosh
+  index_directory: /data/search_index
+  field_weights:
+    endpoint_path: 1.5
+    summary: 1.2
+    description: 1.0
+    parameters: 0.8
+    tags: 0.6
+  performance:
+    cache_size_mb: 64
+    max_results: 1000
+    search_timeout: 10
+
+logging:
+  level: INFO
+  format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+  file: null  # Log to stdout for container logs
+  rotation:
+    enabled: false
+    max_size_mb: 10
+    backup_count: 1
+
+features:
+  metrics:
+    enabled: true
+    endpoint: /metrics
+  health_check:
+    enabled: true
+    endpoint: /health
+  rate_limiting:
+    enabled: false  # Usually handled by ingress
+    requests_per_minute: 100

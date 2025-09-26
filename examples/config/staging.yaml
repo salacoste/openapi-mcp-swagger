@@ -1,0 +1,63 @@
+# MCP Server Configuration - Staging Template
+# Generated on: 2024-01-15 10:30:00
+# File: staging.yaml
+
+# Staging environment configuration optimized for:
+# - Staging/testing environment
+# - Production-like settings
+# - Enhanced logging for debugging
+# - Moderate resource usage
+# - Security testing
+
+server:
+  host: 0.0.0.0
+  port: 8080
+  max_connections: 50
+  timeout: 30
+  ssl:
+    enabled: false  # Often disabled in staging for easier testing
+    cert_file: null
+    key_file: null
+
+database:
+  path: /opt/mcp-server/staging_mcp_server.db
+  pool_size: 5
+  timeout: 15
+  backup:
+    enabled: true
+    interval: 43200  # 12 hours
+    retention: 3
+
+search:
+  engine: whoosh
+  index_directory: /opt/mcp-server/staging_search_index
+  field_weights:
+    endpoint_path: 1.5
+    summary: 1.2
+    description: 1.0
+    parameters: 0.8
+    tags: 0.6
+  performance:
+    cache_size_mb: 64
+    max_results: 500
+    search_timeout: 15
+
+logging:
+  level: INFO
+  format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+  file: /var/log/mcp-server/staging_server.log
+  rotation:
+    enabled: true
+    max_size_mb: 5
+    backup_count: 3
+
+features:
+  metrics:
+    enabled: true
+    endpoint: /metrics
+  health_check:
+    enabled: true
+    endpoint: /health
+  rate_limiting:
+    enabled: true
+    requests_per_minute: 200

@@ -1,0 +1,63 @@
+# MCP Server Configuration - Development Template
+# Generated on: 2024-01-15 10:30:00
+# File: development.yaml
+
+# Development environment configuration optimized for:
+# - Local development
+# - Debugging and testing
+# - Relaxed security settings
+# - Verbose logging
+# - Small resource usage
+
+server:
+  host: localhost
+  port: 8080
+  max_connections: 10
+  timeout: 60
+  ssl:
+    enabled: false
+    cert_file: null
+    key_file: null
+
+database:
+  path: ./dev_mcp_server.db
+  pool_size: 2
+  timeout: 30
+  backup:
+    enabled: false
+    interval: 86400
+    retention: 1
+
+search:
+  engine: whoosh
+  index_directory: ./dev_search_index
+  field_weights:
+    endpoint_path: 1.5
+    summary: 1.2
+    description: 1.0
+    parameters: 0.8
+    tags: 0.6
+  performance:
+    cache_size_mb: 32
+    max_results: 100
+    search_timeout: 30
+
+logging:
+  level: DEBUG
+  format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+  file: ./dev_server.log
+  rotation:
+    enabled: false
+    max_size_mb: 5
+    backup_count: 2
+
+features:
+  metrics:
+    enabled: true
+    endpoint: /metrics
+  health_check:
+    enabled: true
+    endpoint: /health
+  rate_limiting:
+    enabled: false
+    requests_per_minute: 1000
