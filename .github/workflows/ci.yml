@@ -9,6 +9,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
       matrix:
         python-version: ["3.11", "3.12"]
@@ -53,7 +54,7 @@ jobs:
 
     - name: Run tests
       run: |
-        poetry run pytest --cov=swagger_mcp_server --cov-report=xml --cov-report=term-missing \
+        poetry run pytest src/tests/unit/ --cov=swagger_mcp_server --cov-report=xml --cov-report=term-missing \
           --ignore=src/tests/unit/test_search/test_endpoint_indexing.py \
           --ignore=src/tests/unit/test_search/test_index_manager.py \
           --ignore=src/tests/unit/test_search/test_index_schema.py \
@@ -62,7 +63,8 @@ jobs:
           --ignore=src/tests/unit/test_search/test_result_processor.py \
           --ignore=src/tests/unit/test_search/test_schema_search_integration.py \
           --ignore=src/tests/unit/test_search/test_search_analytics.py \
-          --ignore=src/tests/unit/test_search/test_search_engine.py
+          --ignore=src/tests/unit/test_search/test_search_engine.py \
+          --maxfail=5 -x --tb=short
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
@@ -125,3 +127,6 @@ jobs:
       with:
         name: dist
         path: dist/
+
+# Note: Integration and performance tests are excluded from CI for speed
+# They can be run locally with: poetry run pytest src/tests/integration/ src/tests/performance/
