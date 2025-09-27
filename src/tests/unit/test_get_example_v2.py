@@ -321,7 +321,7 @@ class TestEnhancedGetExample:
         )
 
         assert "error" in result
-        assert "not found" in result["error"].lower()
+        assert "HTTP method is required" in result["error"]
 
     @pytest.mark.asyncio
     async def test_error_handling_server_not_initialized(self):
