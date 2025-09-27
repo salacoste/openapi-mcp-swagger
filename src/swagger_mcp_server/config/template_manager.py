@@ -24,6 +24,7 @@ class ConfigurationTemplateManager:
             "development": self.get_development_template,
             "staging": self.get_staging_template,
             "production": self.get_production_template,
+            "container": self.get_container_template,
         }
 
         if template_name not in templates:
@@ -160,6 +161,71 @@ class ConfigurationTemplateManager:
                 "metrics": {"enabled": True, "endpoint": "/metrics"},
                 "health_check": {"enabled": True, "endpoint": "/health"},
                 "rate_limiting": {"enabled": True, "requests_per_minute": 100},
+            },
+        }
+
+    def get_container_template(self) -> Dict[str, Any]:
+        """Container environment template optimized for containerized deployments.
+
+        Optimized for:
+        - Docker/Kubernetes deployment
+        - Environment variable configuration
+        - Minimal file system dependencies
+        - Health checks and monitoring
+        - Horizontal scaling
+        """
+        return {
+            "server": {
+                "host": "0.0.0.0",
+                "port": 8080,
+                "max_connections": 50,
+                "timeout": 30,
+                "ssl": {
+                    "enabled": False,
+                    "cert_file": None,
+                    "key_file": None,
+                },
+            },
+            "database": {
+                "path": "/app/data/mcp_server.db",
+                "pool_size": 5,
+                "timeout": 10,
+                "backup": {
+                    "enabled": False,
+                    "interval": 86400,
+                    "retention": 3,
+                },
+            },
+            "search": {
+                "engine": "whoosh",
+                "index_directory": "/app/data/search_index",
+                "field_weights": {
+                    "endpoint_path": 1.5,
+                    "summary": 1.2,
+                    "description": 1.0,
+                    "parameters": 0.8,
+                    "tags": 0.6,
+                },
+                "performance": {
+                    "cache_size_mb": 64,
+                    "max_results": 500,
+                    "search_timeout": 5,
+                },
+            },
+            "logging": {
+                "level": "INFO",
+                "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+                "file": None,  # Log to stdout in containers
+                "rotation": {
+                    "enabled": False,
+                    "max_size_mb": 10,
+                    "backup_count": 0,
+                },
+            },
+            "features": {
+                "metrics": {"enabled": True, "endpoint": "/metrics"},
+                "health_check": {"enabled": True, "endpoint": "/health"},
+                "rate_limiting": {"enabled": True, "requests_per_minute": 200},
             },
         }
 

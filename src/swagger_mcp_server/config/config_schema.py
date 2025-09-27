@@ -395,6 +395,10 @@ class ConfigurationSchema:
         cls, value: Any, definition: Dict[str, Any], key: str
     ) -> tuple[bool, Optional[str]]:
         """Validate a value against its schema definition."""
+        # Check if nullable and None value
+        if definition.get("nullable", False) and value is None:
+            return True, None
+
         # Type validation
         expected_type = definition.get("type")
 

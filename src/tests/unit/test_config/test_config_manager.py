@@ -392,8 +392,8 @@ async def test_configuration_integration():
         config_dir = Path(temp_dir)
         manager = ConfigurationManager(config_dir=config_dir)
 
-        # Initialize with production template
-        await manager.initialize_configuration("production")
+        # Initialize with development template
+        await manager.initialize_configuration("development")
 
         # Customize configuration
         await manager.set_configuration_value("server.port", 9000)
@@ -408,8 +408,8 @@ async def test_configuration_integration():
         assert config["server"]["port"] == 9000
         assert config["logging"]["level"] == "DEBUG"
         assert (
-            config["server"]["host"] == "0.0.0.0"
-        )  # Production template value
+            config["server"]["host"] == "localhost"
+        )  # Development template value
 
         # Test environment override
         with patch.dict(

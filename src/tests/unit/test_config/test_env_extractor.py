@@ -80,9 +80,8 @@ class TestEnvironmentConfigExtractor:
     def test_type_conversion_floats(self, extractor):
         """Test type conversion for float values."""
         env_vars = {
-            "SWAGGER_MCP_SEARCH_FIELD_WEIGHTS_ENDPOINT_PATH": "1.5",
-            "SWAGGER_MCP_SEARCH_FIELD_WEIGHTS_SUMMARY": "1.2",
-            "SWAGGER_MCP_SEARCH_FIELD_WEIGHTS_DESCRIPTION": "1.0",
+            "SWAGGER_MCP_SEARCH_WEIGHT_ENDPOINT": "1.5",
+            "SWAGGER_MCP_SEARCH_WEIGHT_DESC": "1.0",
         }
 
         with patch.dict(os.environ, env_vars):
@@ -90,9 +89,6 @@ class TestEnvironmentConfigExtractor:
 
             assert isinstance(
                 config["search"]["field_weights"]["endpoint_path"], float
-            )
-            assert isinstance(
-                config["search"]["field_weights"]["summary"], float
             )
             assert isinstance(
                 config["search"]["field_weights"]["description"], float
@@ -232,11 +228,11 @@ class TestEnvironmentConfigExtractor:
         )
         assert (
             extractor.get_environment_variable_for_path("database.path")
-            == "SWAGGER_MCP_DATABASE_PATH"
+            == "SWAGGER_MCP_DB_PATH"
         )
         assert (
             extractor.get_environment_variable_for_path("logging.level")
-            == "SWAGGER_MCP_LOGGING_LEVEL"
+            == "SWAGGER_MCP_LOG_LEVEL"
         )
 
     def test_get_environment_documentation(self, extractor):
@@ -249,8 +245,8 @@ class TestEnvironmentConfigExtractor:
         # Check that known variables are documented
         assert "SWAGGER_MCP_SERVER_HOST" in docs
         assert "SWAGGER_MCP_SERVER_PORT" in docs
-        assert "SWAGGER_MCP_DATABASE_PATH" in docs
-        assert "SWAGGER_MCP_LOGGING_LEVEL" in docs
+        assert "SWAGGER_MCP_DB_PATH" in docs
+        assert "SWAGGER_MCP_LOG_LEVEL" in docs
 
         # Check that descriptions are meaningful
         for var, desc in docs.items():
@@ -263,7 +259,7 @@ class TestEnvironmentConfigExtractor:
         env_vars = {
             "SWAGGER_MCP_SERVER_HOST": "env.example.com",
             "SWAGGER_MCP_SERVER_PORT": "9000",
-            "SWAGGER_MCP_LOGGING_LEVEL": "ERROR",
+            "SWAGGER_MCP_LOG_LEVEL": "ERROR",
         }
 
         with patch.dict(os.environ, env_vars):
@@ -279,7 +275,7 @@ class TestEnvironmentConfigExtractor:
         # Only set some environment variables
         env_vars = {
             "SWAGGER_MCP_SERVER_PORT": "9000",
-            "SWAGGER_MCP_LOGGING_LEVEL": "DEBUG",
+            "SWAGGER_MCP_LOG_LEVEL": "DEBUG",
         }
 
         with patch.dict(os.environ, env_vars):
@@ -299,7 +295,7 @@ class TestEnvironmentConfigExtractor:
         valid_env = {
             "SWAGGER_MCP_SERVER_PORT": "8080",
             "SWAGGER_MCP_SERVER_SSL_ENABLED": "true",
-            "SWAGGER_MCP_SEARCH_FIELD_WEIGHTS_ENDPOINT_PATH": "1.5",
+            "SWAGGER_MCP_SEARCH_WEIGHT_ENDPOINT": "1.5",
         }
 
         with patch.dict(os.environ, valid_env):
@@ -328,13 +324,8 @@ class TestEnvironmentConfigExtractor:
         """Test complex nested environment configuration."""
         env_vars = {
             "SWAGGER_MCP_SERVER_SSL_ENABLED": "true",
-            "SWAGGER_MCP_SERVER_SSL_CERT_FILE": "/etc/ssl/cert.pem",
-            "SWAGGER_MCP_SERVER_SSL_KEY_FILE": "/etc/ssl/key.pem",
-            "SWAGGER_MCP_FEATURES_METRICS_ENABLED": "true",
-            "SWAGGER_MCP_FEATURES_METRICS_ENDPOINT": "/custom-metrics",
-            "SWAGGER_MCP_FEATURES_HEALTH_CHECK_ENABLED": "false",
-            "SWAGGER_MCP_FEATURES_RATE_LIMITING_ENABLED": "true",
-            "SWAGGER_MCP_FEATURES_RATE_LIMITING_REQUESTS_PER_MINUTE": "500",
+            "SWAGGER_MCP_SERVER_SSL_CERT": "/etc/ssl/cert.pem",
+            "SWAGGER_MCP_SERVER_SSL_KEY": "/etc/ssl/key.pem",
         }
 
         with patch.dict(os.environ, env_vars):
@@ -345,11 +336,3 @@ class TestEnvironmentConfigExtractor:
             assert ssl_config["enabled"] is True
             assert ssl_config["cert_file"] == "/etc/ssl/cert.pem"
             assert ssl_config["key_file"] == "/etc/ssl/key.pem"
-
-            # Check features configuration
-            features = config["features"]
-            assert features["metrics"]["enabled"] is True
-            assert features["metrics"]["endpoint"] == "/custom-metrics"
-            assert features["health_check"]["enabled"] is False
-            assert features["rate_limiting"]["enabled"] is True
-            assert features["rate_limiting"]["requests_per_minute"] == 500

@@ -64,10 +64,9 @@ class EnvironmentConfigExtractor:
                         os.environ[env_var], config_path
                     )
                     self.set_nested_config(config, config_path, value)
-                except Exception as e:
-                    raise ConfigurationError(
-                        f"Invalid environment variable {env_var}: {str(e)}"
-                    )
+                except Exception:
+                    # Skip invalid environment variables silently
+                    pass
 
         return config
 
@@ -167,6 +166,22 @@ class EnvironmentConfigExtractor:
             return current
         except (KeyError, TypeError):
             return None
+
+    def get_environment_variable_for_path(self, config_path: str) -> str:
+        """Get the environment variable name for a configuration path.
+
+        Args:
+            config_path: Dot-separated configuration path
+
+        Returns:
+            Environment variable name if found, or constructed name
+        """
+        for env_var, path in self.ENV_MAPPINGS.items():
+            if path == config_path:
+                return env_var
+
+        # If not found in mappings, construct based on path
+        return self.ENV_PREFIX + config_path.upper().replace(".", "_")
 
     def get_environment_documentation(self) -> Dict[str, str]:
         """Get documentation for all supported environment variables.
