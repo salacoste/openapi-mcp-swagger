@@ -50,7 +50,7 @@ class TestMethodMetrics:
 
         assert metrics.total_requests == 3
         assert metrics.total_errors == 0
-        assert metrics.total_response_time == 0.45
+        assert abs(metrics.total_response_time - 0.45) < 0.001
         assert metrics.avg_response_time == 150.0  # (100+200+150)/3 = 150ms
         assert len(metrics.response_times) == 3
 
