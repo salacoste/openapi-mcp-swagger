@@ -204,15 +204,27 @@ class TestInstallationManager:
         await manager.setup_data_directories()
         await manager.setup_logging()
 
+        # Create config.yaml file that verification expects
+        config_file = manager.config_dir / "config.yaml"
+        config_file.write_text("server:\n  host: localhost\n  port: 8080\n")
+
         # Mock configuration validation
         mock_config_manager = Mock()
         mock_config_manager.validate_configuration = AsyncMock(
             return_value=(True, [], [])
         )
 
+        # Mock the dependencies check to return all dependencies available
         with patch(
-            "swagger_mcp_server.installation.manager.ConfigurationManager",
+            "swagger_mcp_server.config.ConfigurationManager",
             return_value=mock_config_manager,
+        ), patch.object(
+            manager, "_verify_dependencies",
+            return_value={
+                "working": True,
+                "message": "All dependencies available",
+                "details": {"required": 8, "available": 8, "missing": []},
+            }
         ):
             result = await manager.verify_installation()
 
@@ -257,7 +269,7 @@ class TestInstallationManager:
         )
 
         with patch(
-            "swagger_mcp_server.installation.manager.ConfigurationManager",
+            "swagger_mcp_server.config.ConfigurationManager",
             return_value=mock_config_manager,
         ):
             result = await manager._verify_configuration()
@@ -274,7 +286,7 @@ class TestInstallationManager:
         )
 
         with patch(
-            "swagger_mcp_server.installation.manager.ConfigurationManager",
+            "swagger_mcp_server.config.ConfigurationManager",
             return_value=mock_config_manager,
         ):
             result = await manager._verify_configuration()
@@ -375,7 +387,7 @@ class TestInstallationManager:
         )
 
         with patch(
-            "swagger_mcp_server.installation.manager.ConfigurationManager",
+            "swagger_mcp_server.config.ConfigurationManager",
             return_value=mock_config_manager,
         ):
             result = await manager.get_installation_info()
