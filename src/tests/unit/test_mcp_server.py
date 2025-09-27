@@ -160,7 +160,7 @@ class TestSwaggerMcpServer:
         server = SwaggerMcpServer(settings)
         # Don't initialize repositories
 
-        result = await server._search_endpoints(query="test")
+        result = await server._search_endpoints(keywords="test")
         assert "error" in result
         assert "not properly initialized" in result["error"]
 
@@ -275,7 +275,7 @@ class TestSwaggerMcpServer:
             side_effect=Exception("Database error")
         )
 
-        result = await server._search_endpoints(query="test")
+        result = await server._search_endpoints(keywords="test")
         assert "error" in result
         assert "Database error" in result["error"]
 
