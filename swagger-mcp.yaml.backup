@@ -5,3 +5,5 @@ logging:
   level: invalid
 server:
   port: -1
+test:
+  key: test_value
