@@ -169,15 +169,15 @@ class InstallationManager:
         """Set up database and search index directories."""
         # Create database directory with proper structure
         db_dir = self.data_dir / "database"
-        db_dir.mkdir(exist_ok=True)
+        db_dir.mkdir(parents=True, exist_ok=True)
 
         # Create search index directory
         search_dir = self.data_dir / "search_index"
-        search_dir.mkdir(exist_ok=True)
+        search_dir.mkdir(parents=True, exist_ok=True)
 
         # Create temp directory for processing
         temp_dir = self.data_dir / "temp"
-        temp_dir.mkdir(exist_ok=True)
+        temp_dir.mkdir(parents=True, exist_ok=True)
 
     async def setup_logging(self) -> None:
         """Set up logging configuration."""
