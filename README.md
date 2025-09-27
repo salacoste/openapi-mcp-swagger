@@ -12,6 +12,25 @@
 [![Claude](https://img.shields.io/badge/Claude-Integration-orange.svg)](https://claude.ai/)
 [![VS Code](https://img.shields.io/badge/VS%20Code-Extension-blue.svg)](https://code.visualstudio.com/)
 
+---
+
+<div align="center">
+
+### ⭐ **Love this project? Give it a star!** ⭐
+
+<a href="https://github.com/salacoste/openapi-mcp-swagger/stargazers">
+  <img src="https://img.shields.io/github/stars/salacoste/openapi-mcp-swagger?style=for-the-badge&logo=github&logoColor=white&color=gold" alt="GitHub stars"/>
+</a>
+
+**🚀 Help us reach more developers who struggle with API integrations!**  
+*Your star makes this project more discoverable and motivates continued development.*
+
+[⭐ **Star this repo**](https://github.com/salacoste/openapi-mcp-swagger/stargazers) | [🍴 **Fork it**](https://github.com/salacoste/openapi-mcp-swagger/fork) | [📢 **Share it**](https://twitter.com/intent/tweet?text=Stop%20wrestling%20with%20massive%20API%20docs!%20Check%20out%20this%20Universal%20Swagger%20→%20MCP%20Server%20Converter%20for%20AI%20assistants&url=https://github.com/salacoste/openapi-mcp-swagger)
+
+</div>
+
+---
+
 ## 💡 **The Problem Every Developer Faces**
 
 You're building an integration with a complex API. The Swagger documentation is **2MB+ of JSON**. Your AI assistant can only see tiny fragments at a time. You end up:
@@ -651,3 +670,28 @@ rm -rf search_index/ && swagger-mcp-server serve
 2. ✅ Search [existing issues](https://github.com/salacoste/openapi-mcp-swagger/issues)
 3. ✅ Try with [minimal configuration](docs/guides/BASIC_CONFIG.md)
 4. ✅ Include system info and logs in your report
+
+---
+
+<div align="center">
+
+## 🌟 **Show Your Support** 🌟
+
+If this project helped solve your API integration challenges, **please consider starring it!**
+
+<a href="https://github.com/salacoste/openapi-mcp-swagger/stargazers">
+  <img src="https://img.shields.io/github/stars/salacoste/openapi-mcp-swagger?style=for-the-badge&logo=star&logoColor=white&color=ffd700" alt="Star this repository"/>
+</a>
+
+**🎯 Why your star matters:**
+- 📈 **Increases visibility** for developers facing similar challenges
+- 💪 **Motivates continued development** and new features
+- 🚀 **Helps us prioritize** community-requested improvements
+- 🤝 **Shows appreciation** for open-source work
+
+### **Quick Actions:**
+[⭐ Star](https://github.com/salacoste/openapi-mcp-swagger/stargazers) • [🍴 Fork](https://github.com/salacoste/openapi-mcp-swagger/fork) • [📋 Issues](https://github.com/salacoste/openapi-mcp-swagger/issues) • [💬 Discuss](https://github.com/salacoste/openapi-mcp-swagger/discussions)
+
+**Thank you for being part of our community! 🙏**
+
+</div>
