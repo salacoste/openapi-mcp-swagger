@@ -1,6 +1,7 @@
 """Tests for configuration schema validation."""
 
 import pytest
+
 from swagger_mcp_server.config import ConfigurationSchema
 
 
@@ -15,7 +16,13 @@ class TestConfigurationSchema:
         assert isinstance(config, dict)
 
         # Check all required sections exist
-        required_sections = ["server", "database", "search", "logging", "features"]
+        required_sections = [
+            "server",
+            "database",
+            "search",
+            "logging",
+            "features",
+        ]
         for section in required_sections:
             assert section in config
 
@@ -39,18 +46,26 @@ class TestConfigurationSchema:
         assert "verbosity" in help_text.lower()
 
         # Test nested keys
-        help_text = ConfigurationSchema.get_configuration_help("server.ssl.enabled")
+        help_text = ConfigurationSchema.get_configuration_help(
+            "server.ssl.enabled"
+        )
         assert "ssl" in help_text.lower() or "tls" in help_text.lower()
 
-        help_text = ConfigurationSchema.get_configuration_help("features.metrics.enabled")
+        help_text = ConfigurationSchema.get_configuration_help(
+            "features.metrics.enabled"
+        )
         assert "metrics" in help_text.lower()
 
     def test_get_configuration_help_invalid_keys(self):
         """Test getting help for invalid configuration keys."""
-        help_text = ConfigurationSchema.get_configuration_help("nonexistent.key")
+        help_text = ConfigurationSchema.get_configuration_help(
+            "nonexistent.key"
+        )
         assert help_text is None
 
-        help_text = ConfigurationSchema.get_configuration_help("server.nonexistent")
+        help_text = ConfigurationSchema.get_configuration_help(
+            "server.nonexistent"
+        )
         assert help_text is None
 
     def test_get_all_configuration_keys(self):
@@ -77,7 +92,7 @@ class TestConfigurationSchema:
             "logging.file",
             "search.engine",
             "search.index_directory",
-            "features.metrics.enabled"
+            "features.metrics.enabled",
         ]
 
         for key in expected_keys:
@@ -89,170 +104,234 @@ class TestConfigurationSchema:
     def test_validate_configuration_value_valid_string(self):
         """Test validation of valid string values."""
         # Valid host
-        is_valid, error = ConfigurationSchema.validate_configuration_value("server.host", "localhost")
+        is_valid, error = ConfigurationSchema.validate_configuration_value(
+            "server.host", "localhost"
+        )
         assert is_valid is True
         assert error is None
 
-        is_valid, error = ConfigurationSchema.validate_configuration_value("server.host", "example.com")
+        is_valid, error = ConfigurationSchema.validate_configuration_value(
+            "server.host", "example.com"
+        )
         assert is_valid is True
         assert error is None
 
         # Valid log level
-        is_valid, error = ConfigurationSchema.validate_configuration_value("logging.level", "DEBUG")
+        is_valid, error = ConfigurationSchema.validate_configuration_value(
+            "logging.level", "DEBUG"
+        )
         assert is_valid is True
         assert error is None
 
-        is_valid, error = ConfigurationSchema.validate_configuration_value("logging.level", "INFO")
+        is_valid, error = ConfigurationSchema.validate_configuration_value(
+            "logging.level", "INFO"
+        )
         assert is_valid is True
         assert error is None
 
     def test_validate_configuration_value_invalid_string(self):
         """Test validation of invalid string values."""
         # Invalid host (empty)
-        is_valid, error = ConfigurationSchema.validate_configuration_value("server.host", "")
+        is_valid, error = ConfigurationSchema.validate_configuration_value(
+            "server.host", ""
+        )
         assert is_valid is False
         assert "host" in error.lower()
 
         # Invalid log level
-        is_valid, error = ConfigurationSchema.validate_configuration_value("logging.level", "INVALID")
+        is_valid, error = ConfigurationSchema.validate_configuration_value(
+            "logging.level", "INVALID"
+        )
         assert is_valid is False
         assert "must be one of" in error
 
         # Non-string value for string field
-        is_valid, error = ConfigurationSchema.validate_configuration_value("server.host", 123)
+        is_valid, error = ConfigurationSchema.validate_configuration_value(
+            "server.host", 123
+        )
         assert is_valid is False
         assert "must be a string" in error
 
     def test_validate_configuration_value_valid_integer(self):
         """Test validation of valid integer values."""
         # Valid port
-        is_valid, error = ConfigurationSchema.validate_configuration_value("server.port", 8080)
+        is_valid, error = ConfigurationSchema.validate_configuration_value(
+            "server.port", 8080
+        )
         assert is_valid is True
         assert error is None
 
-        is_valid, error = ConfigurationSchema.validate_configuration_value("server.port", 1024)
+        is_valid, error = ConfigurationSchema.validate_configuration_value(
+            "server.port", 1024
+        )
         assert is_valid is True
         assert error is None
 
-        is_valid, error = ConfigurationSchema.validate_configuration_value("server.port", 65535)
+        is_valid, error = ConfigurationSchema.validate_configuration_value(
+            "server.port", 65535
+        )
         assert is_valid is True
         assert error is None
 
         # Valid max connections
-        is_valid, error = ConfigurationSchema.validate_configuration_value("server.max_connections", 100)
+        is_valid, error = ConfigurationSchema.validate_configuration_value(
+            "server.max_connections", 100
+        )
         assert is_valid is True
         assert error is None
 
     def test_validate_configuration_value_invalid_integer(self):
         """Test validation of invalid integer values."""
         # Port too low
-        is_valid, error = ConfigurationSchema.validate_configuration_value("server.port", 1023)
+        is_valid, error = ConfigurationSchema.validate_configuration_value(
+            "server.port", 1023
+        )
         assert is_valid is False
         assert "at least 1024" in error
 
         # Port too high
-        is_valid, error = ConfigurationSchema.validate_configuration_value("server.port", 65536)
+        is_valid, error = ConfigurationSchema.validate_configuration_value(
+            "server.port", 65536
+        )
         assert is_valid is False
         assert "at most 65535" in error
 
         # Non-integer value for integer field
-        is_valid, error = ConfigurationSchema.validate_configuration_value("server.port", "8080")
+        is_valid, error = ConfigurationSchema.validate_configuration_value(
+            "server.port", "8080"
+        )
         assert is_valid is False
         assert "must be an integer" in error
 
         # Negative connections
-        is_valid, error = ConfigurationSchema.validate_configuration_value("server.max_connections", -1)
+        is_valid, error = ConfigurationSchema.validate_configuration_value(
+            "server.max_connections", -1
+        )
         assert is_valid is False
         assert "at least 1" in error
 
     def test_validate_configuration_value_valid_float(self):
         """Test validation of valid float values."""
         # Valid field weights
-        is_valid, error = ConfigurationSchema.validate_configuration_value("search.field_weights.endpoint_path", 1.5)
+        is_valid, error = ConfigurationSchema.validate_configuration_value(
+            "search.field_weights.endpoint_path", 1.5
+        )
         assert is_valid is True
         assert error is None
 
-        is_valid, error = ConfigurationSchema.validate_configuration_value("search.field_weights.summary", 1.0)
+        is_valid, error = ConfigurationSchema.validate_configuration_value(
+            "search.field_weights.summary", 1.0
+        )
         assert is_valid is True
         assert error is None
 
         # Integers should be accepted for float fields
-        is_valid, error = ConfigurationSchema.validate_configuration_value("search.field_weights.endpoint_path", 2)
+        is_valid, error = ConfigurationSchema.validate_configuration_value(
+            "search.field_weights.endpoint_path", 2
+        )
         assert is_valid is True
         assert error is None
 
     def test_validate_configuration_value_invalid_float(self):
         """Test validation of invalid float values."""
         # Value too low
-        is_valid, error = ConfigurationSchema.validate_configuration_value("search.field_weights.endpoint_path", 0.05)
+        is_valid, error = ConfigurationSchema.validate_configuration_value(
+            "search.field_weights.endpoint_path", 0.05
+        )
         assert is_valid is False
         assert "at least 0.1" in error
 
         # Value too high
-        is_valid, error = ConfigurationSchema.validate_configuration_value("search.field_weights.endpoint_path", 3.5)
+        is_valid, error = ConfigurationSchema.validate_configuration_value(
+            "search.field_weights.endpoint_path", 3.5
+        )
         assert is_valid is False
         assert "at most 3.0" in error
 
         # Non-numeric value for float field
-        is_valid, error = ConfigurationSchema.validate_configuration_value("search.field_weights.endpoint_path", "invalid")
+        is_valid, error = ConfigurationSchema.validate_configuration_value(
+            "search.field_weights.endpoint_path", "invalid"
+        )
         assert is_valid is False
         assert "must be a number" in error
 
     def test_validate_configuration_value_valid_boolean(self):
         """Test validation of valid boolean values."""
         # Valid boolean values
-        is_valid, error = ConfigurationSchema.validate_configuration_value("server.ssl.enabled", True)
+        is_valid, error = ConfigurationSchema.validate_configuration_value(
+            "server.ssl.enabled", True
+        )
         assert is_valid is True
         assert error is None
 
-        is_valid, error = ConfigurationSchema.validate_configuration_value("server.ssl.enabled", False)
+        is_valid, error = ConfigurationSchema.validate_configuration_value(
+            "server.ssl.enabled", False
+        )
         assert is_valid is True
         assert error is None
 
-        is_valid, error = ConfigurationSchema.validate_configuration_value("features.metrics.enabled", True)
+        is_valid, error = ConfigurationSchema.validate_configuration_value(
+            "features.metrics.enabled", True
+        )
         assert is_valid is True
         assert error is None
 
     def test_validate_configuration_value_invalid_boolean(self):
         """Test validation of invalid boolean values."""
         # Non-boolean value for boolean field
-        is_valid, error = ConfigurationSchema.validate_configuration_value("server.ssl.enabled", "true")
+        is_valid, error = ConfigurationSchema.validate_configuration_value(
+            "server.ssl.enabled", "true"
+        )
         assert is_valid is False
         assert "must be a boolean" in error
 
-        is_valid, error = ConfigurationSchema.validate_configuration_value("features.metrics.enabled", 1)
+        is_valid, error = ConfigurationSchema.validate_configuration_value(
+            "features.metrics.enabled", 1
+        )
         assert is_valid is False
         assert "must be a boolean" in error
 
     def test_validate_configuration_value_nullable_fields(self):
         """Test validation of nullable fields."""
         # Nullable string fields should accept None
-        is_valid, error = ConfigurationSchema.validate_configuration_value("server.ssl.cert_file", None)
+        is_valid, error = ConfigurationSchema.validate_configuration_value(
+            "server.ssl.cert_file", None
+        )
         assert is_valid is True
         assert error is None
 
-        is_valid, error = ConfigurationSchema.validate_configuration_value("server.ssl.key_file", None)
+        is_valid, error = ConfigurationSchema.validate_configuration_value(
+            "server.ssl.key_file", None
+        )
         assert is_valid is True
         assert error is None
 
-        is_valid, error = ConfigurationSchema.validate_configuration_value("logging.file", None)
+        is_valid, error = ConfigurationSchema.validate_configuration_value(
+            "logging.file", None
+        )
         assert is_valid is True
         assert error is None
 
         # Should also accept valid string values
-        is_valid, error = ConfigurationSchema.validate_configuration_value("server.ssl.cert_file", "/path/to/cert.pem")
+        is_valid, error = ConfigurationSchema.validate_configuration_value(
+            "server.ssl.cert_file", "/path/to/cert.pem"
+        )
         assert is_valid is True
         assert error is None
 
     def test_validate_configuration_value_allowed_values(self):
         """Test validation of fields with allowed values."""
         # Valid search engine
-        is_valid, error = ConfigurationSchema.validate_configuration_value("search.engine", "whoosh")
+        is_valid, error = ConfigurationSchema.validate_configuration_value(
+            "search.engine", "whoosh"
+        )
         assert is_valid is True
         assert error is None
 
         # Invalid search engine
-        is_valid, error = ConfigurationSchema.validate_configuration_value("search.engine", "elasticsearch")
+        is_valid, error = ConfigurationSchema.validate_configuration_value(
+            "search.engine", "elasticsearch"
+        )
         assert is_valid is False
         assert "must be one of" in error
         assert "whoosh" in error
@@ -260,16 +339,26 @@ class TestConfigurationSchema:
         # Valid log levels
         valid_levels = ["DEBUG", "INFO", "WARNING", "ERROR"]
         for level in valid_levels:
-            is_valid, error = ConfigurationSchema.validate_configuration_value("logging.level", level)
+            is_valid, error = ConfigurationSchema.validate_configuration_value(
+                "logging.level", level
+            )
             assert is_valid is True, f"Level {level} should be valid"
             assert error is None
 
     def test_validate_configuration_value_regex_validation(self):
         """Test regex validation for string fields."""
         # Valid host patterns
-        valid_hosts = ["localhost", "example.com", "test-server", "192.168.1.1", "server123"]
+        valid_hosts = [
+            "localhost",
+            "example.com",
+            "test-server",
+            "192.168.1.1",
+            "server123",
+        ]
         for host in valid_hosts:
-            is_valid, error = ConfigurationSchema.validate_configuration_value("server.host", host)
+            is_valid, error = ConfigurationSchema.validate_configuration_value(
+                "server.host", host
+            )
             assert is_valid is True, f"Host {host} should be valid"
             assert error is None
 
@@ -279,9 +368,14 @@ class TestConfigurationSchema:
 
     def test_validate_configuration_value_unknown_key(self):
         """Test validation of unknown configuration keys."""
-        is_valid, error = ConfigurationSchema.validate_configuration_value("unknown.key", "value")
+        is_valid, error = ConfigurationSchema.validate_configuration_value(
+            "unknown.key", "value"
+        )
         assert is_valid is False
-        assert "Invalid configuration path" in error or "Unknown configuration key" in error
+        assert (
+            "Invalid configuration path" in error
+            or "Unknown configuration key" in error
+        )
 
     def test_schema_structure_consistency(self):
         """Test that schema structure is consistent."""
@@ -315,11 +409,17 @@ class TestConfigurationSchema:
 
                 if definition.get("type") == "dict" and "schema" in definition:
                     # Nested dictionary
-                    assert key in defaults_dict, f"Missing default section: {current_path}"
-                    check_defaults_recursive(defaults_dict[key], definition["schema"], current_path)
+                    assert (
+                        key in defaults_dict
+                    ), f"Missing default section: {current_path}"
+                    check_defaults_recursive(
+                        defaults_dict[key], definition["schema"], current_path
+                    )
                 elif "default" in definition:
                     # Should have default value
-                    assert key in defaults_dict, f"Missing default value: {current_path}"
+                    assert (
+                        key in defaults_dict
+                    ), f"Missing default value: {current_path}"
 
         check_defaults_recursive(defaults, schema)
 
@@ -335,7 +435,11 @@ class TestConfigurationSchema:
 
                 if definition.get("type") == "dict" and "schema" in definition:
                     # Nested dictionary - recurse
-                    expected_keys.extend(collect_keys_from_schema(definition["schema"], current_key))
+                    expected_keys.extend(
+                        collect_keys_from_schema(
+                            definition["schema"], current_key
+                        )
+                    )
                 elif "default" in definition or "type" in definition:
                     # Leaf value
                     expected_keys.append(current_key)
@@ -357,10 +461,14 @@ class TestConfigurationSchema:
             ("server.port", 70000, "at most 65535"),
             ("logging.level", "INVALID", "must be one of"),
             ("server.ssl.enabled", "true", "must be a boolean"),
-            ("search.field_weights.endpoint_path", -1.0, "at least 0.1")
+            ("search.field_weights.endpoint_path", -1.0, "at least 0.1"),
         ]
 
         for key, value, expected_phrase in test_cases:
-            is_valid, error = ConfigurationSchema.validate_configuration_value(key, value)
+            is_valid, error = ConfigurationSchema.validate_configuration_value(
+                key, value
+            )
             assert is_valid is False
-            assert expected_phrase in error, f"Error message for {key}={value} should contain '{expected_phrase}', got: {error}"
+            assert (
+                expected_phrase in error
+            ), f"Error message for {key}={value} should contain '{expected_phrase}', got: {error}"

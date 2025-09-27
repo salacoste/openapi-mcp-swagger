@@ -1,16 +1,19 @@
 """Tests for database migration system."""
 
-import os
-import pytest
-import tempfile
 import asyncio
+import os
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
-from unittest.mock import Mock, patch, AsyncMock
+from unittest.mock import AsyncMock, Mock, patch
 
-from swagger_mcp_server.storage.database import DatabaseManager, DatabaseConfig
+import pytest
+
+from swagger_mcp_server.storage.database import DatabaseConfig, DatabaseManager
 from swagger_mcp_server.storage.migrations import (
-    MigrationManager, Migration, MigrationError
+    Migration,
+    MigrationError,
+    MigrationManager,
 )
 from swagger_mcp_server.storage.models import DatabaseMigration
 
@@ -18,14 +21,14 @@ from swagger_mcp_server.storage.models import DatabaseMigration
 @pytest.fixture
 async def temp_db():
     """Create a temporary database for testing."""
-    with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as temp_file:
+    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as temp_file:
         temp_path = temp_file.name
 
     config = DatabaseConfig(
         database_path=temp_path,
         enable_wal=False,  # Disable WAL for simpler testing
         enable_fts=True,
-        vacuum_on_startup=False
+        vacuum_on_startup=False,
     )
 
     db_manager = DatabaseManager(config)
@@ -47,7 +50,7 @@ def sample_migration():
         name="test_migration",
         description="Test migration for unit tests",
         up_sql="CREATE TABLE test_table (id INTEGER PRIMARY KEY, name TEXT);",
-        down_sql="DROP TABLE IF EXISTS test_table;"
+        down_sql="DROP TABLE IF EXISTS test_table;",
     )
 
 
@@ -62,7 +65,7 @@ class TestMigration:
             name="initial_schema",
             description="Create initial schema",
             up_sql="CREATE TABLE test (id INTEGER);",
-            down_sql="DROP TABLE test;"
+            down_sql="DROP TABLE test;",
         )
 
         assert migration.version == "001"
@@ -79,14 +82,14 @@ class TestMigration:
             version="001",
             name="test",
             up_sql="CREATE TABLE test (id INTEGER);",
-            down_sql="DROP TABLE test;"
+            down_sql="DROP TABLE test;",
         )
 
         migration2 = Migration(
             version="001",
             name="test",
             up_sql="CREATE TABLE test (id INTEGER);",
-            down_sql="DROP TABLE test;"
+            down_sql="DROP TABLE test;",
         )
 
         assert migration1.checksum == migration2.checksum
@@ -97,14 +100,14 @@ class TestMigration:
             version="001",
             name="test",
             up_sql="CREATE TABLE test1 (id INTEGER);",
-            down_sql="DROP TABLE test1;"
+            down_sql="DROP TABLE test1;",
         )
 
         migration2 = Migration(
             version="001",
             name="test",
             up_sql="CREATE TABLE test2 (id INTEGER);",
-            down_sql="DROP TABLE test2;"
+            down_sql="DROP TABLE test2;",
         )
 
         assert migration1.checksum != migration2.checksum
@@ -116,19 +119,23 @@ class TestMigration:
             name="test",
             description="Test migration",
             up_sql="CREATE TABLE test (id INTEGER);",
-            down_sql="DROP TABLE test;"
+            down_sql="DROP TABLE test;",
         )
 
         result = migration.to_dict()
 
         expected_keys = {
-            'version', 'name', 'up_sql', 'down_sql',
-            'description', 'checksum'
+            "version",
+            "name",
+            "up_sql",
+            "down_sql",
+            "description",
+            "checksum",
         }
         assert set(result.keys()) == expected_keys
-        assert result['version'] == "001"
-        assert result['name'] == "test"
-        assert result['description'] == "Test migration"
+        assert result["version"] == "001"
+        assert result["name"] == "test"
+        assert result["description"] == "Test migration"
 
 
 @pytest.mark.unit
@@ -167,7 +174,9 @@ class TestMigrationManager:
         migration_manager = MigrationManager(temp_db)
         migrations = migration_manager.get_builtin_migrations()
 
-        assert len(migrations) >= 3  # At least initial schema, FTS5, performance
+        assert (
+            len(migrations) >= 3
+        )  # At least initial schema, FTS5, performance
         versions = [m.version for m in migrations]
         assert "001" in versions  # initial_schema
         assert "002" in versions  # add_fts5_indexes
@@ -207,7 +216,9 @@ class TestMigrationManager:
         await migration_manager.initialize_migration_system()
 
         # Apply migration in dry run mode
-        success = await migration_manager.apply_migration(sample_migration, dry_run=True)
+        success = await migration_manager.apply_migration(
+            sample_migration, dry_run=True
+        )
         assert success
 
         # Check that table was NOT created
@@ -230,7 +241,7 @@ class TestMigrationManager:
             version="998",
             name="invalid_migration",
             up_sql="CREATE TABLE invalid ( invalid_syntax ERROR );",
-            down_sql="DROP TABLE IF EXISTS invalid;"
+            down_sql="DROP TABLE IF EXISTS invalid;",
         )
 
         # Apply migration should fail
@@ -256,7 +267,9 @@ class TestMigrationManager:
         assert len(result) == 1
 
         # Rollback migration
-        success = await migration_manager.rollback_migration(sample_migration.version)
+        success = await migration_manager.rollback_migration(
+            sample_migration.version
+        )
         assert success
 
         # Check that table was dropped
@@ -288,7 +301,7 @@ class TestMigrationManager:
             version="997",
             name="no_rollback",
             up_sql="CREATE TABLE no_rollback (id INTEGER);",
-            down_sql=None
+            down_sql=None,
         )
 
         await migration_manager.apply_migration(migration_no_rollback)
@@ -323,7 +336,9 @@ class TestMigrationManager:
         migration_manager = MigrationManager(temp_db)
 
         # Apply all migrations in dry run
-        applied_versions = await migration_manager.migrate_to_latest(dry_run=True)
+        applied_versions = await migration_manager.migrate_to_latest(
+            dry_run=True
+        )
 
         # Check that migrations would be applied
         assert len(applied_versions) >= 3
@@ -339,18 +354,18 @@ class TestMigrationManager:
 
         # Get status before any migrations
         status = await migration_manager.get_migration_status()
-        assert status['current_version'] is None
-        assert status['applied_count'] == 0
-        assert status['pending_count'] >= 3  # Built-in migrations
-        assert not status['is_up_to_date']
+        assert status["current_version"] is None
+        assert status["applied_count"] == 0
+        assert status["pending_count"] >= 3  # Built-in migrations
+        assert not status["is_up_to_date"]
 
         # Apply one migration
         await migration_manager.apply_migration(sample_migration)
 
         # Get status again
         status = await migration_manager.get_migration_status()
-        assert status['current_version'] == sample_migration.version
-        assert status['applied_count'] == 1
+        assert status["current_version"] == sample_migration.version
+        assert status["applied_count"] == 1
 
     async def test_validate_database_integrity(self, temp_db):
         """Test database integrity validation."""
@@ -360,15 +375,18 @@ class TestMigrationManager:
         # Validate integrity
         integrity = await migration_manager.validate_database_integrity()
 
-        assert integrity['is_healthy']
-        assert integrity['sqlite_integrity'] == ['ok']
-        assert len(integrity['foreign_key_violations']) == 0
-        assert len(integrity['missing_tables']) == 0
+        assert integrity["is_healthy"]
+        assert integrity["sqlite_integrity"] == ["ok"]
+        assert len(integrity["foreign_key_violations"]) == 0
+        assert len(integrity["missing_tables"]) == 0
 
         # Check required tables are present
         required_tables = {
-            'api_metadata', 'endpoints', 'schemas',
-            'security_schemes', 'endpoint_dependencies'
+            "api_metadata",
+            "endpoints",
+            "schemas",
+            "security_schemes",
+            "endpoint_dependencies",
         }
         existing_tables = set()
         tables_result = await temp_db.execute_raw_sql(
@@ -392,7 +410,9 @@ class TestMigrationManager:
         assert len(applied) == 1
 
         # Reset database (requires confirmation)
-        with pytest.raises(MigrationError, match="requires explicit confirmation"):
+        with pytest.raises(
+            MigrationError, match="requires explicit confirmation"
+        ):
             await migration_manager.reset_database(confirm=False)
 
         # Reset with confirmation
@@ -417,9 +437,9 @@ class TestMigrationIntegration:
         """Test integration between DatabaseManager and migration system."""
         # Test migration status
         status = await temp_db.get_migration_status()
-        assert 'current_version' in status
-        assert 'applied_count' in status
-        assert 'pending_count' in status
+        assert "current_version" in status
+        assert "applied_count" in status
+        assert "pending_count" in status
 
         # Test manual migration application
         applied = await temp_db.apply_migrations(dry_run=True)
@@ -427,8 +447,8 @@ class TestMigrationIntegration:
 
         # Test integrity validation
         integrity = await temp_db.validate_integrity()
-        assert 'is_healthy' in integrity
-        assert integrity['is_healthy']
+        assert "is_healthy" in integrity
+        assert integrity["is_healthy"]
 
     async def test_full_migration_lifecycle(self, temp_db):
         """Test complete migration lifecycle."""
@@ -439,8 +459,8 @@ class TestMigrationIntegration:
 
         # Check initial state
         status = await migration_manager.get_migration_status()
-        assert not status['is_up_to_date']
-        assert status['pending_count'] >= 3
+        assert not status["is_up_to_date"]
+        assert status["pending_count"] >= 3
 
         # Apply all migrations
         applied = await migration_manager.migrate_to_latest()
@@ -448,13 +468,13 @@ class TestMigrationIntegration:
 
         # Verify final state
         status = await migration_manager.get_migration_status()
-        assert status['is_up_to_date']
-        assert status['pending_count'] == 0
-        assert status['applied_count'] >= 3
+        assert status["is_up_to_date"]
+        assert status["pending_count"] == 0
+        assert status["applied_count"] >= 3
 
         # Verify database integrity
         integrity = await migration_manager.validate_database_integrity()
-        assert integrity['is_healthy']
+        assert integrity["is_healthy"]
 
 
 @pytest.mark.performance
@@ -474,7 +494,9 @@ class TestMigrationPerformance:
         migration_time = end_time - start_time
 
         # Migrations should complete within 5 seconds
-        assert migration_time < 5.0, f"Migrations took {migration_time:.2f}s, expected < 5.0s"
+        assert (
+            migration_time < 5.0
+        ), f"Migrations took {migration_time:.2f}s, expected < 5.0s"
 
     async def test_integrity_check_speed(self, temp_db):
         """Test that integrity checks complete quickly."""
@@ -490,5 +512,7 @@ class TestMigrationPerformance:
         check_time = end_time - start_time
 
         # Integrity check should complete within 1 second
-        assert check_time < 1.0, f"Integrity check took {check_time:.2f}s, expected < 1.0s"
-        assert integrity['is_healthy']
+        assert (
+            check_time < 1.0
+        ), f"Integrity check took {check_time:.2f}s, expected < 1.0s"
+        assert integrity["is_healthy"]

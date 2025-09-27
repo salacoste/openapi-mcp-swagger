@@ -13,7 +13,9 @@ class LoggingConfig(BaseSettings):
     level: str = Field(default="INFO", description="Log level")
     file_path: Optional[str] = Field(default=None, description="Log file path")
     json_format: bool = Field(default=True, description="Use JSON log format")
-    enable_performance: bool = Field(default=True, description="Enable performance logging")
+    enable_performance: bool = Field(
+        default=True, description="Enable performance logging"
+    )
 
     class Config:
         env_prefix = "LOG_"
@@ -22,7 +24,9 @@ class LoggingConfig(BaseSettings):
 class DatabaseConfig(BaseSettings):
     """Database configuration settings."""
 
-    path: str = Field(default="swagger_mcp.db", description="Database file path")
+    path: str = Field(
+        default="swagger_mcp.db", description="Database file path"
+    )
     pool_size: int = Field(default=10, description="Connection pool size")
     timeout: int = Field(default=30, description="Query timeout in seconds")
 
@@ -35,8 +39,12 @@ class ServerConfig(BaseSettings):
 
     name: str = Field(default="swagger-mcp-server", description="Server name")
     version: str = Field(default="0.1.0", description="Server version")
-    max_connections: int = Field(default=100, description="Maximum concurrent connections")
-    request_timeout: int = Field(default=30, description="Request timeout in seconds")
+    max_connections: int = Field(
+        default=100, description="Maximum concurrent connections"
+    )
+    request_timeout: int = Field(
+        default=30, description="Request timeout in seconds"
+    )
 
     class Config:
         env_prefix = "SERVER_"
@@ -45,10 +53,18 @@ class ServerConfig(BaseSettings):
 class ParserConfig(BaseSettings):
     """Parser configuration settings."""
 
-    max_file_size: int = Field(default=10 * 1024 * 1024, description="Max file size in bytes (10MB)")
-    chunk_size: int = Field(default=8192, description="JSON parsing chunk size")
-    validate_openapi: bool = Field(default=True, description="Validate OpenAPI specification")
-    progress_interval: int = Field(default=1024 * 1024, description="Progress reporting interval")
+    max_file_size: int = Field(
+        default=10 * 1024 * 1024, description="Max file size in bytes (10MB)"
+    )
+    chunk_size: int = Field(
+        default=8192, description="JSON parsing chunk size"
+    )
+    validate_openapi: bool = Field(
+        default=True, description="Validate OpenAPI specification"
+    )
+    progress_interval: int = Field(
+        default=1024 * 1024, description="Progress reporting interval"
+    )
 
     class Config:
         env_prefix = "PARSER_"
@@ -58,8 +74,12 @@ class SearchIndexingConfig(BaseSettings):
     """Search indexing configuration."""
 
     batch_size: int = Field(default=1000, description="Index batch size")
-    optimization_threshold: int = Field(default=10000, description="Docs before optimization")
-    incremental_updates: bool = Field(default=True, description="Enable incremental updates")
+    optimization_threshold: int = Field(
+        default=10000, description="Docs before optimization"
+    )
+    incremental_updates: bool = Field(
+        default=True, description="Enable incremental updates"
+    )
 
     class Config:
         env_prefix = "SEARCH_INDEXING_"
@@ -69,8 +89,12 @@ class SearchPerformanceConfig(BaseSettings):
     """Search performance configuration."""
 
     cache_size_mb: int = Field(default=64, description="Cache size in MB")
-    max_search_results: int = Field(default=1000, description="Maximum search results")
-    query_timeout: int = Field(default=5, description="Query timeout in seconds")
+    max_search_results: int = Field(
+        default=1000, description="Maximum search results"
+    )
+    query_timeout: int = Field(
+        default=5, description="Query timeout in seconds"
+    )
 
     class Config:
         env_prefix = "SEARCH_PERFORMANCE_"
@@ -79,7 +103,9 @@ class SearchPerformanceConfig(BaseSettings):
 class SearchFieldWeights(BaseSettings):
     """Search field weight configuration."""
 
-    endpoint_path: float = Field(default=1.5, description="Endpoint path weight")
+    endpoint_path: float = Field(
+        default=1.5, description="Endpoint path weight"
+    )
     description: float = Field(default=1.0, description="Description weight")
     parameters: float = Field(default=0.8, description="Parameters weight")
     tags: float = Field(default=0.6, description="Tags weight")
@@ -94,17 +120,31 @@ class SearchConfig(BaseSettings):
     """Search configuration settings."""
 
     enabled: bool = Field(default=True, description="Enable search engine")
-    engine_type: str = Field(default="whoosh", description="Search engine type")
-    index_directory: str = Field(default="./search_index", description="Index directory")
+    engine_type: str = Field(
+        default="whoosh", description="Search engine type"
+    )
+    index_directory: str = Field(
+        default="./search_index", description="Index directory"
+    )
 
     # Sub-configurations
-    indexing: SearchIndexingConfig = Field(default_factory=SearchIndexingConfig)
-    performance: SearchPerformanceConfig = Field(default_factory=SearchPerformanceConfig)
-    field_weights: SearchFieldWeights = Field(default_factory=SearchFieldWeights)
+    indexing: SearchIndexingConfig = Field(
+        default_factory=SearchIndexingConfig
+    )
+    performance: SearchPerformanceConfig = Field(
+        default_factory=SearchPerformanceConfig
+    )
+    field_weights: SearchFieldWeights = Field(
+        default_factory=SearchFieldWeights
+    )
 
     # Legacy fields for backward compatibility
-    max_results: int = Field(default=50, description="Maximum search results (deprecated)")
-    cache_ttl: int = Field(default=3600, description="Search cache TTL in seconds")
+    max_results: int = Field(
+        default=50, description="Maximum search results (deprecated)"
+    )
+    cache_ttl: int = Field(
+        default=3600, description="Search cache TTL in seconds"
+    )
     enable_bm25: bool = Field(default=True, description="Enable BM25 ranking")
 
     class Config:

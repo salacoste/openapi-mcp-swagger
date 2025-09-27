@@ -1,12 +1,16 @@
 """Repository for schema data access operations."""
 
 from typing import Any, Dict, List, Optional
-from sqlalchemy import select, text, func, and_, or_
+
+from sqlalchemy import and_, func, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from swagger_mcp_server.storage.models import Schema, APIMetadata
-from swagger_mcp_server.storage.repositories.base import BaseRepository, RepositoryError
 from swagger_mcp_server.config.logging import get_logger
+from swagger_mcp_server.storage.models import APIMetadata, Schema
+from swagger_mcp_server.storage.repositories.base import (
+    BaseRepository,
+    RepositoryError,
+)
 
 logger = get_logger(__name__)
 
@@ -24,7 +28,7 @@ class SchemaRepository(BaseRepository[Schema]):
         schema_type: Optional[str] = None,
         deprecated: Optional[bool] = None,
         limit: int = 50,
-        offset: int = 0
+        offset: int = 0,
     ) -> List[Schema]:
         """Search schemas using full-text search and filters."""
         try:
@@ -35,7 +39,7 @@ class SchemaRepository(BaseRepository[Schema]):
                     schema_type=schema_type,
                     deprecated=deprecated,
                     limit=limit,
-                    offset=offset
+                    offset=offset,
                 )
 
             # Use FTS5 for full-text search
@@ -81,9 +85,7 @@ class SchemaRepository(BaseRepository[Schema]):
                 schemas.append(schema)
 
             self.logger.debug(
-                "Schemas searched with FTS",
-                query=query,
-                found=len(schemas)
+                "Schemas searched with FTS", query=query, found=len(schemas)
             )
 
             return schemas
@@ -92,7 +94,7 @@ class SchemaRepository(BaseRepository[Schema]):
             self.logger.warning(
                 "FTS search failed, falling back to LIKE search",
                 query=query,
-                error=str(e)
+                error=str(e),
             )
             # Fallback to LIKE search if FTS fails
             return await self._like_search_schemas(
@@ -106,7 +108,7 @@ class SchemaRepository(BaseRepository[Schema]):
         schema_type: Optional[str] = None,
         deprecated: Optional[bool] = None,
         limit: int = 50,
-        offset: int = 0
+        offset: int = 0,
     ) -> List[Schema]:
         """Fallback search using LIKE operations."""
         stmt = select(Schema)
@@ -121,7 +123,7 @@ class SchemaRepository(BaseRepository[Schema]):
                 Schema.name.ilike(term_pattern),
                 Schema.title.ilike(term_pattern),
                 Schema.description.ilike(term_pattern),
-                Schema.searchable_text.ilike(term_pattern)
+                Schema.searchable_text.ilike(term_pattern),
             )
             text_conditions.append(term_conditions)
 
@@ -151,31 +153,26 @@ class SchemaRepository(BaseRepository[Schema]):
         schema_type: Optional[str] = None,
         deprecated: Optional[bool] = None,
         limit: int = 50,
-        offset: int = 0
+        offset: int = 0,
     ) -> List[Schema]:
         """Filter schemas without text search."""
         filters = {}
 
         if api_id:
-            filters['api_id'] = api_id
+            filters["api_id"] = api_id
 
         if schema_type:
-            filters['type'] = schema_type
+            filters["type"] = schema_type
 
         if deprecated is not None:
-            filters['deprecated'] = deprecated
+            filters["deprecated"] = deprecated
 
         return await self.list(
-            limit=limit,
-            offset=offset,
-            filters=filters,
-            order_by='name'
+            limit=limit, offset=offset, filters=filters, order_by="name"
         )
 
     async def get_by_name(
-        self,
-        name: str,
-        api_id: Optional[int] = None
+        self, name: str, api_id: Optional[int] = None
     ) -> Optional[Schema]:
         """Get schema by name."""
         try:
@@ -194,14 +191,12 @@ class SchemaRepository(BaseRepository[Schema]):
                 "Failed to get schema by name",
                 name=name,
                 api_id=api_id,
-                error=str(e)
+                error=str(e),
             )
             raise RepositoryError(f"Failed to get schema by name: {str(e)}")
 
     async def get_by_api_id(
-        self,
-        api_id: int,
-        include_deprecated: bool = True
+        self, api_id: int, include_deprecated: bool = True
     ) -> List[Schema]:
         """Get all schemas for a specific API."""
         try:
@@ -219,16 +214,12 @@ class SchemaRepository(BaseRepository[Schema]):
 
         except Exception as e:
             self.logger.error(
-                "Failed to get schemas by API ID",
-                api_id=api_id,
-                error=str(e)
+                "Failed to get schemas by API ID", api_id=api_id, error=str(e)
             )
             raise RepositoryError(f"Failed to get schemas by API ID: {str(e)}")
 
     async def get_by_type(
-        self,
-        schema_type: str,
-        api_id: Optional[int] = None
+        self, schema_type: str, api_id: Optional[int] = None
     ) -> List[Schema]:
         """Get schemas by type."""
         try:
@@ -249,14 +240,12 @@ class SchemaRepository(BaseRepository[Schema]):
                 "Failed to get schemas by type",
                 schema_type=schema_type,
                 api_id=api_id,
-                error=str(e)
+                error=str(e),
             )
             raise RepositoryError(f"Failed to get schemas by type: {str(e)}")
 
     async def get_dependent_schemas(
-        self,
-        schema_name: str,
-        api_id: Optional[int] = None
+        self, schema_name: str, api_id: Optional[int] = None
     ) -> List[Schema]:
         """Get schemas that depend on the given schema."""
         try:
@@ -278,14 +267,12 @@ class SchemaRepository(BaseRepository[Schema]):
                 "Failed to get dependent schemas",
                 schema_name=schema_name,
                 api_id=api_id,
-                error=str(e)
+                error=str(e),
             )
             raise RepositoryError(f"Failed to get dependent schemas: {str(e)}")
 
     async def get_schema_dependencies(
-        self,
-        schema_name: str,
-        api_id: Optional[int] = None
+        self, schema_name: str, api_id: Optional[int] = None
     ) -> List[Schema]:
         """Get schemas that the given schema depends on."""
         try:
@@ -312,14 +299,14 @@ class SchemaRepository(BaseRepository[Schema]):
                 "Failed to get schema dependencies",
                 schema_name=schema_name,
                 api_id=api_id,
-                error=str(e)
+                error=str(e),
             )
-            raise RepositoryError(f"Failed to get schema dependencies: {str(e)}")
+            raise RepositoryError(
+                f"Failed to get schema dependencies: {str(e)}"
+            )
 
     async def get_most_referenced(
-        self,
-        api_id: Optional[int] = None,
-        limit: int = 10
+        self, api_id: Optional[int] = None, limit: int = 10
     ) -> List[Schema]:
         """Get schemas ordered by reference count (most referenced first)."""
         try:
@@ -339,13 +326,14 @@ class SchemaRepository(BaseRepository[Schema]):
             self.logger.error(
                 "Failed to get most referenced schemas",
                 api_id=api_id,
-                error=str(e)
+                error=str(e),
             )
-            raise RepositoryError(f"Failed to get most referenced schemas: {str(e)}")
+            raise RepositoryError(
+                f"Failed to get most referenced schemas: {str(e)}"
+            )
 
     async def get_unused_schemas(
-        self,
-        api_id: Optional[int] = None
+        self, api_id: Optional[int] = None
     ) -> List[Schema]:
         """Get schemas that are not referenced by any endpoint or other schema."""
         try:
@@ -363,9 +351,7 @@ class SchemaRepository(BaseRepository[Schema]):
 
         except Exception as e:
             self.logger.error(
-                "Failed to get unused schemas",
-                api_id=api_id,
-                error=str(e)
+                "Failed to get unused schemas", api_id=api_id, error=str(e)
             )
             raise RepositoryError(f"Failed to get unused schemas: {str(e)}")
 
@@ -387,16 +373,12 @@ class SchemaRepository(BaseRepository[Schema]):
 
         except Exception as e:
             self.logger.error(
-                "Failed to get all schema types",
-                api_id=api_id,
-                error=str(e)
+                "Failed to get all schema types", api_id=api_id, error=str(e)
             )
             raise RepositoryError(f"Failed to get all schema types: {str(e)}")
 
     async def get_property_names(
-        self,
-        schema_name: str,
-        api_id: Optional[int] = None
+        self, schema_name: str, api_id: Optional[int] = None
     ) -> List[str]:
         """Get all property names for a schema."""
         try:
@@ -411,14 +393,12 @@ class SchemaRepository(BaseRepository[Schema]):
                 "Failed to get property names",
                 schema_name=schema_name,
                 api_id=api_id,
-                error=str(e)
+                error=str(e),
             )
             raise RepositoryError(f"Failed to get property names: {str(e)}")
 
     async def find_schemas_with_property(
-        self,
-        property_name: str,
-        api_id: Optional[int] = None
+        self, property_name: str, api_id: Optional[int] = None
     ) -> List[Schema]:
         """Find schemas that contain a specific property."""
         try:
@@ -440,11 +420,15 @@ class SchemaRepository(BaseRepository[Schema]):
                 "Failed to find schemas with property",
                 property_name=property_name,
                 api_id=api_id,
-                error=str(e)
+                error=str(e),
             )
-            raise RepositoryError(f"Failed to find schemas with property: {str(e)}")
+            raise RepositoryError(
+                f"Failed to find schemas with property: {str(e)}"
+            )
 
-    async def get_statistics(self, api_id: Optional[int] = None) -> Dict[str, Any]:
+    async def get_statistics(
+        self, api_id: Optional[int] = None
+    ) -> Dict[str, Any]:
         """Get schema statistics."""
         try:
             base_query = select(Schema)
@@ -460,8 +444,7 @@ class SchemaRepository(BaseRepository[Schema]):
 
             # Type distribution
             type_query = select(
-                Schema.type,
-                func.count(Schema.type).label('count')
+                Schema.type, func.count(Schema.type).label("count")
             )
             if api_id:
                 type_query = type_query.where(Schema.api_id == api_id)
@@ -472,73 +455,94 @@ class SchemaRepository(BaseRepository[Schema]):
             types = {row.type: row.count for row in type_result.fetchall()}
 
             # Deprecated count
-            deprecated_query = select(func.count()).where(Schema.deprecated == True)
+            deprecated_query = select(func.count()).where(
+                Schema.deprecated == True
+            )
             if api_id:
-                deprecated_query = deprecated_query.where(Schema.api_id == api_id)
+                deprecated_query = deprecated_query.where(
+                    Schema.api_id == api_id
+                )
 
             deprecated_result = await self.session.execute(deprecated_query)
             deprecated_count = deprecated_result.scalar() or 0
 
             # Referenced count
-            referenced_query = select(func.count()).where(Schema.reference_count > 0)
+            referenced_query = select(func.count()).where(
+                Schema.reference_count > 0
+            )
             if api_id:
-                referenced_query = referenced_query.where(Schema.api_id == api_id)
+                referenced_query = referenced_query.where(
+                    Schema.api_id == api_id
+                )
 
             referenced_result = await self.session.execute(referenced_query)
             referenced_count = referenced_result.scalar() or 0
 
             # Average properties per schema
-            avg_props_query = select(func.avg(func.json_array_length(Schema.property_names)))
+            avg_props_query = select(
+                func.avg(func.json_array_length(Schema.property_names))
+            )
             if api_id:
-                avg_props_query = avg_props_query.where(Schema.api_id == api_id)
+                avg_props_query = avg_props_query.where(
+                    Schema.api_id == api_id
+                )
 
             avg_props_result = await self.session.execute(avg_props_query)
             avg_properties = avg_props_result.scalar() or 0
 
             return {
-                'total_schemas': total_schemas,
-                'types': types,
-                'deprecated_count': deprecated_count,
-                'referenced_count': referenced_count,
-                'unused_count': total_schemas - referenced_count,
-                'average_properties': round(float(avg_properties), 2),
-                'usage_rate': (
+                "total_schemas": total_schemas,
+                "types": types,
+                "deprecated_count": deprecated_count,
+                "referenced_count": referenced_count,
+                "unused_count": total_schemas - referenced_count,
+                "average_properties": round(float(avg_properties), 2),
+                "usage_rate": (
                     (referenced_count / total_schemas * 100)
-                    if total_schemas > 0 else 0
-                )
+                    if total_schemas > 0
+                    else 0
+                ),
             }
 
         except Exception as e:
             self.logger.error(
-                "Failed to get schema statistics",
-                api_id=api_id,
-                error=str(e)
+                "Failed to get schema statistics", api_id=api_id, error=str(e)
             )
             raise RepositoryError(f"Failed to get schema statistics: {str(e)}")
 
-    async def update_reference_counts(self, api_id: Optional[int] = None) -> None:
+    async def update_reference_counts(
+        self, api_id: Optional[int] = None
+    ) -> None:
         """Update reference counts for all schemas."""
         try:
             # This would typically be called after importing/updating API data
             # For now, implement a simple version that counts dependencies
-            schemas = await self.get_by_api_id(api_id) if api_id else await self.list()
+            schemas = (
+                await self.get_by_api_id(api_id)
+                if api_id
+                else await self.list()
+            )
 
             for schema in schemas:
                 # Count how many other schemas reference this one
-                dependents = await self.get_dependent_schemas(schema.name, api_id)
+                dependents = await self.get_dependent_schemas(
+                    schema.name, api_id
+                )
                 schema.reference_count = len(dependents)
                 await self.update(schema)
 
             self.logger.info(
                 "Schema reference counts updated",
                 api_id=api_id,
-                count=len(schemas)
+                count=len(schemas),
             )
 
         except Exception as e:
             self.logger.error(
                 "Failed to update reference counts",
                 api_id=api_id,
-                error=str(e)
+                error=str(e),
             )
-            raise RepositoryError(f"Failed to update reference counts: {str(e)}")
+            raise RepositoryError(
+                f"Failed to update reference counts: {str(e)}"
+            )

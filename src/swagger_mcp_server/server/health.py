@@ -4,11 +4,11 @@ Implements Story 2.6 health check requirements.
 """
 
 import asyncio
-import time
 import logging
-from typing import Dict, Any, Optional
+import time
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any, Dict, Optional
 
 from .monitoring import PerformanceMonitor, global_monitor
 from .resilience import health_checker
@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 class HealthStatus(Enum):
     """Health status levels."""
+
     HEALTHY = "healthy"
     DEGRADED = "degraded"
     UNHEALTHY = "unhealthy"
@@ -26,6 +27,7 @@ class HealthStatus(Enum):
 @dataclass
 class ComponentHealth:
     """Health status for a system component."""
+
     status: HealthStatus
     message: str
     details: Optional[Dict[str, Any]] = None
@@ -53,7 +55,7 @@ class HealthChecker:
                 return ComponentHealth(
                     status=HealthStatus.UNHEALTHY,
                     message="Database manager not initialized",
-                    check_duration_ms=(time.time() - start_time) * 1000
+                    check_duration_ms=(time.time() - start_time) * 1000,
                 )
 
             # Perform database health check
@@ -67,30 +69,32 @@ class HealthChecker:
                     message="Database connection healthy",
                     details={
                         "database_path": health_result.get("database_path"),
-                        "file_size_bytes": health_result.get("file_size_bytes"),
-                        "table_counts": health_result.get("table_counts", {})
+                        "file_size_bytes": health_result.get(
+                            "file_size_bytes"
+                        ),
+                        "table_counts": health_result.get("table_counts", {}),
                     },
-                    check_duration_ms=check_duration
+                    check_duration_ms=check_duration,
                 )
             else:
                 return ComponentHealth(
                     status=HealthStatus.DEGRADED,
                     message="Database connection degraded",
                     details=health_result,
-                    check_duration_ms=check_duration
+                    check_duration_ms=check_duration,
                 )
 
         except asyncio.TimeoutError:
             return ComponentHealth(
                 status=HealthStatus.UNHEALTHY,
                 message="Database health check timed out",
-                check_duration_ms=(time.time() - start_time) * 1000
+                check_duration_ms=(time.time() - start_time) * 1000,
             )
         except Exception as e:
             return ComponentHealth(
                 status=HealthStatus.UNHEALTHY,
                 message=f"Database health check failed: {str(e)}",
-                check_duration_ms=(time.time() - start_time) * 1000
+                check_duration_ms=(time.time() - start_time) * 1000,
             )
 
     async def check_mcp_responsiveness(self, server) -> ComponentHealth:
@@ -102,7 +106,7 @@ class HealthChecker:
                 return ComponentHealth(
                     status=HealthStatus.UNHEALTHY,
                     message="MCP server not properly initialized",
-                    check_duration_ms=(time.time() - start_time) * 1000
+                    check_duration_ms=(time.time() - start_time) * 1000,
                 )
 
             # Perform a lightweight synthetic request
@@ -111,7 +115,9 @@ class HealthChecker:
 
             if test_result["success"]:
                 # Check if response time is within reasonable bounds
-                if test_result["response_time_ms"] < 1000:  # 1 second threshold
+                if (
+                    test_result["response_time_ms"] < 1000
+                ):  # 1 second threshold
                     status = HealthStatus.HEALTHY
                     message = "MCP server responsive"
                 else:
@@ -123,23 +129,23 @@ class HealthChecker:
                     message=message,
                     details={
                         "response_time_ms": test_result["response_time_ms"],
-                        "test_type": test_result["test_type"]
+                        "test_type": test_result["test_type"],
                     },
-                    check_duration_ms=check_duration
+                    check_duration_ms=check_duration,
                 )
             else:
                 return ComponentHealth(
                     status=HealthStatus.UNHEALTHY,
                     message=f"MCP server test failed: {test_result['error']}",
                     details=test_result,
-                    check_duration_ms=check_duration
+                    check_duration_ms=check_duration,
                 )
 
         except Exception as e:
             return ComponentHealth(
                 status=HealthStatus.UNHEALTHY,
                 message=f"MCP responsiveness check failed: {str(e)}",
-                check_duration_ms=(time.time() - start_time) * 1000
+                check_duration_ms=(time.time() - start_time) * 1000,
             )
 
     async def _synthetic_mcp_test(self, server) -> Dict[str, Any]:
@@ -153,7 +159,7 @@ class HealthChecker:
                 keywords="health-check-test",
                 httpMethods=["GET"],
                 page=1,
-                perPage=1
+                perPage=1,
             )
 
             response_time_ms = (time.time() - test_start) * 1000
@@ -164,14 +170,14 @@ class HealthChecker:
                     "success": True,
                     "response_time_ms": response_time_ms,
                     "test_type": "searchEndpoints_synthetic",
-                    "result_count": len(result.get("results", []))
+                    "result_count": len(result.get("results", [])),
                 }
             else:
                 return {
                     "success": False,
                     "response_time_ms": response_time_ms,
                     "test_type": "searchEndpoints_synthetic",
-                    "error": "Invalid response format"
+                    "error": "Invalid response format",
                 }
 
         except Exception as e:
@@ -179,7 +185,7 @@ class HealthChecker:
                 "success": False,
                 "response_time_ms": (time.time() - test_start) * 1000,
                 "test_type": "searchEndpoints_synthetic",
-                "error": str(e)
+                "error": str(e),
             }
 
     async def check_performance_health(self) -> ComponentHealth:
@@ -202,19 +208,25 @@ class HealthChecker:
                 thresholds = {
                     "searchEndpoints": 200,
                     "getSchema": 500,
-                    "getExample": 2000
+                    "getExample": 2000,
                 }
 
                 if method_name in thresholds:
                     if avg_time > thresholds[method_name]:
-                        threshold_violations.append(f"{method_name}: {avg_time:.0f}ms > {thresholds[method_name]}ms")
+                        threshold_violations.append(
+                            f"{method_name}: {avg_time:.0f}ms > {thresholds[method_name]}ms"
+                        )
 
-                    if avg_time > thresholds[method_name] * 0.8:  # 80% of threshold
+                    if (
+                        avg_time > thresholds[method_name] * 0.8
+                    ):  # 80% of threshold
                         degraded_methods.append(method_name)
 
                 # Check error rate
                 if error_rate > 0.05:  # 5% error rate threshold
-                    threshold_violations.append(f"{method_name}: {error_rate:.1%} error rate")
+                    threshold_violations.append(
+                        f"{method_name}: {error_rate:.1%} error rate"
+                    )
 
             check_duration = (time.time() - start_time) * 1000
 
@@ -225,9 +237,9 @@ class HealthChecker:
                     details={
                         "violations": threshold_violations,
                         "degraded_methods": degraded_methods,
-                        "performance_metrics": performance_metrics
+                        "performance_metrics": performance_metrics,
                     },
-                    check_duration_ms=check_duration
+                    check_duration_ms=check_duration,
                 )
             elif degraded_methods:
                 return ComponentHealth(
@@ -235,25 +247,23 @@ class HealthChecker:
                     message=f"Performance degraded for: {', '.join(degraded_methods)}",
                     details={
                         "degraded_methods": degraded_methods,
-                        "performance_metrics": performance_metrics
+                        "performance_metrics": performance_metrics,
                     },
-                    check_duration_ms=check_duration
+                    check_duration_ms=check_duration,
                 )
             else:
                 return ComponentHealth(
                     status=HealthStatus.HEALTHY,
                     message="Performance metrics within thresholds",
-                    details={
-                        "performance_metrics": performance_metrics
-                    },
-                    check_duration_ms=check_duration
+                    details={"performance_metrics": performance_metrics},
+                    check_duration_ms=check_duration,
                 )
 
         except Exception as e:
             return ComponentHealth(
                 status=HealthStatus.UNHEALTHY,
                 message=f"Performance health check failed: {str(e)}",
-                check_duration_ms=(time.time() - start_time) * 1000
+                check_duration_ms=(time.time() - start_time) * 1000,
             )
 
     async def get_overall_health(self, server, db_manager) -> Dict[str, Any]:
@@ -261,15 +271,21 @@ class HealthChecker:
         check_start = time.time()
 
         # Run health checks in parallel for better performance
-        db_health_task = asyncio.create_task(self.check_database_health(db_manager))
-        mcp_health_task = asyncio.create_task(self.check_mcp_responsiveness(server))
+        db_health_task = asyncio.create_task(
+            self.check_database_health(db_manager)
+        )
+        mcp_health_task = asyncio.create_task(
+            self.check_mcp_responsiveness(server)
+        )
         perf_health_task = asyncio.create_task(self.check_performance_health())
 
         try:
             # Wait for all health checks with timeout
             db_health, mcp_health, perf_health = await asyncio.wait_for(
-                asyncio.gather(db_health_task, mcp_health_task, perf_health_task),
-                timeout=10.0  # 10 second timeout for all checks
+                asyncio.gather(
+                    db_health_task, mcp_health_task, perf_health_task
+                ),
+                timeout=10.0,  # 10 second timeout for all checks
             )
         except asyncio.TimeoutError:
             # Cancel remaining tasks
@@ -284,18 +300,35 @@ class HealthChecker:
                 "uptime_seconds": time.time() - self.startup_time,
                 "check_duration_ms": (time.time() - check_start) * 1000,
                 "components": {
-                    "database": {"status": "timeout", "message": "Health check timed out"},
-                    "mcp_server": {"status": "timeout", "message": "Health check timed out"},
-                    "performance": {"status": "timeout", "message": "Health check timed out"}
-                }
+                    "database": {
+                        "status": "timeout",
+                        "message": "Health check timed out",
+                    },
+                    "mcp_server": {
+                        "status": "timeout",
+                        "message": "Health check timed out",
+                    },
+                    "performance": {
+                        "status": "timeout",
+                        "message": "Health check timed out",
+                    },
+                },
             }
 
         # Determine overall status
-        component_statuses = [db_health.status, mcp_health.status, perf_health.status]
+        component_statuses = [
+            db_health.status,
+            mcp_health.status,
+            perf_health.status,
+        ]
 
-        if all(status == HealthStatus.HEALTHY for status in component_statuses):
+        if all(
+            status == HealthStatus.HEALTHY for status in component_statuses
+        ):
             overall_status = "healthy"
-        elif any(status == HealthStatus.UNHEALTHY for status in component_statuses):
+        elif any(
+            status == HealthStatus.UNHEALTHY for status in component_statuses
+        ):
             overall_status = "unhealthy"
         else:
             overall_status = "degraded"
@@ -312,23 +345,23 @@ class HealthChecker:
                     "status": db_health.status.value,
                     "message": db_health.message,
                     "details": db_health.details,
-                    "check_duration_ms": db_health.check_duration_ms
+                    "check_duration_ms": db_health.check_duration_ms,
                 },
                 "mcp_server": {
                     "status": mcp_health.status.value,
                     "message": mcp_health.message,
                     "details": mcp_health.details,
-                    "check_duration_ms": mcp_health.check_duration_ms
+                    "check_duration_ms": mcp_health.check_duration_ms,
                 },
                 "performance": {
                     "status": perf_health.status.value,
                     "message": perf_health.message,
                     "details": perf_health.details,
-                    "check_duration_ms": perf_health.check_duration_ms
-                }
+                    "check_duration_ms": perf_health.check_duration_ms,
+                },
             },
             "performance_summary": self.monitor.get_health_summary(),
-            "version": "0.1.0"  # TODO: Get from actual version
+            "version": "0.1.0",  # TODO: Get from actual version
         }
 
     async def get_basic_health(self) -> Dict[str, Any]:
@@ -337,7 +370,7 @@ class HealthChecker:
             "status": "healthy",
             "timestamp": time.time(),
             "uptime_seconds": time.time() - self.startup_time,
-            "version": "0.1.0"
+            "version": "0.1.0",
         }
 
 

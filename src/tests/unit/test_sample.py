@@ -21,6 +21,7 @@ def test_sample_openapi_fixture(sample_openapi_spec):
 async def test_async_functionality():
     """Test async functionality works in tests."""
     import asyncio
+
     await asyncio.sleep(0.01)
     assert True
 

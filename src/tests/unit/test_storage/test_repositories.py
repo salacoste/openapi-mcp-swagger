@@ -1,37 +1,47 @@
 """Comprehensive tests for repository classes."""
 
-import os
-import pytest
-import tempfile
 import asyncio
+import os
+import tempfile
 from datetime import datetime, timezone
+from typing import Any, Dict, List
 from unittest.mock import Mock, patch
-from typing import List, Dict, Any
 
-from swagger_mcp_server.storage.database import DatabaseManager, DatabaseConfig
+import pytest
+
+from swagger_mcp_server.storage.database import DatabaseConfig, DatabaseManager
 from swagger_mcp_server.storage.models import (
-    APIMetadata, Endpoint, Schema, SecurityScheme, EndpointDependency
+    APIMetadata,
+    Endpoint,
+    EndpointDependency,
+    Schema,
+    SecurityScheme,
 )
 from swagger_mcp_server.storage.repositories import (
-    EndpointRepository, SchemaRepository, SecurityRepository,
-    MetadataRepository
+    EndpointRepository,
+    MetadataRepository,
+    SchemaRepository,
+    SecurityRepository,
 )
 from swagger_mcp_server.storage.repositories.base import (
-    BaseRepository, RepositoryError, NotFoundError, ConflictError
+    BaseRepository,
+    ConflictError,
+    NotFoundError,
+    RepositoryError,
 )
 
 
 @pytest.fixture
 async def temp_db():
     """Create a temporary database for testing."""
-    with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as temp_file:
+    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as temp_file:
         temp_path = temp_file.name
 
     config = DatabaseConfig(
         database_path=temp_path,
         enable_wal=False,
         enable_fts=True,
-        vacuum_on_startup=False
+        vacuum_on_startup=False,
     )
 
     db_manager = DatabaseManager(config)
@@ -65,7 +75,7 @@ async def sample_api(db_session):
         servers=[{"url": "https://api.test.com"}],
         specification_hash="abc123",
         file_path="/test/swagger.json",
-        file_size=1024
+        file_size=1024,
     )
 
     db_session.add(api)
@@ -86,11 +96,11 @@ async def sample_schema(db_session, sample_api):
         properties={
             "id": {"type": "integer", "description": "Unique identifier"},
             "name": {"type": "string", "description": "Name field"},
-            "email": {"type": "string", "format": "email"}
+            "email": {"type": "string", "format": "email"},
         },
         required=["id", "name"],
         searchable_text="TestModel object id name email identifier",
-        property_names=["id", "name", "email"]
+        property_names=["id", "name", "email"],
     )
 
     db_session.add(schema)
@@ -110,23 +120,29 @@ async def sample_endpoint(db_session, sample_api):
         summary="Get user by ID",
         description="Retrieve a user by their unique identifier",
         tags=["users"],
-        parameters=[{
-            "name": "id",
-            "in": "path",
-            "required": True,
-            "schema": {"type": "integer"}
-        }],
+        parameters=[
+            {
+                "name": "id",
+                "in": "path",
+                "required": True,
+                "schema": {"type": "integer"},
+            }
+        ],
         responses={
             "200": {
                 "description": "User found",
-                "content": {"application/json": {"schema": {"$ref": "#/components/schemas/User"}}}
+                "content": {
+                    "application/json": {
+                        "schema": {"$ref": "#/components/schemas/User"}
+                    }
+                },
             },
-            "404": {"description": "User not found"}
+            "404": {"description": "User not found"},
         },
         searchable_text="users getUser GET user identifier retrieve",
         parameter_names=["id"],
         response_codes=["200", "404"],
-        content_types=["application/json"]
+        content_types=["application/json"],
     )
 
     db_session.add(endpoint)
@@ -144,7 +160,7 @@ async def sample_security_scheme(db_session, sample_api):
         type="http",
         description="Bearer token authentication",
         http_scheme="bearer",
-        bearer_format="JWT"
+        bearer_format="JWT",
     )
 
     db_session.add(security_scheme)
@@ -165,7 +181,7 @@ class TestBaseRepository:
             title="New API",
             version="2.0.0",
             openapi_version="3.1.0",
-            description="Another test API"
+            description="Another test API",
         )
 
         created = await repo.create(new_api)
@@ -178,7 +194,9 @@ class TestBaseRepository:
         repo = BaseRepository(db_session, APIMetadata)
 
         apis = [
-            APIMetadata(title=f"API {i}", version="1.0.0", openapi_version="3.0.0")
+            APIMetadata(
+                title=f"API {i}", version="1.0.0", openapi_version="3.0.0"
+            )
             for i in range(5)
         ]
 
@@ -270,7 +288,9 @@ class TestBaseRepository:
 
         # Create multiple APIs
         apis = [
-            APIMetadata(title=f"API {i}", version="1.0.0", openapi_version="3.0.0")
+            APIMetadata(
+                title=f"API {i}", version="1.0.0", openapi_version="3.0.0"
+            )
             for i in range(10)
         ]
         await repo.create_many(apis)
@@ -296,7 +316,9 @@ class TestBaseRepository:
 
         # Create test data
         apis = [
-            APIMetadata(title=f"API {i}", version="1.0.0", openapi_version="3.0.0")
+            APIMetadata(
+                title=f"API {i}", version="1.0.0", openapi_version="3.0.0"
+            )
             for i in range(5)
         ]
         await repo.create_many(apis)
@@ -326,7 +348,11 @@ class TestBaseRepository:
 
         # Bulk insert
         data = [
-            {"title": f"Bulk API {i}", "version": "1.0.0", "openapi_version": "3.0.0"}
+            {
+                "title": f"Bulk API {i}",
+                "version": "1.0.0",
+                "openapi_version": "3.0.0",
+            }
             for i in range(3)
         ]
         await repo.bulk_insert_dicts(data)
@@ -337,8 +363,7 @@ class TestBaseRepository:
         # Get IDs for bulk update
         entities = await repo.list(filters={"version": "1.0.0"})
         update_data = [
-            {"id": entity.id, "version": "2.0.0"}
-            for entity in entities[:2]
+            {"id": entity.id, "version": "2.0.0"} for entity in entities[:2]
         ]
 
         updated_count = await repo.bulk_update_dicts(update_data)
@@ -350,7 +375,9 @@ class TestBaseRepository:
 
         # Create test data
         apis = [
-            APIMetadata(title=f"Page API {i}", version="1.0.0", openapi_version="3.0.0")
+            APIMetadata(
+                title=f"Page API {i}", version="1.0.0", openapi_version="3.0.0"
+            )
             for i in range(15)
         ]
         await repo.create_many(apis)
@@ -358,17 +385,17 @@ class TestBaseRepository:
         # Get first page
         page_result = await repo.get_page(page=1, per_page=5)
 
-        assert len(page_result['entities']) == 5
-        assert page_result['pagination']['page'] == 1
-        assert page_result['pagination']['per_page'] == 5
-        assert page_result['pagination']['total_count'] >= 15
-        assert page_result['pagination']['total_pages'] >= 3
-        assert page_result['pagination']['has_prev'] is False
-        assert page_result['pagination']['has_next'] is True
+        assert len(page_result["entities"]) == 5
+        assert page_result["pagination"]["page"] == 1
+        assert page_result["pagination"]["per_page"] == 5
+        assert page_result["pagination"]["total_count"] >= 15
+        assert page_result["pagination"]["total_pages"] >= 3
+        assert page_result["pagination"]["has_prev"] is False
+        assert page_result["pagination"]["has_next"] is True
 
         # Get second page
         page2_result = await repo.get_page(page=2, per_page=5)
-        assert page2_result['pagination']['has_prev'] is True
+        assert page2_result["pagination"]["has_prev"] is True
 
 
 @pytest.mark.unit
@@ -379,7 +406,9 @@ class TestMetadataRepository:
         """Test finding API by specification hash."""
         repo = MetadataRepository(db_session)
 
-        found = await repo.find_by_specification_hash(sample_api.specification_hash)
+        found = await repo.find_by_specification_hash(
+            sample_api.specification_hash
+        )
         assert found is not None
         assert found.id == sample_api.id
 
@@ -391,7 +420,9 @@ class TestMetadataRepository:
         """Test finding API by title and version."""
         repo = MetadataRepository(db_session)
 
-        found = await repo.find_by_title_version(sample_api.title, sample_api.version)
+        found = await repo.find_by_title_version(
+            sample_api.title, sample_api.version
+        )
         assert found is not None
         assert found.id == sample_api.id
 
@@ -404,7 +435,9 @@ class TestMetadataRepository:
 class TestEndpointRepository:
     """Test the endpoint repository."""
 
-    async def test_get_endpoints_by_api(self, db_session, sample_api, sample_endpoint):
+    async def test_get_endpoints_by_api(
+        self, db_session, sample_api, sample_endpoint
+    ):
         """Test getting endpoints for an API."""
         repo = EndpointRepository(db_session)
 
@@ -412,7 +445,9 @@ class TestEndpointRepository:
         assert len(endpoints) >= 1
         assert endpoints[0].id == sample_endpoint.id
 
-    async def test_search_endpoints_by_method(self, db_session, sample_api, sample_endpoint):
+    async def test_search_endpoints_by_method(
+        self, db_session, sample_api, sample_endpoint
+    ):
         """Test searching endpoints by HTTP method."""
         repo = EndpointRepository(db_session)
 
@@ -423,56 +458,51 @@ class TestEndpointRepository:
             method="POST",
             operation_id="createUser",
             summary="Create user",
-            searchable_text="users createUser POST create"
+            searchable_text="users createUser POST create",
         )
         db_session.add(post_endpoint)
         await db_session.flush()
 
         # Search by GET method
         get_endpoints = await repo.search_endpoints(
-            query="users",
-            api_id=sample_api.id,
-            methods=["GET"]
+            query="users", api_id=sample_api.id, methods=["GET"]
         )
         assert len(get_endpoints) == 1
         assert get_endpoints[0].method == "GET"
 
         # Search by POST method
         post_endpoints = await repo.search_endpoints(
-            query="users",
-            api_id=sample_api.id,
-            methods=["POST"]
+            query="users", api_id=sample_api.id, methods=["POST"]
         )
         assert len(post_endpoints) == 1
         assert post_endpoints[0].method == "POST"
 
-    async def test_search_endpoints_by_tags(self, db_session, sample_api, sample_endpoint):
+    async def test_search_endpoints_by_tags(
+        self, db_session, sample_api, sample_endpoint
+    ):
         """Test searching endpoints by tags."""
         repo = EndpointRepository(db_session)
 
         # Search by existing tag
         tagged_endpoints = await repo.search_endpoints(
-            query="",
-            api_id=sample_api.id,
-            tags=["users"]
+            query="", api_id=sample_api.id, tags=["users"]
         )
         assert len(tagged_endpoints) >= 1
 
         # Search by non-existent tag
         no_endpoints = await repo.search_endpoints(
-            query="",
-            api_id=sample_api.id,
-            tags=["nonexistent"]
+            query="", api_id=sample_api.id, tags=["nonexistent"]
         )
         assert len(no_endpoints) == 0
 
-    async def test_get_endpoints_by_path_pattern(self, db_session, sample_api, sample_endpoint):
+    async def test_get_endpoints_by_path_pattern(
+        self, db_session, sample_api, sample_endpoint
+    ):
         """Test getting endpoints by path pattern."""
         repo = EndpointRepository(db_session)
 
         endpoints = await repo.get_endpoints_by_path_pattern(
-            api_id=sample_api.id,
-            path_pattern="/users%"
+            api_id=sample_api.id, path_pattern="/users%"
         )
         assert len(endpoints) >= 1
         assert endpoints[0].path.startswith("/users")
@@ -482,7 +512,9 @@ class TestEndpointRepository:
 class TestSchemaRepository:
     """Test the schema repository."""
 
-    async def test_get_schemas_by_api(self, db_session, sample_api, sample_schema):
+    async def test_get_schemas_by_api(
+        self, db_session, sample_api, sample_schema
+    ):
         """Test getting schemas for an API."""
         repo = SchemaRepository(db_session)
 
@@ -508,17 +540,14 @@ class TestSchemaRepository:
 
         # Search by name
         results = await repo.search_schemas(
-            query="TestModel",
-            api_id=sample_api.id
+            query="TestModel", api_id=sample_api.id
         )
         assert len(results) >= 1
         assert results[0].name == "TestModel"
 
         # Search by type
         results = await repo.search_schemas(
-            query="",
-            api_id=sample_api.id,
-            schema_types=["object"]
+            query="", api_id=sample_api.id, schema_types=["object"]
         )
         assert len(results) >= 1
 
@@ -533,7 +562,7 @@ class TestSchemaRepository:
                 api_id=sample_api.id,
                 name=f"Schema{i}",
                 type="object",
-                reference_count=ref_count
+                reference_count=ref_count,
             )
             db_session.add(schema)
             schemas.append(schema)
@@ -542,18 +571,22 @@ class TestSchemaRepository:
 
         # Get most referenced
         most_referenced = await repo.get_most_referenced_schemas(
-            api_id=sample_api.id,
-            limit=2
+            api_id=sample_api.id, limit=2
         )
         assert len(most_referenced) == 2
-        assert most_referenced[0].reference_count >= most_referenced[1].reference_count
+        assert (
+            most_referenced[0].reference_count
+            >= most_referenced[1].reference_count
+        )
 
 
 @pytest.mark.unit
 class TestSecurityRepository:
     """Test the security repository."""
 
-    async def test_get_security_schemes_by_api(self, db_session, sample_api, sample_security_scheme):
+    async def test_get_security_schemes_by_api(
+        self, db_session, sample_api, sample_security_scheme
+    ):
         """Test getting security schemes for an API."""
         repo = SecurityRepository(db_session)
 
@@ -561,11 +594,15 @@ class TestSecurityRepository:
         assert len(schemes) >= 1
         assert schemes[0].id == sample_security_scheme.id
 
-    async def test_find_by_name(self, db_session, sample_api, sample_security_scheme):
+    async def test_find_by_name(
+        self, db_session, sample_api, sample_security_scheme
+    ):
         """Test finding security scheme by name."""
         repo = SecurityRepository(db_session)
 
-        found = await repo.find_by_name(sample_api.id, sample_security_scheme.name)
+        found = await repo.find_by_name(
+            sample_api.id, sample_security_scheme.name
+        )
         assert found is not None
         assert found.id == sample_security_scheme.id
 
@@ -573,7 +610,9 @@ class TestSecurityRepository:
         not_found = await repo.find_by_name(sample_api.id, "NonexistentAuth")
         assert not_found is None
 
-    async def test_get_schemes_by_type(self, db_session, sample_api, sample_security_scheme):
+    async def test_get_schemes_by_type(
+        self, db_session, sample_api, sample_security_scheme
+    ):
         """Test getting security schemes by type."""
         repo = SecurityRepository(db_session)
 
@@ -583,7 +622,7 @@ class TestSecurityRepository:
             name="ApiKeyAuth",
             type="apiKey",
             api_key_name="X-API-Key",
-            api_key_location="header"
+            api_key_location="header",
         )
         db_session.add(api_key_scheme)
         await db_session.flush()
@@ -594,7 +633,9 @@ class TestSecurityRepository:
         assert all(s.type == "http" for s in http_schemes)
 
         # Get API key schemes
-        apikey_schemes = await repo.get_schemes_by_type(sample_api.id, "apiKey")
+        apikey_schemes = await repo.get_schemes_by_type(
+            sample_api.id, "apiKey"
+        )
         assert len(apikey_schemes) >= 1
         assert all(s.type == "apiKey" for s in apikey_schemes)
 
@@ -616,7 +657,7 @@ class TestRepositoryIntegration:
             title="Integration Test API",
             version="1.0.0",
             openapi_version="3.0.0",
-            description="Full integration test"
+            description="Full integration test",
         )
         created_api = await metadata_repo.create(api)
 
@@ -626,7 +667,7 @@ class TestRepositoryIntegration:
             name="User",
             type="object",
             properties={"id": {"type": "integer"}, "name": {"type": "string"}},
-            required=["id", "name"]
+            required=["id", "name"],
         )
         created_schema = await schema_repo.create(user_schema)
 
@@ -635,7 +676,7 @@ class TestRepositoryIntegration:
             api_id=created_api.id,
             name="BearerAuth",
             type="http",
-            http_scheme="bearer"
+            http_scheme="bearer",
         )
         created_auth = await security_repo.create(auth_scheme)
 
@@ -647,12 +688,14 @@ class TestRepositoryIntegration:
             operation_id="getUser",
             summary="Get user by ID",
             security=[{"BearerAuth": []}],
-            responses={"200": {"description": "User found"}}
+            responses={"200": {"description": "User found"}},
         )
         created_endpoint = await endpoint_repo.create(endpoint)
 
         # Verify relationships
-        api_endpoints = await endpoint_repo.get_endpoints_by_api(created_api.id)
+        api_endpoints = await endpoint_repo.get_endpoints_by_api(
+            created_api.id
+        )
         assert len(api_endpoints) == 1
         assert api_endpoints[0].id == created_endpoint.id
 
@@ -660,11 +703,15 @@ class TestRepositoryIntegration:
         assert len(api_schemas) == 1
         assert api_schemas[0].id == created_schema.id
 
-        api_security = await security_repo.get_security_schemes_by_api(created_api.id)
+        api_security = await security_repo.get_security_schemes_by_api(
+            created_api.id
+        )
         assert len(api_security) == 1
         assert api_security[0].id == created_auth.id
 
-    async def test_cascade_deletion(self, db_session, sample_api, sample_endpoint, sample_schema):
+    async def test_cascade_deletion(
+        self, db_session, sample_api, sample_endpoint, sample_schema
+    ):
         """Test that deleting API cascades to related entities."""
         metadata_repo = MetadataRepository(db_session)
         endpoint_repo = EndpointRepository(db_session)
@@ -681,7 +728,9 @@ class TestRepositoryIntegration:
         await db_session.commit()
 
         # Verify cascade deletion
-        remaining_endpoints = await endpoint_repo.get_endpoints_by_api(sample_api.id)
+        remaining_endpoints = await endpoint_repo.get_endpoints_by_api(
+            sample_api.id
+        )
         remaining_schemas = await schema_repo.get_schemas_by_api(sample_api.id)
         assert len(remaining_endpoints) == 0
         assert len(remaining_schemas) == 0
@@ -706,7 +755,7 @@ class TestRepositoryPerformance:
                 path=f"/test-{i}",
                 method="GET",
                 operation_id=f"testOp{i}",
-                summary=f"Test operation {i}"
+                summary=f"Test operation {i}",
             )
             endpoints.append(endpoint)
 
@@ -717,7 +766,9 @@ class TestRepositoryPerformance:
         creation_time = time.time() - start_time
 
         # Bulk creation should be fast
-        assert creation_time < 2.0, f"Bulk creation took {creation_time:.2f}s, expected < 2.0s"
+        assert (
+            creation_time < 2.0
+        ), f"Bulk creation took {creation_time:.2f}s, expected < 2.0s"
 
         # Time bulk retrieval
         start_time = time.time()
@@ -725,7 +776,9 @@ class TestRepositoryPerformance:
         retrieval_time = time.time() - start_time
 
         assert len(retrieved) >= batch_size
-        assert retrieval_time < 0.5, f"Bulk retrieval took {retrieval_time:.2f}s, expected < 0.5s"
+        assert (
+            retrieval_time < 0.5
+        ), f"Bulk retrieval took {retrieval_time:.2f}s, expected < 0.5s"
 
     async def test_search_performance(self, db_session, sample_api):
         """Test search performance with large dataset."""
@@ -745,7 +798,7 @@ class TestRepositoryPerformance:
                 summary=f"Get resource {i}",
                 description=f"Retrieve resource with ID {i}",
                 tags=[f"resource-{i % 10}"],
-                searchable_text=f"resource get retrieve ID {i} api endpoint"
+                searchable_text=f"resource get retrieve ID {i} api endpoint",
             )
             endpoints.append(endpoint)
 
@@ -755,11 +808,11 @@ class TestRepositoryPerformance:
         # Time search operation
         start_time = time.time()
         results = await repo.search_endpoints(
-            query="resource",
-            api_id=sample_api.id,
-            limit=50
+            query="resource", api_id=sample_api.id, limit=50
         )
         search_time = time.time() - start_time
 
         assert len(results) >= 50
-        assert search_time < 0.2, f"Search took {search_time:.2f}s, expected < 0.2s"
+        assert (
+            search_time < 0.2
+        ), f"Search took {search_time:.2f}s, expected < 0.2s"

@@ -5,16 +5,17 @@ that would occur when working with any real API documentation.
 """
 
 import asyncio
-import tempfile
-import shutil
 import json
+import shutil
+import tempfile
 from pathlib import Path
 from unittest.mock import AsyncMock
+
 import pytest
 
+from swagger_mcp_server.config.settings import SearchConfig
 from swagger_mcp_server.search.index_manager import SearchIndexManager
 from swagger_mcp_server.search.search_engine import SearchEngine
-from swagger_mcp_server.config.settings import SearchConfig
 
 
 @pytest.fixture
@@ -42,23 +43,60 @@ def large_api_dataset():
     # Simulate various API patterns found in real world
     api_patterns = [
         # CRUD operations
-        {"base": "/api/v1/users", "methods": ["GET", "POST", "PUT", "DELETE"], "category": "user-management"},
-        {"base": "/api/v1/products", "methods": ["GET", "POST", "PUT", "DELETE"], "category": "catalog"},
-        {"base": "/api/v1/orders", "methods": ["GET", "POST", "PUT", "DELETE"], "category": "commerce"},
-        {"base": "/api/v1/payments", "methods": ["GET", "POST"], "category": "finance"},
-
+        {
+            "base": "/api/v1/users",
+            "methods": ["GET", "POST", "PUT", "DELETE"],
+            "category": "user-management",
+        },
+        {
+            "base": "/api/v1/products",
+            "methods": ["GET", "POST", "PUT", "DELETE"],
+            "category": "catalog",
+        },
+        {
+            "base": "/api/v1/orders",
+            "methods": ["GET", "POST", "PUT", "DELETE"],
+            "category": "commerce",
+        },
+        {
+            "base": "/api/v1/payments",
+            "methods": ["GET", "POST"],
+            "category": "finance",
+        },
         # Resource-specific endpoints
         {"base": "/api/v1/search", "methods": ["GET"], "category": "search"},
-        {"base": "/api/v1/reports", "methods": ["GET", "POST"], "category": "analytics"},
-        {"base": "/api/v1/webhooks", "methods": ["POST", "DELETE"], "category": "integration"},
-
+        {
+            "base": "/api/v1/reports",
+            "methods": ["GET", "POST"],
+            "category": "analytics",
+        },
+        {
+            "base": "/api/v1/webhooks",
+            "methods": ["POST", "DELETE"],
+            "category": "integration",
+        },
         # Administrative endpoints
-        {"base": "/api/v1/admin/users", "methods": ["GET", "POST", "DELETE"], "category": "administration"},
-        {"base": "/api/v1/admin/system", "methods": ["GET"], "category": "system"},
-
+        {
+            "base": "/api/v1/admin/users",
+            "methods": ["GET", "POST", "DELETE"],
+            "category": "administration",
+        },
+        {
+            "base": "/api/v1/admin/system",
+            "methods": ["GET"],
+            "category": "system",
+        },
         # Third-party integrations
-        {"base": "/api/v1/integrations/crm", "methods": ["GET", "POST"], "category": "external"},
-        {"base": "/api/v1/integrations/email", "methods": ["POST"], "category": "external"},
+        {
+            "base": "/api/v1/integrations/crm",
+            "methods": ["GET", "POST"],
+            "category": "external",
+        },
+        {
+            "base": "/api/v1/integrations/email",
+            "methods": ["POST"],
+            "category": "external",
+        },
     ]
 
     endpoint_id = 0
@@ -76,24 +114,36 @@ def large_api_dataset():
                 endpoint_id += 1
                 path = pattern["base"] + variation
 
-                endpoints.append({
-                    "id": f"endpoint_{endpoint_id}",
-                    "path": path,
-                    "method": method,
-                    "operation_id": f"{method.lower()}{pattern['category'].replace('-', '').title()}{variation.replace('/', '').replace('{', '').replace('}', '').title()}",
-                    "summary": f"{method} {pattern['category']} {variation}".strip(),
-                    "description": f"Perform {method} operation on {pattern['category']} resource {variation}".strip(),
-                    "parameters": [
-                        {"name": "id", "type": "string", "description": "Resource identifier"}
-                    ] if "{id}" in variation else [],
-                    "tags": [pattern["category"], method.lower()],
-                    "security": [{"bearer_auth": []}] if "admin" in path else [],
-                    "responses": {
-                        "200": {"description": "Success"},
-                        "404": {"description": "Not found"} if "{id}" in variation else None
-                    },
-                    "deprecated": False
-                })
+                endpoints.append(
+                    {
+                        "id": f"endpoint_{endpoint_id}",
+                        "path": path,
+                        "method": method,
+                        "operation_id": f"{method.lower()}{pattern['category'].replace('-', '').title()}{variation.replace('/', '').replace('{', '').replace('}', '').title()}",
+                        "summary": f"{method} {pattern['category']} {variation}".strip(),
+                        "description": f"Perform {method} operation on {pattern['category']} resource {variation}".strip(),
+                        "parameters": [
+                            {
+                                "name": "id",
+                                "type": "string",
+                                "description": "Resource identifier",
+                            }
+                        ]
+                        if "{id}" in variation
+                        else [],
+                        "tags": [pattern["category"], method.lower()],
+                        "security": [{"bearer_auth": []}]
+                        if "admin" in path
+                        else [],
+                        "responses": {
+                            "200": {"description": "Success"},
+                            "404": {"description": "Not found"}
+                            if "{id}" in variation
+                            else None,
+                        },
+                        "deprecated": False,
+                    }
+                )
 
     return endpoints[:100]  # Limit to 100 for performance
 
@@ -103,33 +153,79 @@ def search_scenarios():
     """Define realistic search scenarios that users would perform."""
     return [
         # Basic entity searches
-        {"query": "users", "expected_min_results": 1, "description": "Find user-related endpoints"},
-        {"query": "products", "expected_min_results": 1, "description": "Find product catalog endpoints"},
-        {"query": "orders", "expected_min_results": 1, "description": "Find order management endpoints"},
-
+        {
+            "query": "users",
+            "expected_min_results": 1,
+            "description": "Find user-related endpoints",
+        },
+        {
+            "query": "products",
+            "expected_min_results": 1,
+            "description": "Find product catalog endpoints",
+        },
+        {
+            "query": "orders",
+            "expected_min_results": 1,
+            "description": "Find order management endpoints",
+        },
         # Operation-based searches
-        {"query": "create", "expected_min_results": 1, "description": "Find creation endpoints"},
-        {"query": "delete", "expected_min_results": 1, "description": "Find deletion endpoints"},
-        {"query": "search", "expected_min_results": 1, "description": "Find search functionality"},
-
+        {
+            "query": "create",
+            "expected_min_results": 1,
+            "description": "Find creation endpoints",
+        },
+        {
+            "query": "delete",
+            "expected_min_results": 1,
+            "description": "Find deletion endpoints",
+        },
+        {
+            "query": "search",
+            "expected_min_results": 1,
+            "description": "Find search functionality",
+        },
         # Administrative searches
-        {"query": "admin", "expected_min_results": 1, "description": "Find admin endpoints"},
-        {"query": "system", "expected_min_results": 1, "description": "Find system endpoints"},
-
+        {
+            "query": "admin",
+            "expected_min_results": 1,
+            "description": "Find admin endpoints",
+        },
+        {
+            "query": "system",
+            "expected_min_results": 1,
+            "description": "Find system endpoints",
+        },
         # Integration searches
-        {"query": "webhook", "expected_min_results": 1, "description": "Find webhook endpoints"},
-        {"query": "integration", "expected_min_results": 1, "description": "Find integration endpoints"},
-
+        {
+            "query": "webhook",
+            "expected_min_results": 1,
+            "description": "Find webhook endpoints",
+        },
+        {
+            "query": "integration",
+            "expected_min_results": 1,
+            "description": "Find integration endpoints",
+        },
         # Complex searches
-        {"query": "user management", "expected_min_results": 1, "description": "Multi-word search"},
-        {"query": "payment processing", "expected_min_results": 0, "description": "May not find exact matches"},
+        {
+            "query": "user management",
+            "expected_min_results": 1,
+            "description": "Multi-word search",
+        },
+        {
+            "query": "payment processing",
+            "expected_min_results": 0,
+            "description": "May not find exact matches",
+        },
     ]
 
 
 class TestRealWorldSearchScenarios:
     """Test realistic search usage patterns."""
 
-    async def setup_search_with_large_dataset(self, temp_search_dir, search_config, large_api_dataset):
+    async def setup_search_with_large_dataset(
+        self, temp_search_dir, search_config, large_api_dataset
+    ):
         """Setup search engine with large dataset."""
         endpoint_repo = AsyncMock()
         schema_repo = AsyncMock()
@@ -143,7 +239,7 @@ class TestRealWorldSearchScenarios:
             endpoint_repo=endpoint_repo,
             schema_repo=schema_repo,
             metadata_repo=metadata_repo,
-            config=search_config
+            config=search_config,
         )
 
         await index_manager.create_index_from_database()
@@ -151,7 +247,11 @@ class TestRealWorldSearchScenarios:
 
     @pytest.mark.asyncio
     async def test_common_search_patterns(
-        self, temp_search_dir, search_config, large_api_dataset, search_scenarios
+        self,
+        temp_search_dir,
+        search_config,
+        large_api_dataset,
+        search_scenarios,
     ):
         """Test common search patterns users would perform."""
         search_engine = await self.setup_search_with_large_dataset(
@@ -167,8 +267,9 @@ class TestRealWorldSearchScenarios:
 
             # Check if we meet minimum expected results
             if scenario["expected_min_results"] > 0:
-                assert response.total_results >= scenario["expected_min_results"], \
-                    f"Search '{scenario['query']}' expected at least {scenario['expected_min_results']} results, got {response.total_results}"
+                assert (
+                    response.total_results >= scenario["expected_min_results"]
+                ), f"Search '{scenario['query']}' expected at least {scenario['expected_min_results']} results, got {response.total_results}"
 
     @pytest.mark.asyncio
     async def test_search_relevance_ranking(
@@ -190,8 +291,12 @@ class TestRealWorldSearchScenarios:
 
             # User-related endpoints should appear early
             top_3_results = response.results[:3]
-            user_related = any("user" in r.endpoint_path.lower() for r in top_3_results)
-            assert user_related, "Expected user-related endpoint in top 3 results"
+            user_related = any(
+                "user" in r.endpoint_path.lower() for r in top_3_results
+            )
+            assert (
+                user_related
+            ), "Expected user-related endpoint in top 3 results"
 
     @pytest.mark.asyncio
     async def test_search_with_typos_and_variations(
@@ -214,7 +319,10 @@ class TestRealWorldSearchScenarios:
             plural_response = await search_engine.search(plural)
 
             # Both should find relevant results
-            assert singular_response.total_results > 0 or plural_response.total_results > 0
+            assert (
+                singular_response.total_results > 0
+                or plural_response.total_results > 0
+            )
 
     @pytest.mark.asyncio
     async def test_filtered_search_scenarios(
@@ -227,8 +335,7 @@ class TestRealWorldSearchScenarios:
 
         # Find all GET endpoints
         get_response = await search_engine.search(
-            "api",
-            filters={"http_method": "GET"}
+            "api", filters={"http_method": "GET"}
         )
 
         if get_response.total_results > 0:
@@ -236,12 +343,14 @@ class TestRealWorldSearchScenarios:
 
         # Find all admin endpoints
         admin_response = await search_engine.search(
-            "admin",
-            filters={"http_method": ["GET", "POST"]}
+            "admin", filters={"http_method": ["GET", "POST"]}
         )
 
         if admin_response.total_results > 0:
-            assert all(r.http_method in ["GET", "POST"] for r in admin_response.results)
+            assert all(
+                r.http_method in ["GET", "POST"]
+                for r in admin_response.results
+            )
 
     @pytest.mark.asyncio
     async def test_pagination_with_large_results(
@@ -306,7 +415,7 @@ class TestRealWorldSearchScenarios:
             search_engine.search("products"),
             search_engine.search("orders"),
             search_engine.search("admin"),
-            search_engine.search("api")
+            search_engine.search("api"),
         ]
 
         # Run searches concurrently
@@ -358,8 +467,10 @@ class TestRealWorldSearchScenarios:
                 assert len(results) > 0
                 # Verify results are relevant to the tag
                 for result in results[:3]:  # Check first 3 results
-                    assert tag in result.metadata.get("tags", "").lower() or \
-                           tag.replace("-", "") in result.endpoint_path.lower()
+                    assert (
+                        tag in result.metadata.get("tags", "").lower()
+                        or tag.replace("-", "") in result.endpoint_path.lower()
+                    )
 
     @pytest.mark.asyncio
     async def test_path_based_search(
@@ -371,7 +482,9 @@ class TestRealWorldSearchScenarios:
         )
 
         # Test exact path matching
-        exact_results = await search_engine.search_by_path("/api/v1/users", exact_match=True)
+        exact_results = await search_engine.search_by_path(
+            "/api/v1/users", exact_match=True
+        )
 
         if exact_results:
             for result in exact_results:
@@ -398,19 +511,18 @@ class TestRealWorldSearchScenarios:
             {
                 "query": "user",
                 "filters": {"http_method": "POST"},
-                "description": "Find user creation endpoints"
+                "description": "Find user creation endpoints",
             },
             {
                 "query": "admin",
                 "filters": {"http_method": ["GET", "DELETE"]},
-                "description": "Find admin read/delete operations"
+                "description": "Find admin read/delete operations",
             },
         ]
 
         for scenario in complex_scenarios:
             response = await search_engine.search(
-                scenario["query"],
-                filters=scenario.get("filters", {})
+                scenario["query"], filters=scenario.get("filters", {})
             )
 
             # Verify filters are applied

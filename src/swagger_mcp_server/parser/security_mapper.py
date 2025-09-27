@@ -1,13 +1,17 @@
 """Security scheme mapping and normalization for OpenAPI documents."""
 
-from typing import Any, Dict, List, Optional, Set, Tuple
 from enum import Enum
+from typing import Any, Dict, List, Optional, Set, Tuple
 
-from swagger_mcp_server.parser.models import (
-    NormalizedSecurityScheme, SecuritySchemeType, SecuritySchemeLocation,
-    SecurityFlowType, NormalizedSecurityFlow, NormalizedSecurityRequirement
-)
 from swagger_mcp_server.config.logging import get_logger
+from swagger_mcp_server.parser.models import (
+    NormalizedSecurityFlow,
+    NormalizedSecurityRequirement,
+    NormalizedSecurityScheme,
+    SecurityFlowType,
+    SecuritySchemeLocation,
+    SecuritySchemeType,
+)
 
 logger = get_logger(__name__)
 
@@ -20,31 +24,30 @@ class SecurityMapper:
 
         # Security scheme type mapping
         self.scheme_type_map = {
-            'apiKey': SecuritySchemeType.API_KEY,
-            'http': SecuritySchemeType.HTTP,
-            'oauth2': SecuritySchemeType.OAUTH2,
-            'openIdConnect': SecuritySchemeType.OPEN_ID_CONNECT,
-            'mutualTLS': SecuritySchemeType.MUTUAL_TLS,
+            "apiKey": SecuritySchemeType.API_KEY,
+            "http": SecuritySchemeType.HTTP,
+            "oauth2": SecuritySchemeType.OAUTH2,
+            "openIdConnect": SecuritySchemeType.OPEN_ID_CONNECT,
+            "mutualTLS": SecuritySchemeType.MUTUAL_TLS,
         }
 
         # API key location mapping
         self.location_map = {
-            'query': SecuritySchemeLocation.QUERY,
-            'header': SecuritySchemeLocation.HEADER,
-            'cookie': SecuritySchemeLocation.COOKIE,
+            "query": SecuritySchemeLocation.QUERY,
+            "header": SecuritySchemeLocation.HEADER,
+            "cookie": SecuritySchemeLocation.COOKIE,
         }
 
         # OAuth2 flow type mapping
         self.flow_type_map = {
-            'implicit': SecurityFlowType.IMPLICIT,
-            'password': SecurityFlowType.PASSWORD,
-            'clientCredentials': SecurityFlowType.CLIENT_CREDENTIALS,
-            'authorizationCode': SecurityFlowType.AUTHORIZATION_CODE,
+            "implicit": SecurityFlowType.IMPLICIT,
+            "password": SecurityFlowType.PASSWORD,
+            "clientCredentials": SecurityFlowType.CLIENT_CREDENTIALS,
+            "authorizationCode": SecurityFlowType.AUTHORIZATION_CODE,
         }
 
     def normalize_security_schemes(
-        self,
-        components_data: Dict[str, Any]
+        self, components_data: Dict[str, Any]
     ) -> Tuple[Dict[str, NormalizedSecurityScheme], List[str], List[str]]:
         """Normalize all security schemes from OpenAPI components.
 
@@ -62,19 +65,21 @@ class SecurityMapper:
             errors.append("Components data must be a dictionary")
             return normalized_schemes, errors, warnings
 
-        security_schemes = components_data.get('securitySchemes', {})
+        security_schemes = components_data.get("securitySchemes", {})
         if not isinstance(security_schemes, dict):
             warnings.append("Security schemes must be a dictionary")
             return normalized_schemes, errors, warnings
 
         self.logger.info(
             "Starting security scheme normalization",
-            schemes_count=len(security_schemes)
+            schemes_count=len(security_schemes),
         )
 
         for scheme_name, scheme_data in security_schemes.items():
             if not isinstance(scheme_name, str):
-                warnings.append(f"Skipping non-string scheme name: {scheme_name}")
+                warnings.append(
+                    f"Skipping non-string scheme name: {scheme_name}"
+                )
                 continue
 
             if not isinstance(scheme_data, dict):
@@ -83,8 +88,7 @@ class SecurityMapper:
 
             try:
                 normalized_scheme = self._normalize_single_scheme(
-                    scheme_name=scheme_name,
-                    scheme_data=scheme_data
+                    scheme_name=scheme_name, scheme_data=scheme_data
                 )
 
                 normalized_schemes[scheme_name] = normalized_scheme
@@ -95,22 +99,20 @@ class SecurityMapper:
                 self.logger.error(
                     "Security scheme normalization failed",
                     scheme=scheme_name,
-                    error=str(e)
+                    error=str(e),
                 )
 
         self.logger.info(
             "Security scheme normalization completed",
             schemes_normalized=len(normalized_schemes),
             errors=len(errors),
-            warnings=len(warnings)
+            warnings=len(warnings),
         )
 
         return normalized_schemes, errors, warnings
 
     def _normalize_single_scheme(
-        self,
-        scheme_name: str,
-        scheme_data: Dict[str, Any]
+        self, scheme_name: str, scheme_data: Dict[str, Any]
     ) -> NormalizedSecurityScheme:
         """Normalize a single security scheme.
 
@@ -122,51 +124,65 @@ class SecurityMapper:
             Normalized security scheme
         """
         # Handle references
-        if '$ref' in scheme_data:
+        if "$ref" in scheme_data:
             return NormalizedSecurityScheme(
                 name=scheme_name,
                 type=SecuritySchemeType.HTTP,  # Will be resolved later
                 description=f"Reference: {scheme_data['$ref']}",
-                extensions={'$ref': scheme_data['$ref']}
+                extensions={"$ref": scheme_data["$ref"]},
             )
 
         # Extract basic properties
-        scheme_type_str = scheme_data.get('type')
+        scheme_type_str = scheme_data.get("type")
         if not scheme_type_str:
             raise ValueError(f"Security scheme must have 'type' property")
 
         if scheme_type_str not in self.scheme_type_map:
-            raise ValueError(f"Unknown security scheme type: {scheme_type_str}")
+            raise ValueError(
+                f"Unknown security scheme type: {scheme_type_str}"
+            )
 
         scheme_type = self.scheme_type_map[scheme_type_str]
-        description = scheme_data.get('description')
+        description = scheme_data.get("description")
 
         # Type-specific processing
         if scheme_type == SecuritySchemeType.API_KEY:
-            return self._normalize_api_key_scheme(scheme_name, scheme_data, description)
+            return self._normalize_api_key_scheme(
+                scheme_name, scheme_data, description
+            )
         elif scheme_type == SecuritySchemeType.HTTP:
-            return self._normalize_http_scheme(scheme_name, scheme_data, description)
+            return self._normalize_http_scheme(
+                scheme_name, scheme_data, description
+            )
         elif scheme_type == SecuritySchemeType.OAUTH2:
-            return self._normalize_oauth2_scheme(scheme_name, scheme_data, description)
+            return self._normalize_oauth2_scheme(
+                scheme_name, scheme_data, description
+            )
         elif scheme_type == SecuritySchemeType.OPEN_ID_CONNECT:
-            return self._normalize_openid_scheme(scheme_name, scheme_data, description)
+            return self._normalize_openid_scheme(
+                scheme_name, scheme_data, description
+            )
         elif scheme_type == SecuritySchemeType.MUTUAL_TLS:
-            return self._normalize_mutual_tls_scheme(scheme_name, scheme_data, description)
+            return self._normalize_mutual_tls_scheme(
+                scheme_name, scheme_data, description
+            )
         else:
-            raise ValueError(f"Unsupported security scheme type: {scheme_type}")
+            raise ValueError(
+                f"Unsupported security scheme type: {scheme_type}"
+            )
 
     def _normalize_api_key_scheme(
         self,
         scheme_name: str,
         scheme_data: Dict[str, Any],
-        description: Optional[str]
+        description: Optional[str],
     ) -> NormalizedSecurityScheme:
         """Normalize API key security scheme."""
-        name = scheme_data.get('name')
+        name = scheme_data.get("name")
         if not name:
             raise ValueError("API key scheme must have 'name' property")
 
-        location_str = scheme_data.get('in')
+        location_str = scheme_data.get("in")
         if not location_str:
             raise ValueError("API key scheme must have 'in' property")
 
@@ -181,21 +197,21 @@ class SecurityMapper:
             description=description,
             api_key_name=name,
             api_key_location=location,
-            extensions=self._extract_extensions(scheme_data)
+            extensions=self._extract_extensions(scheme_data),
         )
 
     def _normalize_http_scheme(
         self,
         scheme_name: str,
         scheme_data: Dict[str, Any],
-        description: Optional[str]
+        description: Optional[str],
     ) -> NormalizedSecurityScheme:
         """Normalize HTTP security scheme."""
-        http_scheme = scheme_data.get('scheme')
+        http_scheme = scheme_data.get("scheme")
         if not http_scheme:
             raise ValueError("HTTP scheme must have 'scheme' property")
 
-        bearer_format = scheme_data.get('bearerFormat')
+        bearer_format = scheme_data.get("bearerFormat")
 
         return NormalizedSecurityScheme(
             name=scheme_name,
@@ -203,17 +219,17 @@ class SecurityMapper:
             description=description,
             http_scheme=http_scheme,
             bearer_format=bearer_format,
-            extensions=self._extract_extensions(scheme_data)
+            extensions=self._extract_extensions(scheme_data),
         )
 
     def _normalize_oauth2_scheme(
         self,
         scheme_name: str,
         scheme_data: Dict[str, Any],
-        description: Optional[str]
+        description: Optional[str],
     ) -> NormalizedSecurityScheme:
         """Normalize OAuth2 security scheme."""
-        flows_data = scheme_data.get('flows', {})
+        flows_data = scheme_data.get("flows", {})
         if not isinstance(flows_data, dict):
             raise ValueError("OAuth2 scheme must have 'flows' object")
 
@@ -234,19 +250,17 @@ class SecurityMapper:
             type=SecuritySchemeType.OAUTH2,
             description=description,
             oauth2_flows=flows,
-            extensions=self._extract_extensions(scheme_data)
+            extensions=self._extract_extensions(scheme_data),
         )
 
     def _normalize_oauth2_flow(
-        self,
-        flow_type: SecurityFlowType,
-        flow_data: Dict[str, Any]
+        self, flow_type: SecurityFlowType, flow_data: Dict[str, Any]
     ) -> NormalizedSecurityFlow:
         """Normalize OAuth2 flow."""
-        authorization_url = flow_data.get('authorizationUrl')
-        token_url = flow_data.get('tokenUrl')
-        refresh_url = flow_data.get('refreshUrl')
-        scopes = flow_data.get('scopes', {})
+        authorization_url = flow_data.get("authorizationUrl")
+        token_url = flow_data.get("tokenUrl")
+        refresh_url = flow_data.get("refreshUrl")
+        scopes = flow_data.get("scopes", {})
 
         return NormalizedSecurityFlow(
             type=flow_type,
@@ -254,45 +268,46 @@ class SecurityMapper:
             token_url=token_url,
             refresh_url=refresh_url,
             scopes=scopes,
-            extensions=self._extract_extensions(flow_data)
+            extensions=self._extract_extensions(flow_data),
         )
 
     def _normalize_openid_scheme(
         self,
         scheme_name: str,
         scheme_data: Dict[str, Any],
-        description: Optional[str]
+        description: Optional[str],
     ) -> NormalizedSecurityScheme:
         """Normalize OpenID Connect security scheme."""
-        openid_connect_url = scheme_data.get('openIdConnectUrl')
+        openid_connect_url = scheme_data.get("openIdConnectUrl")
         if not openid_connect_url:
-            raise ValueError("OpenID Connect scheme must have 'openIdConnectUrl'")
+            raise ValueError(
+                "OpenID Connect scheme must have 'openIdConnectUrl'"
+            )
 
         return NormalizedSecurityScheme(
             name=scheme_name,
             type=SecuritySchemeType.OPEN_ID_CONNECT,
             description=description,
             openid_connect_url=openid_connect_url,
-            extensions=self._extract_extensions(scheme_data)
+            extensions=self._extract_extensions(scheme_data),
         )
 
     def _normalize_mutual_tls_scheme(
         self,
         scheme_name: str,
         scheme_data: Dict[str, Any],
-        description: Optional[str]
+        description: Optional[str],
     ) -> NormalizedSecurityScheme:
         """Normalize Mutual TLS security scheme."""
         return NormalizedSecurityScheme(
             name=scheme_name,
             type=SecuritySchemeType.MUTUAL_TLS,
             description=description,
-            extensions=self._extract_extensions(scheme_data)
+            extensions=self._extract_extensions(scheme_data),
         )
 
     def analyze_security_requirements(
-        self,
-        security_requirements: List[List[NormalizedSecurityRequirement]]
+        self, security_requirements: List[List[NormalizedSecurityRequirement]]
     ) -> Dict[str, Any]:
         """Analyze security requirements for patterns and insights.
 
@@ -303,57 +318,57 @@ class SecurityMapper:
             Dictionary with analysis results
         """
         analysis = {
-            'total_alternatives': len(security_requirements),
-            'schemes_used': set(),
-            'scope_patterns': {},
-            'security_levels': {},
-            'optional_security': False,
-            'multi_scheme_auth': False,
+            "total_alternatives": len(security_requirements),
+            "schemes_used": set(),
+            "scope_patterns": {},
+            "security_levels": {},
+            "optional_security": False,
+            "multi_scheme_auth": False,
         }
 
         if not security_requirements:
-            analysis['optional_security'] = True
+            analysis["optional_security"] = True
             return analysis
 
         for alternative_group in security_requirements:
             if not alternative_group:
-                analysis['optional_security'] = True
+                analysis["optional_security"] = True
                 continue
 
             if len(alternative_group) > 1:
-                analysis['multi_scheme_auth'] = True
+                analysis["multi_scheme_auth"] = True
 
             for requirement in alternative_group:
                 scheme_id = requirement.scheme_id
-                analysis['schemes_used'].add(scheme_id)
+                analysis["schemes_used"].add(scheme_id)
 
                 # Analyze scope patterns
                 scopes = requirement.scopes
                 for scope in scopes:
-                    if scope not in analysis['scope_patterns']:
-                        analysis['scope_patterns'][scope] = 0
-                    analysis['scope_patterns'][scope] += 1
+                    if scope not in analysis["scope_patterns"]:
+                        analysis["scope_patterns"][scope] = 0
+                    analysis["scope_patterns"][scope] += 1
 
                 # Determine security level
                 if len(scopes) == 0:
-                    level = 'basic'
+                    level = "basic"
                 elif len(scopes) <= 3:
-                    level = 'standard'
+                    level = "standard"
                 else:
-                    level = 'granular'
+                    level = "granular"
 
-                if scheme_id not in analysis['security_levels']:
-                    analysis['security_levels'][scheme_id] = level
+                if scheme_id not in analysis["security_levels"]:
+                    analysis["security_levels"][scheme_id] = level
 
         # Convert sets to lists for JSON serialization
-        analysis['schemes_used'] = list(analysis['schemes_used'])
+        analysis["schemes_used"] = list(analysis["schemes_used"])
 
         return analysis
 
     def validate_security_consistency(
         self,
         security_schemes: Dict[str, NormalizedSecurityScheme],
-        security_requirements: List[List[NormalizedSecurityRequirement]]
+        security_requirements: List[List[NormalizedSecurityRequirement]],
     ) -> List[str]:
         """Validate consistency between security schemes and requirements.
 
@@ -393,7 +408,7 @@ class SecurityMapper:
     def _validate_oauth2_scopes(
         self,
         requirement: NormalizedSecurityRequirement,
-        scheme: NormalizedSecurityScheme
+        scheme: NormalizedSecurityScheme,
     ) -> List[str]:
         """Validate OAuth2 scopes against scheme definition."""
         errors = []
@@ -429,7 +444,7 @@ class SecurityMapper:
         extensions = {}
 
         for key, value in obj.items():
-            if isinstance(key, str) and key.startswith('x-'):
+            if isinstance(key, str) and key.startswith("x-"):
                 extensions[key] = value
 
         return extensions
@@ -437,7 +452,7 @@ class SecurityMapper:
     def get_security_statistics(
         self,
         security_schemes: Dict[str, NormalizedSecurityScheme],
-        security_requirements: List[List[NormalizedSecurityRequirement]]
+        security_requirements: List[List[NormalizedSecurityRequirement]],
     ) -> Dict[str, Any]:
         """Generate statistics about security configuration.
 
@@ -449,42 +464,47 @@ class SecurityMapper:
             Dictionary with security statistics
         """
         stats = {
-            'total_schemes': len(security_schemes),
-            'scheme_types': {},
-            'auth_required': len(security_requirements) > 0,
-            'optional_auth': False,
-            'multi_factor_auth': False,
-            'oauth2_flows': {},
-            'most_used_scopes': {},
-            'security_coverage': 0.0,
+            "total_schemes": len(security_schemes),
+            "scheme_types": {},
+            "auth_required": len(security_requirements) > 0,
+            "optional_auth": False,
+            "multi_factor_auth": False,
+            "oauth2_flows": {},
+            "most_used_scopes": {},
+            "security_coverage": 0.0,
         }
 
         # Analyze scheme types
         for scheme in security_schemes.values():
             scheme_type = scheme.type.value
-            if scheme_type not in stats['scheme_types']:
-                stats['scheme_types'][scheme_type] = 0
-            stats['scheme_types'][scheme_type] += 1
+            if scheme_type not in stats["scheme_types"]:
+                stats["scheme_types"][scheme_type] = 0
+            stats["scheme_types"][scheme_type] += 1
 
             # OAuth2 flow analysis
-            if scheme.type == SecuritySchemeType.OAUTH2 and scheme.oauth2_flows:
+            if (
+                scheme.type == SecuritySchemeType.OAUTH2
+                and scheme.oauth2_flows
+            ):
                 for flow_type in scheme.oauth2_flows.keys():
                     flow_name = flow_type.value
-                    if flow_name not in stats['oauth2_flows']:
-                        stats['oauth2_flows'][flow_name] = 0
-                    stats['oauth2_flows'][flow_name] += 1
+                    if flow_name not in stats["oauth2_flows"]:
+                        stats["oauth2_flows"][flow_name] = 0
+                    stats["oauth2_flows"][flow_name] += 1
 
         # Analyze requirements
         if security_requirements:
-            analysis = self.analyze_security_requirements(security_requirements)
-            stats['optional_auth'] = analysis['optional_security']
-            stats['multi_factor_auth'] = analysis['multi_scheme_auth']
-            stats['most_used_scopes'] = analysis['scope_patterns']
+            analysis = self.analyze_security_requirements(
+                security_requirements
+            )
+            stats["optional_auth"] = analysis["optional_security"]
+            stats["multi_factor_auth"] = analysis["multi_scheme_auth"]
+            stats["most_used_scopes"] = analysis["scope_patterns"]
 
             # Calculate security coverage (schemes used vs available)
             if security_schemes:
-                used_schemes = len(analysis['schemes_used'])
+                used_schemes = len(analysis["schemes_used"])
                 total_schemes = len(security_schemes)
-                stats['security_coverage'] = used_schemes / total_schemes
+                stats["security_coverage"] = used_schemes / total_schemes
 
         return stats

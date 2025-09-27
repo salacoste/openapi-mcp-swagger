@@ -6,12 +6,12 @@ This is a minimal implementation to verify the MCP SDK integration works correct
 import asyncio
 from typing import Any, Dict
 
+from mcp import types
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
-from mcp import types
 
-from swagger_mcp_server.config.settings import Settings
 from swagger_mcp_server.config.logging import get_logger
+from swagger_mcp_server.config.settings import Settings
 
 logger = get_logger(__name__)
 
@@ -32,23 +32,24 @@ def create_simple_server() -> Server:
                     "properties": {
                         "message": {
                             "type": "string",
-                            "description": "Test message"
+                            "description": "Test message",
                         }
                     },
-                    "required": ["message"]
-                }
+                    "required": ["message"],
+                },
             )
         ]
 
     @server.call_tool()
-    async def call_tool(name: str, arguments: Dict[str, Any]) -> list[types.TextContent]:
+    async def call_tool(
+        name: str, arguments: Dict[str, Any]
+    ) -> list[types.TextContent]:
         """Handle tool calls."""
         if name == "test":
             message = arguments.get("message", "No message provided")
             return [
                 types.TextContent(
-                    type="text",
-                    text=f"Test successful! Message: {message}"
+                    type="text", text=f"Test successful! Message: {message}"
                 )
             ]
         else:
@@ -62,9 +63,7 @@ async def main():
     server = create_simple_server()
 
     # Run with stdio transport
-    options = types.ServerCapabilities(
-        tools=types.ToolsCapability()
-    )
+    options = types.ServerCapabilities(tools=types.ToolsCapability())
 
     async with stdio_server() as (read_stream, write_stream):
         await server.run(
@@ -74,10 +73,9 @@ async def main():
                 protocolVersion="1.0.0",
                 capabilities=options,
                 serverInfo=types.Implementation(
-                    name="swagger-mcp-server",
-                    version="0.1.0"
-                )
-            )
+                    name="swagger-mcp-server", version="0.1.0"
+                ),
+            ),
         )
 
 

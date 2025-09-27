@@ -2,7 +2,8 @@
 
 import time
 from contextlib import contextmanager
-from typing import List, Tuple, Optional
+from typing import List, Optional, Tuple
+
 import click
 
 
@@ -75,20 +76,30 @@ class ConversionProgressTracker:
         click.echo(f"{icon} {phase_name}...")
 
         if self.verbose:
-            click.echo(f"   Progress: {self.current_phase}/{total_phases} phases "
-                      f"({progress_percent:.0f}%) completed")
+            click.echo(
+                f"   Progress: {self.current_phase}/{total_phases} phases "
+                f"({progress_percent:.0f}%) completed"
+            )
 
             # Show estimated time remaining
             if self.current_phase > 0:
-                avg_phase_time = sum(self.phase_durations) / len(self.phase_durations)
+                avg_phase_time = sum(self.phase_durations) / len(
+                    self.phase_durations
+                )
                 remaining_phases = total_phases - self.current_phase
                 estimated_remaining = avg_phase_time * remaining_phases
-                click.echo(f"   Estimated time remaining: {self._format_duration(estimated_remaining)}")
+                click.echo(
+                    f"   Estimated time remaining: {self._format_duration(estimated_remaining)}"
+                )
 
-    def _display_phase_complete(self, phase_name: str, icon: str, duration: float):
+    def _display_phase_complete(
+        self, phase_name: str, icon: str, duration: float
+    ):
         """Display phase completion with timing information."""
         if self.verbose:
-            click.echo(f"   ✅ {phase_name} completed ({self._format_duration(duration)})")
+            click.echo(
+                f"   ✅ {phase_name} completed ({self._format_duration(duration)})"
+            )
         else:
             # Simple progress indicator
             click.echo(f"   ✅ Complete ({self._format_duration(duration)})")
@@ -99,9 +110,13 @@ class ConversionProgressTracker:
 
         click.echo()
 
-    def _display_phase_error(self, phase_name: str, icon: str, duration: float, error: str):
+    def _display_phase_error(
+        self, phase_name: str, icon: str, duration: float, error: str
+    ):
         """Display phase error with diagnostic information."""
-        click.echo(f"   ❌ {phase_name} failed after {self._format_duration(duration)}")
+        click.echo(
+            f"   ❌ {phase_name} failed after {self._format_duration(duration)}"
+        )
 
         if self.verbose:
             click.echo(f"   Error: {error}")
@@ -131,7 +146,9 @@ class ConversionProgressTracker:
         else:
             return f"{seconds / 3600:.1f}h"
 
-    def show_final_summary(self, success: bool = True, total_duration: Optional[float] = None):
+    def show_final_summary(
+        self, success: bool = True, total_duration: Optional[float] = None
+    ):
         """Show final conversion summary."""
         if total_duration is None:
             total_duration = time.time() - self.total_start_time
@@ -148,10 +165,16 @@ class ConversionProgressTracker:
         if success and self.verbose and self.phase_durations:
             click.echo()
             click.echo("📊 Phase breakdown:")
-            phase_names = [phase[0] for phase in self.phases[:len(self.phase_durations)]]
-            for i, (name, duration) in enumerate(zip(phase_names, self.phase_durations)):
+            phase_names = [
+                phase[0] for phase in self.phases[: len(self.phase_durations)]
+            ]
+            for i, (name, duration) in enumerate(
+                zip(phase_names, self.phase_durations)
+            ):
                 percentage = (duration / total_duration) * 100
-                click.echo(f"   {i+1}. {name}: {self._format_duration(duration)} ({percentage:.1f}%)")
+                click.echo(
+                    f"   {i+1}. {name}: {self._format_duration(duration)} ({percentage:.1f}%)"
+                )
 
         click.echo("=" * 60)
 
@@ -164,14 +187,22 @@ class ConversionProgressTracker:
         avg_phase_time = sum(self.phase_durations) / len(self.phase_durations)
 
         # Weight remaining phases
-        remaining_weight = sum(phase[1] for phase in self.phases[self.current_phase:])
-        completed_weight = sum(phase[1] for phase in self.phases[:self.current_phase])
+        remaining_weight = sum(
+            phase[1] for phase in self.phases[self.current_phase :]
+        )
+        completed_weight = sum(
+            phase[1] for phase in self.phases[: self.current_phase]
+        )
 
         if completed_weight > 0:
             # Adjust average time based on phase weights
             total_weight = sum(phase[1] for phase in self.phases)
             weight_factor = remaining_weight / completed_weight
-            estimated_remaining = avg_phase_time * len(self.phases[self.current_phase:]) * weight_factor
+            estimated_remaining = (
+                avg_phase_time
+                * len(self.phases[self.current_phase :])
+                * weight_factor
+            )
 
             return self._format_duration(estimated_remaining)
 
@@ -233,7 +264,8 @@ class ConversionTimer:
         if phase_name and phase_name in self.phase_times:
             self.phase_times[phase_name]["end"] = time.time()
             self.phase_times[phase_name]["duration"] = (
-                self.phase_times[phase_name]["end"] - self.phase_times[phase_name]["start"]
+                self.phase_times[phase_name]["end"]
+                - self.phase_times[phase_name]["start"]
             )
 
     def end(self):
@@ -266,14 +298,16 @@ class ConversionTimer:
                 "conversion_rate": "endpoints_per_second",  # Will be calculated by pipeline
                 "throughput": "mb_per_second",  # Will be calculated by pipeline
                 "efficiency": "success_rate",  # Will be calculated by pipeline
-            }
+            },
         }
 
         for phase_name, timing in self.phase_times.items():
             if "duration" in timing:
                 report["phases"][phase_name] = {
                     "duration": timing["duration"],
-                    "percentage": (timing["duration"] / total_duration * 100) if total_duration > 0 else 0
+                    "percentage": (timing["duration"] / total_duration * 100)
+                    if total_duration > 0
+                    else 0,
                 }
 
         return report

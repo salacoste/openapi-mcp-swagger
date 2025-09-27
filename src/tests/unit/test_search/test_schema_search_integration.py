@@ -4,33 +4,37 @@ Tests cover schema indexing, cross-reference mapping, relationship discovery,
 and unified search capabilities as specified in Story 3.5.
 """
 
-import pytest
 import asyncio
-from unittest.mock import Mock, AsyncMock, patch
-from typing import Dict, Any, List
+from typing import Any, Dict, List
+from unittest.mock import AsyncMock, Mock, patch
 
+import pytest
+
+from swagger_mcp_server.config.settings import (
+    SearchConfig,
+    SearchPerformanceConfig,
+)
 from swagger_mcp_server.search.schema_indexing import (
     SchemaIndexManager,
     SchemaSearchDocument,
-    SchemaUsageContext
+    SchemaUsageContext,
 )
 from swagger_mcp_server.search.schema_mapper import (
-    SchemaEndpointMapper,
     CrossReferenceMap,
-    SchemaEndpointRelationship
+    SchemaEndpointMapper,
+    SchemaEndpointRelationship,
 )
 from swagger_mcp_server.search.schema_relationships import (
-    SchemaRelationshipDiscovery,
+    RelationshipType,
     SchemaGraph,
-    RelationshipType
+    SchemaRelationshipDiscovery,
 )
 from swagger_mcp_server.search.unified_search import (
-    UnifiedSearchInterface,
-    SearchType,
     ResultType,
-    UnifiedSearchResult
+    SearchType,
+    UnifiedSearchInterface,
+    UnifiedSearchResult,
 )
-from swagger_mcp_server.config.settings import SearchConfig, SearchPerformanceConfig
 
 
 @pytest.fixture
@@ -38,9 +42,7 @@ def search_config():
     """Create test search configuration."""
     return SearchConfig(
         performance=SearchPerformanceConfig(
-            max_search_results=100,
-            query_timeout=30.0,
-            enable_caching=True
+            max_search_results=100, query_timeout=30.0, enable_caching=True
         )
     )
 
@@ -75,11 +77,15 @@ def sample_schemas():
             "description": "User account information",
             "properties": {
                 "id": {"type": "integer", "description": "User ID"},
-                "email": {"type": "string", "format": "email", "description": "User email"},
-                "profile": {"$ref": "#/components/schemas/UserProfile"}
+                "email": {
+                    "type": "string",
+                    "format": "email",
+                    "description": "User email",
+                },
+                "profile": {"$ref": "#/components/schemas/UserProfile"},
             },
             "required": ["id", "email"],
-            "path": "#/components/schemas/User"
+            "path": "#/components/schemas/User",
         },
         {
             "id": "UserProfile",
@@ -89,10 +95,10 @@ def sample_schemas():
             "properties": {
                 "firstName": {"type": "string", "description": "First name"},
                 "lastName": {"type": "string", "description": "Last name"},
-                "avatar": {"$ref": "#/components/schemas/Image"}
+                "avatar": {"$ref": "#/components/schemas/Image"},
             },
             "required": ["firstName", "lastName"],
-            "path": "#/components/schemas/UserProfile"
+            "path": "#/components/schemas/UserProfile",
         },
         {
             "id": "Image",
@@ -102,11 +108,11 @@ def sample_schemas():
             "properties": {
                 "url": {"type": "string", "format": "uri"},
                 "width": {"type": "integer", "minimum": 1},
-                "height": {"type": "integer", "minimum": 1}
+                "height": {"type": "integer", "minimum": 1},
             },
             "required": ["url"],
-            "path": "#/components/schemas/Image"
-        }
+            "path": "#/components/schemas/Image",
+        },
     ]
 
 
@@ -129,7 +135,7 @@ def sample_endpoints():
                         }
                     }
                 }
-            }
+            },
         },
         {
             "id": "create_user",
@@ -144,7 +150,7 @@ def sample_endpoints():
                     "application/json": {
                         "schema": {"$ref": "#/components/schemas/User"}
                     }
-                }
+                },
             },
             "responses": {
                 "201": {
@@ -154,8 +160,8 @@ def sample_endpoints():
                         }
                     }
                 }
-            }
-        }
+            },
+        },
     ]
 
 
@@ -168,31 +174,42 @@ class TestSchemaIndexManager:
         mock_schema_repo,
         mock_endpoint_repo,
         search_config,
-        sample_schemas
+        sample_schemas,
     ):
         """Test creation of comprehensive schema search documents."""
         mock_schema_repo.get_all_schemas.return_value = sample_schemas
 
-        manager = SchemaIndexManager(mock_schema_repo, mock_endpoint_repo, search_config)
+        manager = SchemaIndexManager(
+            mock_schema_repo, mock_endpoint_repo, search_config
+        )
 
         # Mock the endpoint relationship mapping
-        with patch.object(manager, '_map_endpoint_relationships', new_callable=AsyncMock) as mock_map:
+        with patch.object(
+            manager, "_map_endpoint_relationships", new_callable=AsyncMock
+        ) as mock_map:
             mock_map.return_value = {
                 "endpoints": ["get_user", "create_user"],
-                "contexts": [SchemaUsageContext.RESPONSE_BODY, SchemaUsageContext.REQUEST_BODY],
+                "contexts": [
+                    SchemaUsageContext.RESPONSE_BODY,
+                    SchemaUsageContext.REQUEST_BODY,
+                ],
                 "usage_details": [
                     {"endpoint_id": "get_user", "context": "response_body"},
-                    {"endpoint_id": "create_user", "context": "request_body"}
-                ]
+                    {"endpoint_id": "create_user", "context": "request_body"},
+                ],
             }
 
             documents = await manager.create_schema_documents()
 
             assert len(documents) == 3
-            assert all(isinstance(doc, SchemaSearchDocument) for doc in documents)
+            assert all(
+                isinstance(doc, SchemaSearchDocument) for doc in documents
+            )
 
             # Test User schema document
-            user_doc = next(doc for doc in documents if doc.schema_id == "User")
+            user_doc = next(
+                doc for doc in documents if doc.schema_id == "User"
+            )
             assert user_doc.schema_name == "User"
             assert user_doc.schema_type == "object"
             assert "User account information" in user_doc.description
@@ -210,10 +227,12 @@ class TestSchemaIndexManager:
         mock_schema_repo,
         mock_endpoint_repo,
         search_config,
-        sample_schemas
+        sample_schemas,
     ):
         """Test extraction of schema properties and metadata."""
-        manager = SchemaIndexManager(mock_schema_repo, mock_endpoint_repo, search_config)
+        manager = SchemaIndexManager(
+            mock_schema_repo, mock_endpoint_repo, search_config
+        )
 
         user_schema = sample_schemas[0]
         properties = await manager._extract_schema_properties(user_schema)
@@ -228,19 +247,18 @@ class TestSchemaIndexManager:
 
     @pytest.mark.asyncio
     async def test_create_searchable_text(
-        self,
-        mock_schema_repo,
-        mock_endpoint_repo,
-        search_config
+        self, mock_schema_repo, mock_endpoint_repo, search_config
     ):
         """Test creation of searchable text for schemas."""
-        manager = SchemaIndexManager(mock_schema_repo, mock_endpoint_repo, search_config)
+        manager = SchemaIndexManager(
+            mock_schema_repo, mock_endpoint_repo, search_config
+        )
 
         schema = {
             "id": "TestSchema",
             "name": "TestSchema",
             "description": "A test schema for validation",
-            "type": "object"
+            "type": "object",
         }
 
         properties = {
@@ -250,10 +268,12 @@ class TestSchemaIndexManager:
             "required": ["id"],
             "optional": ["name", "value"],
             "nested_schemas": [],
-            "validation_rules": {}
+            "validation_rules": {},
         }
 
-        searchable_text = await manager._create_schema_searchable_text(schema, properties)
+        searchable_text = await manager._create_schema_searchable_text(
+            schema, properties
+        )
 
         assert "TestSchema" in searchable_text
         assert "A test schema for validation" in searchable_text
@@ -275,17 +295,21 @@ class TestSchemaEndpointMapper:
         mock_endpoint_repo,
         search_config,
         sample_schemas,
-        sample_endpoints
+        sample_endpoints,
     ):
         """Test creation of complete cross-reference mapping."""
         mock_schema_repo.get_all_schemas.return_value = sample_schemas
         mock_endpoint_repo.get_all.return_value = sample_endpoints
 
-        mapper = SchemaEndpointMapper(mock_schema_repo, mock_endpoint_repo, search_config)
+        mapper = SchemaEndpointMapper(
+            mock_schema_repo, mock_endpoint_repo, search_config
+        )
 
         # Mock the endpoint get_by_id method
         async def mock_get_by_id(endpoint_id):
-            return next((e for e in sample_endpoints if e["id"] == endpoint_id), None)
+            return next(
+                (e for e in sample_endpoints if e["id"] == endpoint_id), None
+            )
 
         mock_endpoint_repo.get_by_id.side_effect = mock_get_by_id
 
@@ -312,13 +336,17 @@ class TestSchemaEndpointMapper:
         mock_schema_repo,
         mock_endpoint_repo,
         search_config,
-        sample_endpoints
+        sample_endpoints,
     ):
         """Test finding response body relationships."""
-        mapper = SchemaEndpointMapper(mock_schema_repo, mock_endpoint_repo, search_config)
+        mapper = SchemaEndpointMapper(
+            mock_schema_repo, mock_endpoint_repo, search_config
+        )
 
         endpoint = sample_endpoints[0]  # get_user endpoint
-        relationships = await mapper._find_response_body_relationships("User", endpoint)
+        relationships = await mapper._find_response_body_relationships(
+            "User", endpoint
+        )
 
         assert len(relationships) == 1
         relationship = relationships[0]
@@ -334,13 +362,17 @@ class TestSchemaEndpointMapper:
         mock_schema_repo,
         mock_endpoint_repo,
         search_config,
-        sample_endpoints
+        sample_endpoints,
     ):
         """Test finding request body relationships."""
-        mapper = SchemaEndpointMapper(mock_schema_repo, mock_endpoint_repo, search_config)
+        mapper = SchemaEndpointMapper(
+            mock_schema_repo, mock_endpoint_repo, search_config
+        )
 
         endpoint = sample_endpoints[1]  # create_user endpoint
-        relationships = await mapper._find_request_body_relationships("User", endpoint)
+        relationships = await mapper._find_request_body_relationships(
+            "User", endpoint
+        )
 
         assert len(relationships) == 1
         relationship = relationships[0]
@@ -351,20 +383,23 @@ class TestSchemaEndpointMapper:
         assert relationship.details["required"] is True
 
     def test_calculate_relationship_score(
-        self,
-        mock_schema_repo,
-        mock_endpoint_repo,
-        search_config
+        self, mock_schema_repo, mock_endpoint_repo, search_config
     ):
         """Test relationship score calculation."""
-        mapper = SchemaEndpointMapper(mock_schema_repo, mock_endpoint_repo, search_config)
+        mapper = SchemaEndpointMapper(
+            mock_schema_repo, mock_endpoint_repo, search_config
+        )
 
         # Test request body score
-        score = mapper._calculate_relationship_score("request_body", "application/json", True)
+        score = mapper._calculate_relationship_score(
+            "request_body", "application/json", True
+        )
         assert score > 0.8  # High score for required JSON request body
 
         # Test response body score
-        score = mapper._calculate_relationship_score("response_body", "application/json", True)
+        score = mapper._calculate_relationship_score(
+            "response_body", "application/json", True
+        )
         assert score > 0.7  # High score for success JSON response
 
         # Test parameter score
@@ -377,15 +412,14 @@ class TestSchemaRelationshipDiscovery:
 
     @pytest.mark.asyncio
     async def test_discover_all_relationships(
-        self,
-        mock_schema_repo,
-        search_config,
-        sample_schemas
+        self, mock_schema_repo, search_config, sample_schemas
     ):
         """Test discovery of all schema relationships."""
         mock_schema_repo.get_all_schemas.return_value = sample_schemas
 
-        discovery = SchemaRelationshipDiscovery(mock_schema_repo, search_config)
+        discovery = SchemaRelationshipDiscovery(
+            mock_schema_repo, search_config
+        )
         schema_graph = await discovery.discover_all_relationships()
 
         assert isinstance(schema_graph, SchemaGraph)
@@ -398,44 +432,59 @@ class TestSchemaRelationshipDiscovery:
         assert "Image" in schema_graph.nodes
 
         # Check that we found reference relationships
-        reference_edges = [e for e in schema_graph.edges if e.relationship_type == RelationshipType.NESTED_PROPERTY]
+        reference_edges = [
+            e
+            for e in schema_graph.edges
+            if e.relationship_type == RelationshipType.NESTED_PROPERTY
+        ]
         assert len(reference_edges) > 0
 
     @pytest.mark.asyncio
     async def test_discover_reference_relationships(
-        self,
-        mock_schema_repo,
-        search_config,
-        sample_schemas
+        self, mock_schema_repo, search_config, sample_schemas
     ):
         """Test discovery of reference relationships."""
-        discovery = SchemaRelationshipDiscovery(mock_schema_repo, search_config)
+        discovery = SchemaRelationshipDiscovery(
+            mock_schema_repo, search_config
+        )
 
-        relationships = await discovery._discover_reference_relationships(sample_schemas)
+        relationships = await discovery._discover_reference_relationships(
+            sample_schemas
+        )
 
         # Should find User -> UserProfile and UserProfile -> Image references
         assert len(relationships) >= 2
 
         # Find User -> UserProfile relationship
         user_profile_rel = next(
-            (r for r in relationships
-             if r.source_schema_id == "User" and r.target_schema_id == "UserProfile"),
-            None
+            (
+                r
+                for r in relationships
+                if r.source_schema_id == "User"
+                and r.target_schema_id == "UserProfile"
+            ),
+            None,
         )
         assert user_profile_rel is not None
-        assert user_profile_rel.relationship_type == RelationshipType.NESTED_PROPERTY
+        assert (
+            user_profile_rel.relationship_type
+            == RelationshipType.NESTED_PROPERTY
+        )
         assert user_profile_rel.context == "property_profile"
 
     def test_detect_circular_dependencies(
-        self,
-        mock_schema_repo,
-        search_config
+        self, mock_schema_repo, search_config
     ):
         """Test detection of circular dependencies."""
-        discovery = SchemaRelationshipDiscovery(mock_schema_repo, search_config)
+        discovery = SchemaRelationshipDiscovery(
+            mock_schema_repo, search_config
+        )
 
         # Create relationships with a circular dependency
-        from swagger_mcp_server.search.schema_relationships import SchemaRelationship
+        from swagger_mcp_server.search.schema_relationships import (
+            SchemaRelationship,
+        )
+
         relationships = [
             SchemaRelationship(
                 source_schema_id="A",
@@ -443,7 +492,7 @@ class TestSchemaRelationshipDiscovery:
                 relationship_type=RelationshipType.REFERENCE,
                 context="property",
                 details={},
-                strength=1.0
+                strength=1.0,
             ),
             SchemaRelationship(
                 source_schema_id="B",
@@ -451,7 +500,7 @@ class TestSchemaRelationshipDiscovery:
                 relationship_type=RelationshipType.REFERENCE,
                 context="property",
                 details={},
-                strength=1.0
+                strength=1.0,
             ),
             SchemaRelationship(
                 source_schema_id="C",
@@ -459,8 +508,8 @@ class TestSchemaRelationshipDiscovery:
                 relationship_type=RelationshipType.REFERENCE,
                 context="property",
                 details={},
-                strength=1.0
-            )
+                strength=1.0,
+            ),
         ]
 
         cycles = discovery._detect_circular_dependencies(relationships)
@@ -511,7 +560,7 @@ class TestUnifiedSearchInterface:
         mock_schema_index_manager,
         mock_schema_mapper,
         mock_relationship_discovery,
-        search_config
+        search_config,
     ):
         """Test unified search with endpoints only."""
         # Mock endpoint search results
@@ -528,10 +577,10 @@ class TestUnifiedSearchInterface:
                     "tags": "users",
                     "deprecated": False,
                     "operation_type": "read",
-                    "complexity_level": "simple"
+                    "complexity_level": "simple",
                 }
             ],
-            "summary": {"filtered_results": 1}
+            "summary": {"filtered_results": 1},
         }
 
         interface = UnifiedSearchInterface(
@@ -539,13 +588,13 @@ class TestUnifiedSearchInterface:
             mock_schema_index_manager,
             mock_schema_mapper,
             mock_relationship_discovery,
-            search_config
+            search_config,
         )
 
         response = await interface.unified_search(
             query="user",
             search_types=["endpoints"],
-            include_cross_references=False
+            include_cross_references=False,
         )
 
         assert response.total_results == 1
@@ -562,11 +611,15 @@ class TestUnifiedSearchInterface:
         mock_schema_mapper,
         mock_relationship_discovery,
         search_config,
-        sample_schemas
+        sample_schemas,
     ):
         """Test unified search with schemas only."""
         # Mock schema documents
-        from swagger_mcp_server.search.schema_indexing import SchemaSearchDocument, SchemaUsageContext
+        from swagger_mcp_server.search.schema_indexing import (
+            SchemaSearchDocument,
+            SchemaUsageContext,
+        )
+
         mock_documents = [
             SchemaSearchDocument(
                 schema_id="User",
@@ -583,7 +636,10 @@ class TestUnifiedSearchInterface:
                 example_values={},
                 validation_rules={},
                 used_in_endpoints=["get_user", "create_user"],
-                usage_contexts=[SchemaUsageContext.RESPONSE_BODY, SchemaUsageContext.REQUEST_BODY],
+                usage_contexts=[
+                    SchemaUsageContext.RESPONSE_BODY,
+                    SchemaUsageContext.REQUEST_BODY,
+                ],
                 usage_details=[],
                 inherits_from=None,
                 extended_by=[],
@@ -593,24 +649,26 @@ class TestUnifiedSearchInterface:
                 keywords=["object", "identifier", "email"],
                 complexity_level="simple",
                 usage_frequency=2,
-                last_modified=None
+                last_modified=None,
             )
         ]
 
-        mock_schema_index_manager.create_schema_documents.return_value = mock_documents
+        mock_schema_index_manager.create_schema_documents.return_value = (
+            mock_documents
+        )
 
         interface = UnifiedSearchInterface(
             mock_search_engine,
             mock_schema_index_manager,
             mock_schema_mapper,
             mock_relationship_discovery,
-            search_config
+            search_config,
         )
 
         response = await interface.unified_search(
             query="user",
             search_types=["schemas"],
-            include_cross_references=False
+            include_cross_references=False,
         )
 
         assert response.total_results == 1
@@ -626,7 +684,7 @@ class TestUnifiedSearchInterface:
         mock_schema_index_manager,
         mock_schema_mapper,
         mock_relationship_discovery,
-        search_config
+        search_config,
     ):
         """Test unified search with cross-references."""
         # Mock both endpoint and schema results
@@ -643,13 +701,17 @@ class TestUnifiedSearchInterface:
                     "tags": "users",
                     "deprecated": False,
                     "operation_type": "read",
-                    "complexity_level": "simple"
+                    "complexity_level": "simple",
                 }
             ],
-            "summary": {"filtered_results": 1}
+            "summary": {"filtered_results": 1},
         }
 
-        from swagger_mcp_server.search.schema_indexing import SchemaSearchDocument, SchemaUsageContext
+        from swagger_mcp_server.search.schema_indexing import (
+            SchemaSearchDocument,
+            SchemaUsageContext,
+        )
+
         mock_documents = [
             SchemaSearchDocument(
                 schema_id="User",
@@ -676,39 +738,44 @@ class TestUnifiedSearchInterface:
                 keywords=["object", "identifier", "email"],
                 complexity_level="simple",
                 usage_frequency=1,
-                last_modified=None
+                last_modified=None,
             )
         ]
 
-        mock_schema_index_manager.create_schema_documents.return_value = mock_documents
+        mock_schema_index_manager.create_schema_documents.return_value = (
+            mock_documents
+        )
 
         # Mock cross-reference map
         from swagger_mcp_server.search.schema_mapper import CrossReferenceMap
+
         mock_cross_ref_map = CrossReferenceMap(
             schema_to_endpoints={
-                "User": [{"endpoint_id": "get_user", "context": "response_body"}]
+                "User": [
+                    {"endpoint_id": "get_user", "context": "response_body"}
+                ]
             },
             endpoint_to_schemas={
                 "get_user": [{"schema_id": "User", "context": "response_body"}]
             },
             relationship_graph=[],
-            dependency_matrix={}
+            dependency_matrix={},
         )
 
-        mock_schema_mapper.create_complete_cross_reference_map.return_value = mock_cross_ref_map
+        mock_schema_mapper.create_complete_cross_reference_map.return_value = (
+            mock_cross_ref_map
+        )
 
         interface = UnifiedSearchInterface(
             mock_search_engine,
             mock_schema_index_manager,
             mock_schema_mapper,
             mock_relationship_discovery,
-            search_config
+            search_config,
         )
 
         response = await interface.unified_search(
-            query="user",
-            search_types=["all"],
-            include_cross_references=True
+            query="user", search_types=["all"], include_cross_references=True
         )
 
         assert response.total_results == 2
@@ -717,8 +784,12 @@ class TestUnifiedSearchInterface:
         assert "schema_to_endpoint" in response.cross_references
 
         # Check that results have relationships
-        endpoint_result = next(r for r in response.results if r.result_type == ResultType.ENDPOINT)
-        schema_result = next(r for r in response.results if r.result_type == ResultType.SCHEMA)
+        endpoint_result = next(
+            r for r in response.results if r.result_type == ResultType.ENDPOINT
+        )
+        schema_result = next(
+            r for r in response.results if r.result_type == ResultType.SCHEMA
+        )
 
         assert endpoint_result.relationships is not None
         assert schema_result.relationships is not None
@@ -729,7 +800,7 @@ class TestUnifiedSearchInterface:
         mock_schema_index_manager,
         mock_schema_mapper,
         mock_relationship_discovery,
-        search_config
+        search_config,
     ):
         """Test intelligent ranking of unified search results."""
         interface = UnifiedSearchInterface(
@@ -737,7 +808,7 @@ class TestUnifiedSearchInterface:
             mock_schema_index_manager,
             mock_schema_mapper,
             mock_relationship_discovery,
-            search_config
+            search_config,
         )
 
         # Create test results with different scores
@@ -749,7 +820,7 @@ class TestUnifiedSearchInterface:
                 description="Test description",
                 score=0.8,
                 highlights={},
-                metadata={}
+                metadata={},
             ),
             UnifiedSearchResult(
                 result_id="schema1",
@@ -758,18 +829,26 @@ class TestUnifiedSearchInterface:
                 description="Test schema description",
                 score=0.9,
                 highlights={},
-                metadata={}
-            )
+                metadata={},
+            ),
         ]
 
         # Test ranking with endpoint preference
-        ranked_results = interface._rank_unified_results(results, "test", ["endpoints"])
-        assert ranked_results[0].result_type == ResultType.SCHEMA  # Higher score wins
+        ranked_results = interface._rank_unified_results(
+            results, "test", ["endpoints"]
+        )
+        assert (
+            ranked_results[0].result_type == ResultType.SCHEMA
+        )  # Higher score wins
         assert ranked_results[1].result_type == ResultType.ENDPOINT
 
         # Test ranking with schema preference
-        ranked_results = interface._rank_unified_results(results, "test", ["schemas"])
-        assert ranked_results[0].result_type == ResultType.SCHEMA  # Both higher score and type preference
+        ranked_results = interface._rank_unified_results(
+            results, "test", ["schemas"]
+        )
+        assert (
+            ranked_results[0].result_type == ResultType.SCHEMA
+        )  # Both higher score and type preference
 
 
 class TestPerformanceRequirements:
@@ -777,10 +856,7 @@ class TestPerformanceRequirements:
 
     @pytest.mark.asyncio
     async def test_schema_search_performance(
-        self,
-        mock_schema_repo,
-        mock_endpoint_repo,
-        search_config
+        self, mock_schema_repo, mock_endpoint_repo, search_config
     ):
         """Test that schema search meets performance requirements (<200ms)."""
         # Create a large number of test schemas
@@ -794,30 +870,36 @@ class TestPerformanceRequirements:
                 "properties": {
                     "id": {"type": "integer"},
                     "name": {"type": "string"},
-                    "value": {"type": "number"}
+                    "value": {"type": "number"},
                 },
                 "required": ["id"],
-                "path": f"#/components/schemas/Schema{i}"
+                "path": f"#/components/schemas/Schema{i}",
             }
             large_schema_set.append(schema)
 
         mock_schema_repo.get_all_schemas.return_value = large_schema_set
 
-        manager = SchemaIndexManager(mock_schema_repo, mock_endpoint_repo, search_config)
+        manager = SchemaIndexManager(
+            mock_schema_repo, mock_endpoint_repo, search_config
+        )
 
         # Mock endpoint relationships to avoid complex database queries
-        with patch.object(manager, '_map_endpoint_relationships', new_callable=AsyncMock) as mock_map:
+        with patch.object(
+            manager, "_map_endpoint_relationships", new_callable=AsyncMock
+        ) as mock_map:
             mock_map.return_value = {
                 "endpoints": [],
                 "contexts": [],
-                "usage_details": []
+                "usage_details": [],
             }
 
             start_time = asyncio.get_event_loop().time()
             documents = await manager.create_schema_documents()
             end_time = asyncio.get_event_loop().time()
 
-            execution_time = (end_time - start_time) * 1000  # Convert to milliseconds
+            execution_time = (
+                end_time - start_time
+            ) * 1000  # Convert to milliseconds
 
             assert len(documents) == 100
             # Performance requirement: should handle 100 schemas in reasonable time
@@ -831,7 +913,7 @@ class TestPerformanceRequirements:
         mock_endpoint_repo,
         search_config,
         sample_schemas,
-        sample_endpoints
+        sample_endpoints,
     ):
         """Test accuracy of cross-reference mapping."""
         mock_schema_repo.get_all_schemas.return_value = sample_schemas
@@ -839,11 +921,15 @@ class TestPerformanceRequirements:
 
         # Mock get_by_id for endpoints
         async def mock_get_by_id(endpoint_id):
-            return next((e for e in sample_endpoints if e["id"] == endpoint_id), None)
+            return next(
+                (e for e in sample_endpoints if e["id"] == endpoint_id), None
+            )
 
         mock_endpoint_repo.get_by_id.side_effect = mock_get_by_id
 
-        mapper = SchemaEndpointMapper(mock_schema_repo, mock_endpoint_repo, search_config)
+        mapper = SchemaEndpointMapper(
+            mock_schema_repo, mock_endpoint_repo, search_config
+        )
         cross_ref_map = await mapper.create_complete_cross_reference_map()
 
         # Verify accuracy of mappings
@@ -865,10 +951,7 @@ class TestPerformanceRequirements:
         assert any(s["schema_id"] == "User" for s in create_user_schemas)
 
     def test_schema_indexing_completeness(
-        self,
-        mock_schema_repo,
-        mock_endpoint_repo,
-        search_config
+        self, mock_schema_repo, mock_endpoint_repo, search_config
     ):
         """Test that schema indexing captures 100% of schema information."""
         # Create a complex schema with all possible features
@@ -881,52 +964,56 @@ class TestPerformanceRequirements:
                 "id": {
                     "type": "integer",
                     "description": "Unique identifier",
-                    "minimum": 1
+                    "minimum": 1,
                 },
                 "name": {
                     "type": "string",
                     "description": "Display name",
                     "minLength": 1,
-                    "maxLength": 100
+                    "maxLength": 100,
                 },
                 "email": {
                     "type": "string",
                     "format": "email",
-                    "pattern": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+                    "pattern": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$",
                 },
                 "status": {
                     "type": "string",
-                    "enum": ["active", "inactive", "pending"]
+                    "enum": ["active", "inactive", "pending"],
                 },
-                "profile": {
-                    "$ref": "#/components/schemas/Profile"
-                },
-                "tags": {
-                    "type": "array",
-                    "items": {"type": "string"}
-                }
+                "profile": {"$ref": "#/components/schemas/Profile"},
+                "tags": {"type": "array", "items": {"type": "string"}},
             },
             "required": ["id", "name", "email"],
-            "allOf": [
-                {"$ref": "#/components/schemas/BaseEntity"}
-            ],
+            "allOf": [{"$ref": "#/components/schemas/BaseEntity"}],
             "examples": [
                 {
                     "id": 1,
                     "name": "John Doe",
                     "email": "john@example.com",
-                    "status": "active"
+                    "status": "active",
                 }
-            ]
+            ],
         }
 
-        manager = SchemaIndexManager(mock_schema_repo, mock_endpoint_repo, search_config)
+        manager = SchemaIndexManager(
+            mock_schema_repo, mock_endpoint_repo, search_config
+        )
 
         # Test property extraction
-        properties = asyncio.run(manager._extract_schema_properties(complex_schema))
+        properties = asyncio.run(
+            manager._extract_schema_properties(complex_schema)
+        )
 
         # Verify all properties are captured
-        expected_properties = ["id", "name", "email", "status", "profile", "tags"]
+        expected_properties = [
+            "id",
+            "name",
+            "email",
+            "status",
+            "profile",
+            "tags",
+        ]
         assert set(properties["names"]) == set(expected_properties)
 
         # Verify required/optional classification

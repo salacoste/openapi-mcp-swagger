@@ -1,18 +1,19 @@
 """Tests for process monitoring functionality."""
 
-import pytest
 import asyncio
 import time
-from unittest.mock import Mock, patch, AsyncMock
+from unittest.mock import AsyncMock, Mock, patch
+
 import aiohttp
+import pytest
 
 from swagger_mcp_server.management.process_monitor import (
-    ProcessMonitor,
-    HealthStatus,
-    HealthLevel,
     HealthCheck,
+    HealthLevel,
+    HealthStatus,
     ProcessMetrics,
-    ServerMetrics
+    ProcessMonitor,
+    ServerMetrics,
 )
 
 
@@ -35,15 +36,24 @@ class TestProcessMonitor:
         """Test successful process metrics retrieval."""
         mock_process = Mock()
         mock_process.cpu_percent.return_value = 25.5
-        mock_process.memory_info.return_value = Mock(rss=1024 * 1024 * 100)  # 100MB
+        mock_process.memory_info.return_value = Mock(
+            rss=1024 * 1024 * 100
+        )  # 100MB
         mock_process.memory_percent.return_value = 15.2
         mock_process.num_threads.return_value = 8
-        mock_process.connections.return_value = [Mock(), Mock()]  # 2 connections
-        mock_process.create_time.return_value = time.time() - 3600  # 1 hour ago
+        mock_process.connections.return_value = [
+            Mock(),
+            Mock(),
+        ]  # 2 connections
+        mock_process.create_time.return_value = (
+            time.time() - 3600
+        )  # 1 hour ago
         mock_process.status.return_value = "running"
 
-        with patch('swagger_mcp_server.management.process_monitor.psutil.Process',
-                   return_value=mock_process):
+        with patch(
+            "swagger_mcp_server.management.process_monitor.psutil.Process",
+            return_value=mock_process,
+        ):
             metrics = await self.monitor.get_process_metrics(12345)
 
         assert metrics is not None
@@ -58,8 +68,10 @@ class TestProcessMonitor:
     @pytest.mark.asyncio
     async def test_get_process_metrics_process_not_found(self):
         """Test process metrics when process doesn't exist."""
-        with patch('swagger_mcp_server.management.process_monitor.psutil.Process',
-                   side_effect=Exception("No such process")):
+        with patch(
+            "swagger_mcp_server.management.process_monitor.psutil.Process",
+            side_effect=Exception("No such process"),
+        ):
             metrics = await self.monitor.get_process_metrics(99999)
 
         assert metrics is None
@@ -67,17 +79,20 @@ class TestProcessMonitor:
     @pytest.mark.asyncio
     async def test_check_server_health_healthy(self):
         """Test health check for healthy server."""
-        with patch.object(self.monitor, '_check_network_connectivity') as mock_network, \
-             patch.object(self.monitor, '_check_mcp_health') as mock_mcp, \
-             patch.object(self.monitor, '_check_response_time') as mock_response:
-
+        with patch.object(
+            self.monitor, "_check_network_connectivity"
+        ) as mock_network, patch.object(
+            self.monitor, "_check_mcp_health"
+        ) as mock_mcp, patch.object(
+            self.monitor, "_check_response_time"
+        ) as mock_response:
             # Mock all checks as healthy
             mock_network.return_value = HealthCheck(
                 name="network",
                 passed=True,
                 level=HealthLevel.HEALTHY,
                 message="Connection successful",
-                duration_ms=50.0
+                duration_ms=50.0,
             )
 
             mock_mcp.return_value = HealthCheck(
@@ -85,7 +100,7 @@ class TestProcessMonitor:
                 passed=True,
                 level=HealthLevel.HEALTHY,
                 message="MCP server healthy",
-                duration_ms=100.0
+                duration_ms=100.0,
             )
 
             mock_response.return_value = HealthCheck(
@@ -93,10 +108,12 @@ class TestProcessMonitor:
                 passed=True,
                 level=HealthLevel.HEALTHY,
                 message="Response time: 150ms",
-                duration_ms=150.0
+                duration_ms=150.0,
             )
 
-            health = await self.monitor.check_server_health("localhost", 8080, "test-server")
+            health = await self.monitor.check_server_health(
+                "localhost", 8080, "test-server"
+            )
 
         assert health.overall_level == HealthLevel.HEALTHY
         assert len(health.checks) == 3
@@ -106,17 +123,20 @@ class TestProcessMonitor:
     @pytest.mark.asyncio
     async def test_check_server_health_unhealthy(self):
         """Test health check for unhealthy server."""
-        with patch.object(self.monitor, '_check_network_connectivity') as mock_network, \
-             patch.object(self.monitor, '_check_mcp_health') as mock_mcp, \
-             patch.object(self.monitor, '_check_response_time') as mock_response:
-
+        with patch.object(
+            self.monitor, "_check_network_connectivity"
+        ) as mock_network, patch.object(
+            self.monitor, "_check_mcp_health"
+        ) as mock_mcp, patch.object(
+            self.monitor, "_check_response_time"
+        ) as mock_response:
             # Mock network check as failed
             mock_network.return_value = HealthCheck(
                 name="network",
                 passed=False,
                 level=HealthLevel.CRITICAL,
                 message="Connection refused",
-                duration_ms=5000.0
+                duration_ms=5000.0,
             )
 
             mock_mcp.return_value = HealthCheck(
@@ -124,7 +144,7 @@ class TestProcessMonitor:
                 passed=False,
                 level=HealthLevel.WARNING,
                 message="MCP endpoint timeout",
-                duration_ms=10000.0
+                duration_ms=10000.0,
             )
 
             mock_response.return_value = HealthCheck(
@@ -132,10 +152,12 @@ class TestProcessMonitor:
                 passed=True,
                 level=HealthLevel.HEALTHY,
                 message="Response time: 100ms",
-                duration_ms=100.0
+                duration_ms=100.0,
             )
 
-            health = await self.monitor.check_server_health("localhost", 8080, "test-server")
+            health = await self.monitor.check_server_health(
+                "localhost", 8080, "test-server"
+            )
 
         assert health.overall_level == HealthLevel.CRITICAL
         assert len(health.checks) == 3
@@ -146,12 +168,16 @@ class TestProcessMonitor:
     async def test_network_connectivity_check_success(self):
         """Test successful network connectivity check."""
         # Mock successful socket connection
-        with patch('swagger_mcp_server.management.process_monitor.socket.socket') as mock_socket:
+        with patch(
+            "swagger_mcp_server.management.process_monitor.socket.socket"
+        ) as mock_socket:
             mock_sock = Mock()
             mock_sock.connect_ex.return_value = 0  # Success
             mock_socket.return_value = mock_sock
 
-            check = await self.monitor._check_network_connectivity("localhost", 8080)
+            check = await self.monitor._check_network_connectivity(
+                "localhost", 8080
+            )
 
         assert check.passed is True
         assert check.level == HealthLevel.HEALTHY
@@ -162,12 +188,16 @@ class TestProcessMonitor:
     async def test_network_connectivity_check_failed(self):
         """Test failed network connectivity check."""
         # Mock failed socket connection
-        with patch('swagger_mcp_server.management.process_monitor.socket.socket') as mock_socket:
+        with patch(
+            "swagger_mcp_server.management.process_monitor.socket.socket"
+        ) as mock_socket:
             mock_sock = Mock()
             mock_sock.connect_ex.return_value = 1  # Failed
             mock_socket.return_value = mock_sock
 
-            check = await self.monitor._check_network_connectivity("localhost", 8080)
+            check = await self.monitor._check_network_connectivity(
+                "localhost", 8080
+            )
 
         assert check.passed is False
         assert check.level == HealthLevel.CRITICAL
@@ -178,7 +208,9 @@ class TestProcessMonitor:
         """Test successful MCP health check."""
         mock_response = Mock()
         mock_response.status = 200
-        mock_response.json = AsyncMock(return_value={"status": "healthy", "version": "1.0"})
+        mock_response.json = AsyncMock(
+            return_value={"status": "healthy", "version": "1.0"}
+        )
 
         mock_session = Mock()
         mock_session.get.return_value.__aenter__.return_value = mock_response
@@ -217,8 +249,10 @@ class TestProcessMonitor:
         self.monitor.session = mock_session
 
         # Mock time to simulate fast response
-        with patch('swagger_mcp_server.management.process_monitor.time.time',
-                   side_effect=[0.0, 0.1]):  # 100ms response
+        with patch(
+            "swagger_mcp_server.management.process_monitor.time.time",
+            side_effect=[0.0, 0.1],
+        ):  # 100ms response
             check = await self.monitor._check_response_time("localhost", 8080)
 
         assert check.passed is True
@@ -238,8 +272,10 @@ class TestProcessMonitor:
         self.monitor.session = mock_session
 
         # Mock time to simulate slow response
-        with patch('swagger_mcp_server.management.process_monitor.time.time',
-                   side_effect=[0.0, 6.0]):  # 6000ms response
+        with patch(
+            "swagger_mcp_server.management.process_monitor.time.time",
+            side_effect=[0.0, 6.0],
+        ):  # 6000ms response
             check = await self.monitor._check_response_time("localhost", 8080)
 
         assert check.passed is False
@@ -258,7 +294,7 @@ class TestProcessMonitor:
             threads=8,
             connections=2,
             uptime_seconds=3600.0,
-            status="running"
+            status="running",
         )
 
         # Mock MCP metrics
@@ -268,13 +304,17 @@ class TestProcessMonitor:
             "response_time_avg_ms": 150.0,
             "response_time_p95_ms": 300.0,
             "active_connections": 5,
-            "error_rate": 0.01
+            "error_rate": 0.01,
         }
 
-        with patch.object(self.monitor, 'get_process_metrics', return_value=process_metrics), \
-             patch.object(self.monitor, '_get_mcp_metrics', return_value=mcp_metrics):
-
-            server_metrics = await self.monitor.get_server_metrics(12345, "localhost", 8080)
+        with patch.object(
+            self.monitor, "get_process_metrics", return_value=process_metrics
+        ), patch.object(
+            self.monitor, "_get_mcp_metrics", return_value=mcp_metrics
+        ):
+            server_metrics = await self.monitor.get_server_metrics(
+                12345, "localhost", 8080
+            )
 
         assert server_metrics is not None
         assert server_metrics.process == process_metrics
@@ -288,8 +328,12 @@ class TestProcessMonitor:
     @pytest.mark.asyncio
     async def test_get_server_metrics_no_process(self):
         """Test server metrics when process doesn't exist."""
-        with patch.object(self.monitor, 'get_process_metrics', return_value=None):
-            server_metrics = await self.monitor.get_server_metrics(99999, "localhost", 8080)
+        with patch.object(
+            self.monitor, "get_process_metrics", return_value=None
+        ):
+            server_metrics = await self.monitor.get_server_metrics(
+                99999, "localhost", 8080
+            )
 
         assert server_metrics is None
 
@@ -301,14 +345,14 @@ class TestHealthStatus:
         """Test healthy status."""
         checks = [
             HealthCheck("test1", True, HealthLevel.HEALTHY, "Good"),
-            HealthCheck("test2", True, HealthLevel.HEALTHY, "Good")
+            HealthCheck("test2", True, HealthLevel.HEALTHY, "Good"),
         ]
 
         status = HealthStatus(
             overall_level=HealthLevel.HEALTHY,
             checks=checks,
             timestamp=time.time(),
-            issues=[]
+            issues=[],
         )
 
         assert status.is_healthy is True
@@ -318,14 +362,14 @@ class TestHealthStatus:
         """Test warning status."""
         checks = [
             HealthCheck("test1", True, HealthLevel.HEALTHY, "Good"),
-            HealthCheck("test2", False, HealthLevel.WARNING, "Slow")
+            HealthCheck("test2", False, HealthLevel.WARNING, "Slow"),
         ]
 
         status = HealthStatus(
             overall_level=HealthLevel.WARNING,
             checks=checks,
             timestamp=time.time(),
-            issues=["Slow response"]
+            issues=["Slow response"],
         )
 
         assert status.is_healthy is True  # Warning is still considered healthy
@@ -335,14 +379,14 @@ class TestHealthStatus:
         """Test critical status."""
         checks = [
             HealthCheck("test1", False, HealthLevel.CRITICAL, "Failed"),
-            HealthCheck("test2", True, HealthLevel.HEALTHY, "Good")
+            HealthCheck("test2", True, HealthLevel.HEALTHY, "Good"),
         ]
 
         status = HealthStatus(
             overall_level=HealthLevel.CRITICAL,
             checks=checks,
             timestamp=time.time(),
-            issues=["Connection failed"]
+            issues=["Connection failed"],
         )
 
         assert status.is_healthy is False
@@ -351,14 +395,21 @@ class TestHealthStatus:
     def test_health_status_to_dict(self):
         """Test converting health status to dictionary."""
         checks = [
-            HealthCheck("test1", True, HealthLevel.HEALTHY, "Good", {"detail": "value"}, 100.0)
+            HealthCheck(
+                "test1",
+                True,
+                HealthLevel.HEALTHY,
+                "Good",
+                {"detail": "value"},
+                100.0,
+            )
         ]
 
         status = HealthStatus(
             overall_level=HealthLevel.HEALTHY,
             checks=checks,
             timestamp=1234567890.0,
-            issues=[]
+            issues=[],
         )
 
         data = status.to_dict()

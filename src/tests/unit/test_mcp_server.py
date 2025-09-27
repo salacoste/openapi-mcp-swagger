@@ -1,13 +1,17 @@
 """Unit tests for MCP server implementation."""
 
-import pytest
 import asyncio
+from typing import Any, Dict
 from unittest.mock import AsyncMock, MagicMock, patch
-from typing import Dict, Any
 
-from swagger_mcp_server.server.mcp_server_v2 import SwaggerMcpServer, create_server
+import pytest
+
 from swagger_mcp_server.config.settings import Settings
-from swagger_mcp_server.storage.models import Endpoint, Schema, APIMetadata
+from swagger_mcp_server.server.mcp_server_v2 import (
+    SwaggerMcpServer,
+    create_server,
+)
+from swagger_mcp_server.storage.models import APIMetadata, Endpoint, Schema
 
 
 class TestSwaggerMcpServer:
@@ -27,12 +31,14 @@ class TestSwaggerMcpServer:
         """Create mock database manager."""
         mock_manager = AsyncMock()
         mock_manager.initialize = AsyncMock()
-        mock_manager.health_check = AsyncMock(return_value={
-            "status": "healthy",
-            "database_path": ":memory:",
-            "file_size_bytes": 1024,
-            "table_counts": {"endpoints": 5, "schemas": 3}
-        })
+        mock_manager.health_check = AsyncMock(
+            return_value={
+                "status": "healthy",
+                "database_path": ":memory:",
+                "file_size_bytes": 1024,
+                "table_counts": {"endpoints": 5, "schemas": 3},
+            }
+        )
         mock_manager.close = AsyncMock()
         return mock_manager
 
@@ -55,8 +61,12 @@ class TestSwaggerMcpServer:
         mock_endpoint.parameters = []
         mock_endpoint.responses = {}
 
-        endpoint_repo.search_endpoints = AsyncMock(return_value=[mock_endpoint])
-        endpoint_repo.get_endpoint_by_id = AsyncMock(return_value=mock_endpoint)
+        endpoint_repo.search_endpoints = AsyncMock(
+            return_value=[mock_endpoint]
+        )
+        endpoint_repo.get_endpoint_by_id = AsyncMock(
+            return_value=mock_endpoint
+        )
 
         # Mock schema data
         mock_schema = MagicMock()
@@ -76,17 +86,22 @@ class TestSwaggerMcpServer:
             title="Test API",
             version="1.0.0",
             openapi_version="3.0.0",
-            description="Test API description"
+            description="Test API description",
         )
 
-        metadata_repo.get_all_metadata = AsyncMock(return_value=[mock_metadata])
+        metadata_repo.get_all_metadata = AsyncMock(
+            return_value=[mock_metadata]
+        )
 
         return endpoint_repo, schema_repo, metadata_repo
 
     @pytest.fixture
     async def server(self, settings, mock_db_manager, mock_repositories):
         """Create test server with mocked dependencies."""
-        with patch('swagger_mcp_server.server.mcp_server_v2.DatabaseManager', return_value=mock_db_manager):
+        with patch(
+            "swagger_mcp_server.server.mcp_server_v2.DatabaseManager",
+            return_value=mock_db_manager,
+        ):
             server = SwaggerMcpServer(settings)
 
             # Inject mock repositories
@@ -129,9 +144,7 @@ class TestSwaggerMcpServer:
     async def test_search_endpoints(self, server):
         """Test searchEndpoints functionality."""
         result = await server._search_endpoints(
-            query="test",
-            method="GET",
-            limit=10
+            query="test", method="GET", limit=10
         )
 
         assert "results" in result
@@ -142,9 +155,7 @@ class TestSwaggerMcpServer:
 
         # Verify repository was called correctly
         server.endpoint_repo.search_endpoints.assert_called_once_with(
-            query="test",
-            methods=["GET"],
-            limit=10
+            query="test", methods=["GET"], limit=10
         )
 
     @pytest.mark.asyncio
@@ -161,8 +172,7 @@ class TestSwaggerMcpServer:
     async def test_get_schema(self, server):
         """Test getSchema functionality."""
         result = await server._get_schema(
-            schema_name="TestSchema",
-            include_examples=True
+            schema_name="TestSchema", include_examples=True
         )
 
         assert result["name"] == "TestSchema"
@@ -171,7 +181,9 @@ class TestSwaggerMcpServer:
         assert "examples" in result
 
         # Verify repository was called correctly
-        server.schema_repo.get_schema_by_name.assert_called_once_with("TestSchema")
+        server.schema_repo.get_schema_by_name.assert_called_once_with(
+            "TestSchema"
+        )
 
     @pytest.mark.asyncio
     async def test_get_schema_not_found(self, server):
@@ -186,8 +198,7 @@ class TestSwaggerMcpServer:
     async def test_get_example(self, server):
         """Test getExample functionality."""
         result = await server._get_example(
-            endpoint_id="test-endpoint-1",
-            language="curl"
+            endpoint_id="test-endpoint-1", language="curl"
         )
 
         assert result["endpoint_id"] == "test-endpoint-1"
@@ -197,7 +208,9 @@ class TestSwaggerMcpServer:
         assert "example" in result
 
         # Verify repository was called correctly
-        server.endpoint_repo.get_endpoint_by_id.assert_called_once_with("test-endpoint-1")
+        server.endpoint_repo.get_endpoint_by_id.assert_called_once_with(
+            "test-endpoint-1"
+        )
 
     @pytest.mark.asyncio
     async def test_get_example_not_found(self, server):
@@ -262,7 +275,9 @@ class TestSwaggerMcpServer:
     async def test_error_handling_in_search(self, server):
         """Test error handling in search methods."""
         # Make repository raise an exception
-        server.endpoint_repo.search_endpoints = AsyncMock(side_effect=Exception("Database error"))
+        server.endpoint_repo.search_endpoints = AsyncMock(
+            side_effect=Exception("Database error")
+        )
 
         result = await server._search_endpoints(query="test")
         assert "error" in result
@@ -272,7 +287,9 @@ class TestSwaggerMcpServer:
     async def test_error_handling_in_schema_retrieval(self, server):
         """Test error handling in schema retrieval."""
         # Make repository raise an exception
-        server.schema_repo.get_schema_by_name = AsyncMock(side_effect=Exception("Schema error"))
+        server.schema_repo.get_schema_by_name = AsyncMock(
+            side_effect=Exception("Schema error")
+        )
 
         result = await server._get_schema(schema_name="TestSchema")
         assert "error" in result
@@ -288,7 +305,7 @@ class TestMcpServerIntegration:
         server = create_server()
 
         # Access the registered handlers through the server
-        assert hasattr(server.server, '_tools_handler')
+        assert hasattr(server.server, "_tools_handler")
 
         # This would be tested more thoroughly in integration tests
         # with actual MCP client connections
@@ -299,7 +316,7 @@ class TestMcpServerIntegration:
         server = create_server()
 
         # Access the registered handlers through the server
-        assert hasattr(server.server, '_resources_handler')
+        assert hasattr(server.server, "_resources_handler")
 
         # This would be tested more thoroughly in integration tests
         # with actual MCP client connections

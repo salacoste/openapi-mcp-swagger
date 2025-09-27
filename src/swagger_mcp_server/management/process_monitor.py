@@ -1,11 +1,12 @@
 """Process monitoring and health checking for MCP servers."""
 
 import asyncio
-import aiohttp
 import time
-from typing import Dict, Any, Optional, List
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any, Dict, List, Optional
+
+import aiohttp
 import structlog
 
 logger = structlog.get_logger(__name__)
@@ -13,6 +14,7 @@ logger = structlog.get_logger(__name__)
 
 class HealthLevel(Enum):
     """Health check severity levels."""
+
     HEALTHY = "healthy"
     WARNING = "warning"
     CRITICAL = "critical"
@@ -22,6 +24,7 @@ class HealthLevel(Enum):
 @dataclass
 class HealthCheck:
     """Individual health check result."""
+
     name: str
     passed: bool
     level: HealthLevel
@@ -33,6 +36,7 @@ class HealthCheck:
 @dataclass
 class HealthStatus:
     """Complete health status for a server."""
+
     overall_level: HealthLevel
     checks: List[HealthCheck]
     timestamp: float
@@ -54,18 +58,19 @@ class HealthStatus:
                     "level": check.level.value,
                     "message": check.message,
                     "details": check.details,
-                    "duration_ms": check.duration_ms
+                    "duration_ms": check.duration_ms,
                 }
                 for check in self.checks
             ],
             "timestamp": self.timestamp,
-            "issues": self.issues
+            "issues": self.issues,
         }
 
 
 @dataclass
 class ProcessMetrics:
     """Process performance metrics."""
+
     cpu_percent: float
     memory_mb: float
     memory_percent: float
@@ -78,6 +83,7 @@ class ProcessMetrics:
 @dataclass
 class ServerMetrics:
     """Complete server metrics."""
+
     process: ProcessMetrics
     requests_total: int
     requests_per_minute: float
@@ -117,6 +123,7 @@ class ProcessMonitor:
         """
         try:
             import psutil
+
             process = psutil.Process(pid)
 
             # Get memory info
@@ -139,14 +146,18 @@ class ProcessMonitor:
                 threads=process.num_threads(),
                 connections=connections,
                 uptime_seconds=time.time() - process.create_time(),
-                status=process.status()
+                status=process.status(),
             )
 
         except (psutil.NoSuchProcess, ImportError) as e:
-            logger.warning("Failed to get process metrics", pid=pid, error=str(e))
+            logger.warning(
+                "Failed to get process metrics", pid=pid, error=str(e)
+            )
             return None
 
-    async def check_server_health(self, host: str, port: int, server_id: str) -> HealthStatus:
+    async def check_server_health(
+        self, host: str, port: int, server_id: str
+    ) -> HealthStatus:
         """Perform comprehensive health check on server.
 
         Args:
@@ -185,10 +196,12 @@ class ProcessMonitor:
             overall_level=overall_level,
             checks=checks,
             timestamp=time.time(),
-            issues=issues
+            issues=issues,
         )
 
-    async def get_server_metrics(self, pid: int, host: str, port: int) -> Optional[ServerMetrics]:
+    async def get_server_metrics(
+        self, pid: int, host: str, port: int
+    ) -> Optional[ServerMetrics]:
         """Get comprehensive server metrics.
 
         Args:
@@ -215,15 +228,18 @@ class ProcessMonitor:
             response_time_p95_ms=mcp_metrics.get("response_time_p95_ms", 0.0),
             active_connections=mcp_metrics.get("active_connections", 0),
             error_rate=mcp_metrics.get("error_rate", 0.0),
-            last_request_time=mcp_metrics.get("last_request_time")
+            last_request_time=mcp_metrics.get("last_request_time"),
         )
 
-    async def _check_network_connectivity(self, host: str, port: int) -> HealthCheck:
+    async def _check_network_connectivity(
+        self, host: str, port: int
+    ) -> HealthCheck:
         """Check basic network connectivity."""
         start_time = time.time()
 
         try:
             import socket
+
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.settimeout(5)
             result = sock.connect_ex((host, port))
@@ -237,7 +253,7 @@ class ProcessMonitor:
                     passed=True,
                     level=HealthLevel.HEALTHY,
                     message=f"Port {port} is reachable",
-                    duration_ms=duration_ms
+                    duration_ms=duration_ms,
                 )
             else:
                 return HealthCheck(
@@ -245,7 +261,7 @@ class ProcessMonitor:
                     passed=False,
                     level=HealthLevel.CRITICAL,
                     message=f"Cannot connect to port {port}",
-                    duration_ms=duration_ms
+                    duration_ms=duration_ms,
                 )
 
         except Exception as e:
@@ -255,7 +271,7 @@ class ProcessMonitor:
                 passed=False,
                 level=HealthLevel.CRITICAL,
                 message=f"Connection error: {str(e)}",
-                duration_ms=duration_ms
+                duration_ms=duration_ms,
             )
 
     async def _check_mcp_health(self, host: str, port: int) -> HealthCheck:
@@ -282,7 +298,7 @@ class ProcessMonitor:
                         level=HealthLevel.HEALTHY,
                         message="MCP server is healthy",
                         details=health_data,
-                        duration_ms=duration_ms
+                        duration_ms=duration_ms,
                     )
                 else:
                     return HealthCheck(
@@ -290,7 +306,7 @@ class ProcessMonitor:
                         passed=False,
                         level=HealthLevel.WARNING,
                         message=f"Health endpoint returned status {response.status}",
-                        duration_ms=duration_ms
+                        duration_ms=duration_ms,
                     )
 
         except aiohttp.ClientConnectorError:
@@ -300,7 +316,7 @@ class ProcessMonitor:
                 passed=False,
                 level=HealthLevel.CRITICAL,
                 message="Cannot connect to MCP server",
-                duration_ms=duration_ms
+                duration_ms=duration_ms,
             )
         except Exception as e:
             duration_ms = (time.time() - start_time) * 1000
@@ -309,7 +325,7 @@ class ProcessMonitor:
                 passed=False,
                 level=HealthLevel.WARNING,
                 message=f"Health check failed: {str(e)}",
-                duration_ms=duration_ms
+                duration_ms=duration_ms,
             )
 
     async def _check_response_time(self, host: str, port: int) -> HealthCheck:
@@ -346,7 +362,7 @@ class ProcessMonitor:
                     passed=duration_ms < 5000,
                     level=level,
                     message=message,
-                    duration_ms=duration_ms
+                    duration_ms=duration_ms,
                 )
 
         except Exception as e:
@@ -356,7 +372,7 @@ class ProcessMonitor:
                 passed=False,
                 level=HealthLevel.WARNING,
                 message=f"Response time check failed: {str(e)}",
-                duration_ms=duration_ms
+                duration_ms=duration_ms,
             )
 
     async def _get_mcp_metrics(self, host: str, port: int) -> Dict[str, Any]:
@@ -384,10 +400,12 @@ class ProcessMonitor:
             "response_time_avg_ms": 0.0,
             "response_time_p95_ms": 0.0,
             "active_connections": 0,
-            "error_rate": 0.0
+            "error_rate": 0.0,
         }
 
-    def _determine_overall_health(self, checks: List[HealthCheck]) -> HealthLevel:
+    def _determine_overall_health(
+        self, checks: List[HealthCheck]
+    ) -> HealthLevel:
         """Determine overall health level from individual checks."""
         if not checks:
             return HealthLevel.UNKNOWN

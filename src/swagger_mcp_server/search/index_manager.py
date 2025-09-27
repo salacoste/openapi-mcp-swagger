@@ -7,25 +7,29 @@ This module provides the SearchIndexManager class which handles:
 - Incremental index updates and optimization
 """
 
+import asyncio
 import os
 import time
-import asyncio
-from pathlib import Path
-from typing import Dict, Any, List, Optional, AsyncGenerator, Tuple
 from contextlib import asynccontextmanager
+from pathlib import Path
+from typing import Any, AsyncGenerator, Dict, List, Optional, Tuple
 
 from whoosh import index
 from whoosh.index import Index
-from whoosh.writing import IndexWriter
-from whoosh.qparser import QueryParser, MultifieldParser
+from whoosh.qparser import MultifieldParser, QueryParser
 from whoosh.query import Query
+from whoosh.writing import IndexWriter
 
-from ..storage.repositories.endpoint_repository import EndpointRepository
-from ..storage.repositories.schema_repository import SchemaRepository
-from ..storage.repositories.metadata_repository import MetadataRepository
 from ..config.settings import SearchConfig
-from .index_schema import create_search_schema, validate_schema_fields, convert_endpoint_document_to_index_fields
+from ..storage.repositories.endpoint_repository import EndpointRepository
+from ..storage.repositories.metadata_repository import MetadataRepository
+from ..storage.repositories.schema_repository import SchemaRepository
 from .endpoint_indexing import EndpointDocumentProcessor
+from .index_schema import (
+    convert_endpoint_document_to_index_fields,
+    create_search_schema,
+    validate_schema_fields,
+)
 
 
 class SearchIndexManager:
@@ -79,14 +83,16 @@ class SearchIndexManager:
                     schema = create_search_schema()
                     self._index = index.create_in(str(self.index_dir), schema)
             except Exception as e:
-                raise RuntimeError(f"Failed to open/create search index: {e}") from e
+                raise RuntimeError(
+                    f"Failed to open/create search index: {e}"
+                ) from e
 
         return self._index
 
     async def create_index_from_database(
         self,
         batch_size: Optional[int] = None,
-        progress_callback: Optional[callable] = None
+        progress_callback: Optional[callable] = None,
     ) -> Tuple[int, float]:
         """Create search index from normalized database data.
 
@@ -112,7 +118,9 @@ class SearchIndexManager:
             total_endpoints = await self.endpoint_repo.count_all()
 
             if progress_callback:
-                await progress_callback(0, total_endpoints, "Starting index creation")
+                await progress_callback(
+                    0, total_endpoints, "Starting index creation"
+                )
 
             # Process endpoints in batches
             async for batch_num, documents in self._process_endpoints_in_batches(
@@ -125,7 +133,7 @@ class SearchIndexManager:
                     await progress_callback(
                         total_indexed,
                         total_endpoints,
-                        f"Indexed batch {batch_num + 1}, {total_indexed} documents total"
+                        f"Indexed batch {batch_num + 1}, {total_indexed} documents total",
                     )
 
             # Optimize index for search performance
@@ -137,7 +145,7 @@ class SearchIndexManager:
                 await progress_callback(
                     total_indexed,
                     total_endpoints,
-                    f"Index creation completed in {elapsed_time:.2f}s"
+                    f"Index creation completed in {elapsed_time:.2f}s",
                 )
 
             return total_indexed, elapsed_time
@@ -176,7 +184,9 @@ class SearchIndexManager:
             return True
 
         except Exception as e:
-            raise RuntimeError(f"Failed to update endpoint {endpoint_id}: {e}") from e
+            raise RuntimeError(
+                f"Failed to update endpoint {endpoint_id}: {e}"
+            ) from e
 
     async def remove_endpoint_document(self, endpoint_id: str) -> bool:
         """Remove an endpoint document from the index.
@@ -213,7 +223,9 @@ class SearchIndexManager:
                     for f in os.listdir(self.index_dir)
                     if os.path.isfile(os.path.join(self.index_dir, f))
                 ),
-                "index_version": reader.schema_version() if hasattr(reader, 'schema_version') else 1,
+                "index_version": reader.schema_version()
+                if hasattr(reader, "schema_version")
+                else 1,
             }
 
         except Exception as e:
@@ -257,12 +269,14 @@ class SearchIndexManager:
                 issues.append(f"Missing required fields: {missing_fields}")
                 stats["validation_passed"] = False
 
-            stats.update({
-                "database_document_count": db_count,
-                "index_document_count": index_count,
-                "field_count": len(field_names),
-                "issues_found": len(issues),
-            })
+            stats.update(
+                {
+                    "database_document_count": db_count,
+                    "index_document_count": index_count,
+                    "field_count": len(field_names),
+                    "issues_found": len(issues),
+                }
+            )
 
         except Exception as e:
             issues.append(f"Validation error: {e}")
@@ -307,7 +321,9 @@ class SearchIndexManager:
                         documents.append(document)
                 except Exception as e:
                     # Log error but continue processing
-                    print(f"Error processing endpoint {endpoint.get('id', 'unknown')}: {e}")
+                    print(
+                        f"Error processing endpoint {endpoint.get('id', 'unknown')}: {e}"
+                    )
 
             if documents:
                 yield batch_num, documents
@@ -315,7 +331,9 @@ class SearchIndexManager:
             offset += batch_size
             batch_num += 1
 
-    async def _index_document_batch(self, documents: List[Dict[str, Any]]) -> int:
+    async def _index_document_batch(
+        self, documents: List[Dict[str, Any]]
+    ) -> int:
         """Index a batch of documents.
 
         Args:
@@ -338,7 +356,9 @@ class SearchIndexManager:
 
         return indexed_count
 
-    async def _create_search_document(self, endpoint_data: Dict[str, Any]) -> Dict[str, Any]:
+    async def _create_search_document(
+        self, endpoint_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Convert database endpoint data to comprehensive search document.
 
         Uses the new EndpointDocumentProcessor to create rich, searchable documents
@@ -356,10 +376,16 @@ class SearchIndexManager:
         """
         try:
             # Create comprehensive endpoint document using the new processor
-            endpoint_doc = await self.document_processor.create_endpoint_document(endpoint_data)
+            endpoint_doc = (
+                await self.document_processor.create_endpoint_document(
+                    endpoint_data
+                )
+            )
 
             # Convert to index-ready format
-            index_document = convert_endpoint_document_to_index_fields(endpoint_doc)
+            index_document = convert_endpoint_document_to_index_fields(
+                endpoint_doc
+            )
 
             return index_document
 
@@ -369,7 +395,9 @@ class SearchIndexManager:
         except Exception as e:
             # Wrap other errors in RuntimeError for consistent error handling
             endpoint_id = endpoint_data.get("id", "unknown")
-            raise RuntimeError(f"Failed to create search document for endpoint {endpoint_id}: {e}") from e
+            raise RuntimeError(
+                f"Failed to create search document for endpoint {endpoint_id}: {e}"
+            ) from e
 
     async def _optimize_index(self) -> None:
         """Optimize the search index for better performance."""
@@ -387,7 +415,9 @@ class SearchIndexManager:
         """
         try:
             with self.index.writer() as writer:
-                deleted_count = writer.delete_by_term("endpoint_id", endpoint_id)
+                deleted_count = writer.delete_by_term(
+                    "endpoint_id", endpoint_id
+                )
                 return deleted_count > 0
         except Exception:
             return False

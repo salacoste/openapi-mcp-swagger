@@ -1,16 +1,16 @@
 """Deployment package generation for converted MCP servers."""
 
-import os
 import json
+import os
 import shutil
 import stat
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any, Dict
+
 import structlog
 
 from .. import __version__
-
 
 logger = structlog.get_logger(__name__)
 
@@ -21,10 +21,14 @@ class DeploymentPackageGenerator:
     def __init__(self, output_dir: str):
         self.output_dir = output_dir
 
-    async def create_deployment_package(self, server_config: Dict[str, Any]) -> str:
+    async def create_deployment_package(
+        self, server_config: Dict[str, Any]
+    ) -> str:
         """Create complete deployment package with all necessary files."""
         try:
-            logger.info("Creating deployment package", output_dir=self.output_dir)
+            logger.info(
+                "Creating deployment package", output_dir=self.output_dir
+            )
 
             # Generate main server files
             await self._generate_server_main(server_config)
@@ -271,7 +275,7 @@ if __name__ == "__main__":
         )
 
         server_path = os.path.join(self.output_dir, "server.py")
-        with open(server_path, 'w', encoding='utf-8') as f:
+        with open(server_path, "w", encoding="utf-8") as f:
             f.write(server_content)
 
         # Make executable
@@ -281,9 +285,10 @@ if __name__ == "__main__":
     def _generate_class_name(self, server_name: str) -> str:
         """Generate a valid Python class name from server name."""
         import re
+
         # Convert to PascalCase
-        words = re.findall(r'[a-zA-Z0-9]+', server_name)
-        class_name = ''.join(word.capitalize() for word in words)
+        words = re.findall(r"[a-zA-Z0-9]+", server_name)
+        class_name = "".join(word.capitalize() for word in words)
         return class_name + "MCPServer" if class_name else "GeneratedMCPServer"
 
     async def _generate_configuration_files(self, config: Dict[str, Any]):
@@ -301,12 +306,16 @@ if __name__ == "__main__":
                 "description": config.get("api_description", ""),
             },
             "database": {
-                "path": os.path.relpath(config["database_path"], self.output_dir),
+                "path": os.path.relpath(
+                    config["database_path"], self.output_dir
+                ),
                 "backup_enabled": True,
                 "backup_interval": 3600,  # 1 hour
             },
             "search": {
-                "index_path": os.path.relpath(config["search_index_path"], self.output_dir),
+                "index_path": os.path.relpath(
+                    config["search_index_path"], self.output_dir
+                ),
                 "cache_size": 1000,
                 "enable_fuzzy": True,
             },
@@ -319,7 +328,7 @@ if __name__ == "__main__":
                 "enable_auth": False,
                 "api_key": None,
                 "allowed_hosts": ["localhost", "127.0.0.1"],
-            }
+            },
         }
 
         config_dir = os.path.join(self.output_dir, "config")
@@ -329,18 +338,19 @@ if __name__ == "__main__":
         config_path = os.path.join(config_dir, "server.yaml")
         try:
             import yaml
-            with open(config_path, 'w', encoding='utf-8') as f:
+
+            with open(config_path, "w", encoding="utf-8") as f:
                 yaml.dump(server_config, f, default_flow_style=False, indent=2)
         except ImportError:
             # Fallback to JSON if PyYAML not available
             config_path = os.path.join(config_dir, "server.json")
-            with open(config_path, 'w', encoding='utf-8') as f:
+            with open(config_path, "w", encoding="utf-8") as f:
                 json.dump(server_config, f, indent=2)
 
     async def _generate_startup_scripts(self, config: Dict[str, Any]):
         """Generate startup scripts for different platforms."""
         # Unix/Linux startup script
-        unix_script = f'''#!/bin/bash
+        unix_script = f"""#!/bin/bash
 # Startup script for {config["server_name"]} MCP Server
 
 set -e
@@ -372,10 +382,10 @@ fi
 # Start server
 echo "Starting {config['api_title']} MCP Server..."
 python server.py "$@"
-'''
+"""
 
         unix_script_path = os.path.join(self.output_dir, "start.sh")
-        with open(unix_script_path, 'w', encoding='utf-8') as f:
+        with open(unix_script_path, "w", encoding="utf-8") as f:
             f.write(unix_script)
 
         # Make executable
@@ -383,7 +393,7 @@ python server.py "$@"
         os.chmod(unix_script_path, st.st_mode | stat.S_IEXEC)
 
         # Windows batch script
-        windows_script = f'''@echo off
+        windows_script = f"""@echo off
 rem Startup script for {config["server_name"]} MCP Server
 
 cd /d "%~dp0"
@@ -413,15 +423,15 @@ if exist "requirements.txt" (
 rem Start server
 echo Starting {config['api_title']} MCP Server...
 python server.py %*
-'''
+"""
 
         windows_script_path = os.path.join(self.output_dir, "start.bat")
-        with open(windows_script_path, 'w', encoding='utf-8') as f:
+        with open(windows_script_path, "w", encoding="utf-8") as f:
             f.write(windows_script)
 
     async def _generate_readme(self, config: Dict[str, Any]):
         """Generate comprehensive README for converted MCP server."""
-        readme_template = f'''# MCP Server for {config["api_title"]}
+        readme_template = f"""# MCP Server for {config["api_title"]}
 
 Generated MCP server providing intelligent access to {config["api_title"]} API documentation.
 
@@ -678,10 +688,10 @@ For high-traffic deployments:
 ## License
 
 This generated MCP server inherits the license from the original Swagger specification.
-'''
+"""
 
         readme_path = os.path.join(self.output_dir, "README.md")
-        with open(readme_path, 'w', encoding='utf-8') as f:
+        with open(readme_path, "w", encoding="utf-8") as f:
             f.write(readme_template)
 
     async def _generate_usage_examples(self, config: Dict[str, Any]):
@@ -1020,7 +1030,7 @@ This completes the usage examples for your generated MCP server.
         os.makedirs(docs_dir, exist_ok=True)
 
         examples_path = os.path.join(docs_dir, "examples.md")
-        with open(examples_path, 'w', encoding='utf-8') as f:
+        with open(examples_path, "w", encoding="utf-8") as f:
             f.write(examples_content)
 
     async def _generate_requirements_file(self, config: Dict[str, Any]):
@@ -1045,12 +1055,12 @@ This completes the usage examples for your generated MCP server.
         ]
 
         requirements_path = os.path.join(self.output_dir, "requirements.txt")
-        with open(requirements_path, 'w', encoding='utf-8') as f:
-            f.write('\n'.join(requirements))
+        with open(requirements_path, "w", encoding="utf-8") as f:
+            f.write("\n".join(requirements))
 
     async def _generate_docker_config(self, config: Dict[str, Any]):
         """Generate Docker configuration."""
-        dockerfile_content = f'''# Dockerfile for {config["api_title"]} MCP Server
+        dockerfile_content = f"""# Dockerfile for {config["api_title"]} MCP Server
 # Generated by swagger-mcp-server
 
 FROM python:3.11-slim
@@ -1086,14 +1096,14 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \\
 
 # Run server
 CMD ["python", "server.py"]
-'''
+"""
 
         dockerfile_path = os.path.join(self.output_dir, "Dockerfile")
-        with open(dockerfile_path, 'w', encoding='utf-8') as f:
+        with open(dockerfile_path, "w", encoding="utf-8") as f:
             f.write(dockerfile_content)
 
         # Docker Compose file
-        compose_content = f'''version: '3.8'
+        compose_content = f"""version: '3.8'
 
 services:
   mcp-server:
@@ -1124,15 +1134,15 @@ services:
   #     - ./nginx.conf:/etc/nginx/nginx.conf
   #   depends_on:
   #     - mcp-server
-'''
+"""
 
         compose_path = os.path.join(self.output_dir, "docker-compose.yml")
-        with open(compose_path, 'w', encoding='utf-8') as f:
+        with open(compose_path, "w", encoding="utf-8") as f:
             f.write(compose_content)
 
     async def _generate_systemd_service(self, config: Dict[str, Any]):
         """Generate systemd service file."""
-        service_content = f'''[Unit]
+        service_content = f"""[Unit]
 Description={config["api_title"]} MCP Server
 After=network.target
 Wants=network.target
@@ -1161,15 +1171,15 @@ Environment=MCP_PORT={config["port"]}
 
 [Install]
 WantedBy=multi-user.target
-'''
+"""
 
         service_path = os.path.join(self.output_dir, "mcp-server.service")
-        with open(service_path, 'w', encoding='utf-8') as f:
+        with open(service_path, "w", encoding="utf-8") as f:
             f.write(service_content)
 
     async def _generate_env_file(self, config: Dict[str, Any]):
         """Generate environment variables template."""
-        env_content = f'''# Environment variables for {config["api_title"]} MCP Server
+        env_content = f"""# Environment variables for {config["api_title"]} MCP Server
 # Copy this file to .env and customize as needed
 
 # Server configuration
@@ -1190,15 +1200,15 @@ MCP_LOG_FORMAT=console
 # Performance tuning (optional)
 # MCP_SEARCH_CACHE_SIZE=1000
 # MCP_MAX_CONNECTIONS=100
-'''
+"""
 
         env_path = os.path.join(self.output_dir, ".env.example")
-        with open(env_path, 'w', encoding='utf-8') as f:
+        with open(env_path, "w", encoding="utf-8") as f:
             f.write(env_content)
 
     async def _generate_gitignore(self):
         """Generate .gitignore file."""
-        gitignore_content = '''# Generated MCP Server .gitignore
+        gitignore_content = """# Generated MCP Server .gitignore
 
 # Environment variables
 .env
@@ -1257,8 +1267,8 @@ Thumbs.db
 tmp/
 temp/
 *.tmp
-'''
+"""
 
         gitignore_path = os.path.join(self.output_dir, ".gitignore")
-        with open(gitignore_path, 'w', encoding='utf-8') as f:
+        with open(gitignore_path, "w", encoding="utf-8") as f:
             f.write(gitignore_content)

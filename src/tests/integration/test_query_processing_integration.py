@@ -4,18 +4,25 @@ Tests the complete query processing pipeline with realistic API scenarios
 using sample Swagger/OpenAPI data.
 """
 
-import pytest
 import asyncio
 import json
 import time
 from pathlib import Path
-from typing import Dict, Any, List
+from typing import Any, Dict, List
 from unittest.mock import Mock
 
-from swagger_mcp_server.search.search_engine import SearchEngine, SearchResponse
+import pytest
+
+from swagger_mcp_server.config.settings import (
+    SearchConfig,
+    SearchPerformanceConfig,
+)
 from swagger_mcp_server.search.index_manager import SearchIndexManager
 from swagger_mcp_server.search.query_processor import QueryProcessor
-from swagger_mcp_server.config.settings import SearchConfig, SearchPerformanceConfig
+from swagger_mcp_server.search.search_engine import (
+    SearchEngine,
+    SearchResponse,
+)
 
 
 @pytest.fixture
@@ -23,9 +30,7 @@ def search_config():
     """Create test search configuration."""
     return SearchConfig(
         performance=SearchPerformanceConfig(
-            max_search_results=50,
-            search_timeout=5.0,
-            index_batch_size=100
+            max_search_results=50, search_timeout=5.0, index_batch_size=100
         )
     )
 
@@ -44,7 +49,7 @@ def sample_api_endpoints():
             "tags": "users, list",
             "auth_type": "bearer",
             "operation_id": "listUsers",
-            "deprecated": False
+            "deprecated": False,
         },
         {
             "endpoint_id": "create_user",
@@ -56,7 +61,7 @@ def sample_api_endpoints():
             "tags": "users, create",
             "auth_type": "bearer",
             "operation_id": "createUser",
-            "deprecated": False
+            "deprecated": False,
         },
         {
             "endpoint_id": "get_user",
@@ -68,7 +73,7 @@ def sample_api_endpoints():
             "tags": "users, get",
             "auth_type": "bearer",
             "operation_id": "getUserById",
-            "deprecated": False
+            "deprecated": False,
         },
         {
             "endpoint_id": "update_user",
@@ -80,7 +85,7 @@ def sample_api_endpoints():
             "tags": "users, update",
             "auth_type": "bearer",
             "operation_id": "updateUser",
-            "deprecated": False
+            "deprecated": False,
         },
         {
             "endpoint_id": "delete_user",
@@ -92,7 +97,7 @@ def sample_api_endpoints():
             "tags": "users, delete",
             "auth_type": "bearer",
             "operation_id": "deleteUser",
-            "deprecated": False
+            "deprecated": False,
         },
         {
             "endpoint_id": "authenticate",
@@ -104,7 +109,7 @@ def sample_api_endpoints():
             "tags": "authentication, login",
             "auth_type": "none",
             "operation_id": "authenticateUser",
-            "deprecated": False
+            "deprecated": False,
         },
         {
             "endpoint_id": "refresh_token",
@@ -116,7 +121,7 @@ def sample_api_endpoints():
             "tags": "authentication, token",
             "auth_type": "refresh",
             "operation_id": "refreshAccessToken",
-            "deprecated": False
+            "deprecated": False,
         },
         {
             "endpoint_id": "oauth_authorize",
@@ -128,7 +133,7 @@ def sample_api_endpoints():
             "tags": "authentication, oauth",
             "auth_type": "oauth",
             "operation_id": "oauthAuthorize",
-            "deprecated": True
+            "deprecated": True,
         },
         {
             "endpoint_id": "get_profile",
@@ -140,7 +145,7 @@ def sample_api_endpoints():
             "tags": "users, profile",
             "auth_type": "bearer",
             "operation_id": "getCurrentUserProfile",
-            "deprecated": False
+            "deprecated": False,
         },
         {
             "endpoint_id": "upload_avatar",
@@ -152,8 +157,8 @@ def sample_api_endpoints():
             "tags": "users, upload, image",
             "auth_type": "bearer",
             "operation_id": "uploadUserAvatar",
-            "deprecated": False
-        }
+            "deprecated": False,
+        },
     ]
 
 
@@ -164,8 +169,15 @@ async def mock_search_engine(search_config, sample_api_endpoints):
     mock_index_manager = Mock(spec=SearchIndexManager)
     mock_index = Mock()
     mock_index.schema.names.return_value = [
-        "endpoint_id", "endpoint_path", "http_method", "summary",
-        "description", "parameters", "tags", "auth_type", "operation_id"
+        "endpoint_id",
+        "endpoint_path",
+        "http_method",
+        "summary",
+        "description",
+        "parameters",
+        "tags",
+        "auth_type",
+        "operation_id",
     ]
     mock_index_manager.index = mock_index
 
@@ -173,7 +185,9 @@ async def mock_search_engine(search_config, sample_api_endpoints):
     search_engine = SearchEngine(mock_index_manager, search_config)
 
     # Mock search execution to return sample data
-    async def mock_execute_search(query, page=1, per_page=20, sort_by=None, include_highlights=True):
+    async def mock_execute_search(
+        query, page=1, per_page=20, sort_by=None, include_highlights=True
+    ):
         # Simple mock search logic - match query against descriptions
         query_str = str(query).lower()
         matches = []
@@ -185,7 +199,7 @@ async def mock_search_engine(search_config, sample_api_endpoints):
                 endpoint["summary"],
                 endpoint["description"],
                 endpoint["parameters"],
-                endpoint["tags"]
+                endpoint["tags"],
             ]
             full_text = " ".join(text_fields).lower()
 
@@ -207,6 +221,7 @@ async def mock_search_engine(search_config, sample_api_endpoints):
 
         # Convert to search results
         from swagger_mcp_server.search.search_engine import SearchResult
+
         hits = []
         for endpoint, score in page_matches:
             result = SearchResult(
@@ -220,8 +235,8 @@ async def mock_search_engine(search_config, sample_api_endpoints):
                 metadata={
                     "operation_id": endpoint["operation_id"],
                     "tags": endpoint["tags"],
-                    "deprecated": endpoint["deprecated"]
-                }
+                    "deprecated": endpoint["deprecated"],
+                },
             )
             hits.append(result)
 
@@ -229,7 +244,7 @@ async def mock_search_engine(search_config, sample_api_endpoints):
             "hits": hits,
             "total": len(matches),
             "page": page,
-            "per_page": per_page
+            "per_page": per_page,
         }
 
     search_engine._execute_search = mock_execute_search
@@ -243,7 +258,7 @@ async def mock_search_engine(search_config, sample_api_endpoints):
                 endpoint["summary"],
                 endpoint["description"],
                 endpoint["parameters"],
-                endpoint["tags"]
+                endpoint["tags"],
             ]
             for field in text_fields:
                 terms.update(field.lower().split())
@@ -267,7 +282,9 @@ class TestBasicQueryProcessing:
         assert len(response.results) > 0
 
         # Should find user-related endpoints
-        user_results = [r for r in response.results if 'user' in r.description.lower()]
+        user_results = [
+            r for r in response.results if "user" in r.description.lower()
+        ]
         assert len(user_results) > 0
 
     @pytest.mark.asyncio
@@ -281,7 +298,7 @@ class TestBasicQueryProcessing:
         for result in response.results[:3]:  # Top 3 results
             text = (result.description + " " + result.summary).lower()
             # Should contain at least one of the terms
-            assert 'user' in text or 'auth' in text
+            assert "user" in text or "auth" in text
 
     @pytest.mark.asyncio
     async def test_performance_requirement(self, mock_search_engine):
@@ -314,7 +331,7 @@ class TestBooleanQueryProcessing:
                 text = (result.description + " " + result.summary).lower()
                 # Mock implementation may not enforce strict AND logic
                 # but should prioritize results with both terms
-                assert 'user' in text or 'auth' in text
+                assert "user" in text or "auth" in text
 
     @pytest.mark.asyncio
     async def test_or_query_processing(self, mock_search_engine):
@@ -326,7 +343,7 @@ class TestBooleanQueryProcessing:
         # Should find results containing either term
         for result in response.results:
             text = (result.description + " " + result.summary).lower()
-            assert 'user' in text or 'profile' in text
+            assert "user" in text or "profile" in text
 
     @pytest.mark.asyncio
     async def test_not_query_processing(self, mock_search_engine):
@@ -336,7 +353,7 @@ class TestBooleanQueryProcessing:
         # Should find auth results but exclude oauth
         for result in response.results:
             text = (result.description + " " + result.summary).lower()
-            if 'oauth' in text:
+            if "oauth" in text:
                 # In mock implementation, NOT may not be strictly enforced
                 # but oauth results should have lower scores
                 pass
@@ -353,7 +370,10 @@ class TestFieldSpecificQueries:
         if response.total_results > 0:
             # Should find endpoints with /users in path
             for result in response.results:
-                assert '/users' in result.endpoint_path or 'user' in result.endpoint_path.lower()
+                assert (
+                    "/users" in result.endpoint_path
+                    or "user" in result.endpoint_path.lower()
+                )
 
     @pytest.mark.asyncio
     async def test_method_specific_search(self, mock_search_engine):
@@ -362,7 +382,9 @@ class TestFieldSpecificQueries:
 
         if response.total_results > 0:
             # Should prioritize POST endpoints
-            post_results = [r for r in response.results if r.http_method == 'POST']
+            post_results = [
+                r for r in response.results if r.http_method == "POST"
+            ]
             # Mock may not strictly filter, but should boost POST results
 
     @pytest.mark.asyncio
@@ -385,8 +407,9 @@ class TestFieldSpecificQueries:
         if response.total_results > 0:
             # Should find GET endpoints on /users path
             relevant_results = [
-                r for r in response.results
-                if 'user' in r.endpoint_path.lower() and r.http_method == 'GET'
+                r
+                for r in response.results
+                if "user" in r.endpoint_path.lower() and r.http_method == "GET"
             ]
             # Should have at least some relevant results
 
@@ -398,16 +421,17 @@ class TestQuerySuggestions:
     async def test_typo_correction_suggestions(self, mock_search_engine):
         """Test typo correction in query suggestions."""
         # Search with a typo
-        response = await mock_search_engine.search("autentication")  # Missing 'h'
+        response = await mock_search_engine.search(
+            "autentication"
+        )  # Missing 'h'
 
         # Check if suggestions are provided for low result count
-        if hasattr(response, 'metadata') and response.metadata:
-            suggestions = response.metadata.get('suggestions', [])
+        if hasattr(response, "metadata") and response.metadata:
+            suggestions = response.metadata.get("suggestions", [])
             if suggestions:
                 # Should suggest correct spelling
                 auth_suggestions = [
-                    s for s in suggestions
-                    if 'authentication' in s['query']
+                    s for s in suggestions if "authentication" in s["query"]
                 ]
                 assert len(auth_suggestions) > 0
 
@@ -421,8 +445,9 @@ class TestQuerySuggestions:
 
         # Check for auth-related results
         auth_results = [
-            r for r in response.results
-            if 'auth' in r.description.lower() or 'auth' in r.summary.lower()
+            r
+            for r in response.results
+            if "auth" in r.description.lower() or "auth" in r.summary.lower()
         ]
         assert len(auth_results) > 0
 
@@ -432,12 +457,11 @@ class TestQuerySuggestions:
         response = await mock_search_engine.search("user")
 
         # For broad queries, should suggest refinements
-        if hasattr(response, 'metadata') and response.metadata:
-            suggestions = response.metadata.get('suggestions', [])
+        if hasattr(response, "metadata") and response.metadata:
+            suggestions = response.metadata.get("suggestions", [])
             if suggestions:
                 refinement_suggestions = [
-                    s for s in suggestions
-                    if s['category'] == 'refinement'
+                    s for s in suggestions if s["category"] == "refinement"
                 ]
                 # Should provide ways to narrow down the search
 
@@ -478,8 +502,9 @@ class TestFuzzyMatching:
 
         # Should find authentication-related endpoints
         auth_results = [
-            r for r in response_partial.results
-            if 'auth' in r.description.lower() or 'auth' in r.summary.lower()
+            r
+            for r in response_partial.results
+            if "auth" in r.description.lower() or "auth" in r.summary.lower()
         ]
         assert len(auth_results) > 0
 
@@ -498,8 +523,10 @@ class TestNaturalLanguageQueries:
         assert response.total_results > 0
 
         create_results = [
-            r for r in response.results
-            if 'create' in r.description.lower() or 'create' in r.summary.lower()
+            r
+            for r in response.results
+            if "create" in r.description.lower()
+            or "create" in r.summary.lower()
         ]
         assert len(create_results) > 0
 
@@ -514,8 +541,10 @@ class TestNaturalLanguageQueries:
         assert response.total_results > 0
 
         auth_results = [
-            r for r in response.results
-            if 'auth' in r.description.lower() or 'login' in r.description.lower()
+            r
+            for r in response.results
+            if "auth" in r.description.lower()
+            or "login" in r.description.lower()
         ]
         assert len(auth_results) > 0
 
@@ -530,8 +559,9 @@ class TestNaturalLanguageQueries:
         assert response.total_results > 0
 
         delete_results = [
-            r for r in response.results
-            if 'delete' in r.description.lower() or r.http_method == 'DELETE'
+            r
+            for r in response.results
+            if "delete" in r.description.lower() or r.http_method == "DELETE"
         ]
         assert len(delete_results) > 0
 
@@ -620,7 +650,7 @@ class TestRealWorldScenarios:
             "upload file",
             "delete account",
             "get profile",
-            "refresh token"
+            "refresh token",
         ]
 
         for query in scenarios:
@@ -637,7 +667,7 @@ class TestRealWorldScenarios:
             "bearer token authentication",  # Security implementation
             "user_id parameter",  # Parameter usage
             "json response",  # Response format
-            "deprecated endpoints"  # Maintenance
+            "deprecated endpoints",  # Maintenance
         ]
 
         for query in workflow_queries:
@@ -653,7 +683,7 @@ class TestRealWorldScenarios:
             "create new user endpoint",
             "user profile information",
             "file upload endpoint",
-            "token refresh mechanism"
+            "token refresh mechanism",
         ]
 
         for query in integration_queries:
@@ -678,7 +708,7 @@ class TestPerformanceIntegration:
             "create user",
             "delete account",
             "upload file",
-            "refresh token"
+            "refresh token",
         ] * 10  # 50 total queries
 
         start_time = time.time()

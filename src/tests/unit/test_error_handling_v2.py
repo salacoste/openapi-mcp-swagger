@@ -1,31 +1,32 @@
 """Comprehensive tests for MCP server error handling and resilience (Story 2.5)."""
 
-import pytest
 import asyncio
 import time
+from typing import Any, Dict
 from unittest.mock import AsyncMock, MagicMock, patch
-from typing import Dict, Any
 
-from swagger_mcp_server.server.mcp_server_v2 import SwaggerMcpServer
+import pytest
+
 from swagger_mcp_server.config.settings import Settings
 from swagger_mcp_server.server.exceptions import (
-    MCPServerError,
-    ValidationError,
-    DatabaseConnectionError,
-    ResourceNotFoundError,
     CodeGenerationError,
-    SchemaResolutionError,
+    DatabaseConnectionError,
     ErrorLogger,
+    MCPServerError,
+    ResourceNotFoundError,
+    SchemaResolutionError,
+    ValidationError,
     create_mcp_error_response,
-    sanitize_error_data
+    sanitize_error_data,
 )
+from swagger_mcp_server.server.mcp_server_v2 import SwaggerMcpServer
 from swagger_mcp_server.server.resilience import (
     CircuitBreaker,
     CircuitBreakerState,
+    HealthChecker,
+    ResourcePool,
     retry_on_failure,
     with_timeout,
-    ResourcePool,
-    HealthChecker
 )
 
 
@@ -35,9 +36,7 @@ class TestMCPServerExceptions:
     def test_mcp_server_error_creation(self):
         """Test basic MCP server error creation and serialization."""
         error = MCPServerError(
-            code=-32602,
-            message="Test error",
-            data={"test": "value"}
+            code=-32602, message="Test error", data={"test": "value"}
         )
 
         assert error.code == -32602
@@ -56,7 +55,7 @@ class TestMCPServerExceptions:
             parameter="format",
             message="Unsupported format",
             value="invalid",
-            suggestions=["curl", "javascript", "python"]
+            suggestions=["curl", "javascript", "python"],
         )
 
         assert error.code == -32602
@@ -68,8 +67,7 @@ class TestMCPServerExceptions:
     def test_database_connection_error(self):
         """Test DatabaseConnectionError with operation context."""
         error = DatabaseConnectionError(
-            message="Connection timeout",
-            operation="search"
+            message="Connection timeout", operation="search"
         )
 
         assert error.code == -32603
@@ -82,7 +80,7 @@ class TestMCPServerExceptions:
         error = ResourceNotFoundError(
             resource_type="schema",
             identifier="InvalidSchema",
-            suggestions=["UserSchema", "ProductSchema"]
+            suggestions=["UserSchema", "ProductSchema"],
         )
 
         assert error.code == -1001
@@ -95,7 +93,7 @@ class TestMCPServerExceptions:
         error = CodeGenerationError(
             format_type="javascript",
             endpoint="/api/users",
-            reason="Template compilation failed"
+            reason="Template compilation failed",
         )
 
         assert error.code == -1002
@@ -108,7 +106,7 @@ class TestMCPServerExceptions:
         error = SchemaResolutionError(
             component_name="User",
             reason="Maximum depth exceeded",
-            circular_refs=["User", "Profile", "User"]
+            circular_refs=["User", "Profile", "User"],
         )
 
         assert error.code == -1003
@@ -137,7 +135,7 @@ class TestErrorResponseGeneration:
             "api_key": "key123",
             "database_url": "postgres://user:pass@host/db",
             "normal_field": "normal_value",
-            "long_field": "x" * 600
+            "long_field": "x" * 600,
         }
 
         sanitized = sanitize_error_data(sensitive_data)
@@ -152,11 +150,8 @@ class TestErrorResponseGeneration:
     def test_nested_data_sanitization(self):
         """Test sanitization of nested data structures."""
         nested_data = {
-            "config": {
-                "auth_token": "secret",
-                "public_setting": "value"
-            },
-            "results": ["item1", "item2"]
+            "config": {"auth_token": "secret", "public_setting": "value"},
+            "results": ["item1", "item2"],
         }
 
         sanitized = sanitize_error_data(nested_data)
@@ -188,7 +183,9 @@ class TestErrorLogger:
         error_logger = ErrorLogger(logger)
 
         exception = Exception("Test exception")
-        error_logger.log_operation_error("test_op", exception, {"context": "test"}, "req-123")
+        error_logger.log_operation_error(
+            "test_op", exception, {"context": "test"}, "req-123"
+        )
 
         logger.error.assert_called_once()
         call_args = logger.error.call_args
@@ -222,7 +219,9 @@ class TestCircuitBreaker:
 
     def test_circuit_breaker_recovery(self):
         """Test circuit breaker recovery process."""
-        cb = CircuitBreaker(failure_threshold=2, recovery_timeout=0.1, success_threshold=2)
+        cb = CircuitBreaker(
+            failure_threshold=2, recovery_timeout=0.1, success_threshold=2
+        )
 
         # Trigger circuit breaker
         cb.record_failure()
@@ -288,12 +287,15 @@ class TestRetryLogic:
     @pytest.mark.asyncio
     async def test_timeout_decorator(self):
         """Test timeout decorator functionality."""
+
         @with_timeout(0.1)
         async def slow_operation():
             await asyncio.sleep(0.2)
             return "too slow"
 
-        with pytest.raises(Exception):  # Should raise timeout-related exception
+        with pytest.raises(
+            Exception
+        ):  # Should raise timeout-related exception
             await slow_operation()
 
 
@@ -347,9 +349,7 @@ class TestHealthChecker:
             return {"status": "ok", "connections": 5}
 
         result = await checker.check_component_health(
-            "database",
-            healthy_component,
-            cache_duration=0.1
+            "database", healthy_component, cache_duration=0.1
         )
 
         assert result["status"] == "healthy"
@@ -364,9 +364,7 @@ class TestHealthChecker:
             raise Exception("Component is down")
 
         result = await checker.check_component_health(
-            "service",
-            failing_component,
-            cache_duration=0.1
+            "service", failing_component, cache_duration=0.1
         )
 
         assert result["status"] == "unhealthy"
@@ -379,9 +377,7 @@ class TestHealthChecker:
 
         # Add healthy component
         await checker.check_component_health(
-            "healthy",
-            lambda: {"status": "ok"},
-            cache_duration=0.1
+            "healthy", lambda: {"status": "ok"}, cache_duration=0.1
         )
 
         # Add unhealthy component
@@ -389,9 +385,7 @@ class TestHealthChecker:
             raise Exception("Failed")
 
         await checker.check_component_health(
-            "unhealthy",
-            failing,
-            cache_duration=0.1
+            "unhealthy", failing, cache_duration=0.1
         )
 
         overall = checker.get_overall_health()
@@ -427,8 +421,7 @@ class TestMCPServerErrorHandling:
         """Test parameter validation error handling."""
         # Test empty keywords
         result = await server._search_endpoints_with_resilience(
-            {"keywords": ""},
-            "test-request"
+            {"keywords": ""}, "test-request"
         )
 
         # Should raise ValidationError, but wrapper catches it
@@ -441,8 +434,7 @@ class TestMCPServerErrorHandling:
 
         try:
             await server._search_endpoints_with_resilience(
-                {"keywords": "test"},
-                "test-request"
+                {"keywords": "test"}, "test-request"
             )
         except DatabaseConnectionError as e:
             assert e.code == -32603
@@ -458,11 +450,12 @@ class TestMCPServerErrorHandling:
 
         # This would normally trigger circuit breaker after repeated failures
         # For testing, we verify the decorator is applied
-        assert hasattr(server._search_endpoints_with_resilience, '__wrapped__')
+        assert hasattr(server._search_endpoints_with_resilience, "__wrapped__")
 
     @pytest.mark.asyncio
     async def test_timeout_integration(self, server):
         """Test timeout integration with MCP methods."""
+
         # Mock a slow operation
         async def slow_search(*args, **kwargs):
             await asyncio.sleep(0.1)
@@ -472,8 +465,7 @@ class TestMCPServerErrorHandling:
 
         # Should complete within timeout
         result = await server._search_endpoints_with_resilience(
-            {"keywords": "test"},
-            "test-request"
+            {"keywords": "test"}, "test-request"
         )
 
         # Result should be successful for short operation
@@ -503,6 +495,7 @@ class TestErrorHandlingPerformance:
     @pytest.mark.asyncio
     async def test_concurrent_error_handling(self):
         """Test concurrent error handling performance."""
+
         async def generate_error():
             error = ValidationError("param", "test message")
             return create_mcp_error_response(error, "test-req")

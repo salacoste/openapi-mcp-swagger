@@ -4,10 +4,10 @@ This module implements the comprehensive endpoint indexing system from Story 3.2
 creating rich searchable documents that capture complete endpoint semantic context.
 """
 
-import re
 import asyncio
+import re
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Any, Set
+from typing import Any, Dict, List, Optional, Set
 from urllib.parse import urlparse
 
 
@@ -75,26 +75,45 @@ class EndpointDocumentProcessor:
 
     # REST operation patterns for classification
     OPERATION_PATTERNS = {
-        'create': ['post', 'put'],
-        'read': ['get'],
-        'update': ['put', 'patch'],
-        'delete': ['delete'],
-        'list': ['get'],
-        'search': ['get', 'post']
+        "create": ["post", "put"],
+        "read": ["get"],
+        "update": ["put", "patch"],
+        "delete": ["delete"],
+        "list": ["get"],
+        "search": ["get", "post"],
     }
 
     # Common stop words to exclude from keywords
     STOP_WORDS = {
-        'a', 'an', 'and', 'are', 'as', 'at', 'be', 'by', 'for',
-        'from', 'in', 'is', 'it', 'of', 'on', 'that', 'the',
-        'to', 'will', 'with'
+        "a",
+        "an",
+        "and",
+        "are",
+        "as",
+        "at",
+        "be",
+        "by",
+        "for",
+        "from",
+        "in",
+        "is",
+        "it",
+        "of",
+        "on",
+        "that",
+        "the",
+        "to",
+        "will",
+        "with",
     }
 
     def __init__(self):
         """Initialize the endpoint document processor."""
         pass
 
-    async def create_endpoint_document(self, endpoint_data: Dict[str, Any]) -> EndpointSearchDocument:
+    async def create_endpoint_document(
+        self, endpoint_data: Dict[str, Any]
+    ) -> EndpointSearchDocument:
         """Create comprehensive search document from endpoint data.
 
         Args:
@@ -106,15 +125,19 @@ class EndpointDocumentProcessor:
         Raises:
             ValueError: If required endpoint data is missing
         """
-        if not endpoint_data.get('id') or not endpoint_data.get('path'):
-            raise ValueError("Endpoint data must include 'id' and 'path' fields")
+        if not endpoint_data.get("id") or not endpoint_data.get("path"):
+            raise ValueError(
+                "Endpoint data must include 'id' and 'path' fields"
+            )
 
         # Extract path information
         path_segments = self.extract_path_segments(endpoint_data["path"])
         path_parameters = self.extract_path_parameters(endpoint_data["path"])
 
         # Process parameters comprehensively
-        parameter_info = await self.process_parameters(endpoint_data.get("parameters", []))
+        parameter_info = await self.process_parameters(
+            endpoint_data.get("parameters", [])
+        )
 
         # Merge path parameters from URL with processed parameters
         for path_param in path_parameters:
@@ -123,10 +146,14 @@ class EndpointDocumentProcessor:
                 parameter_info["names"].append(path_param)
 
         # Extract response information
-        response_info = await self.extract_response_info(endpoint_data.get("responses", {}))
+        response_info = await self.extract_response_info(
+            endpoint_data.get("responses", {})
+        )
 
         # Process security requirements
-        security_info = await self.extract_security_info(endpoint_data.get("security", []))
+        security_info = await self.extract_security_info(
+            endpoint_data.get("security", [])
+        )
 
         # Extract operation details
         operation_info = self.extract_operation_info(endpoint_data)
@@ -136,7 +163,7 @@ class EndpointDocumentProcessor:
         operation_type = self.classify_operation_type(
             endpoint_data.get("method", "").lower(),
             endpoint_data["path"],
-            operation_info["summary"]
+            operation_info["summary"],
         )
 
         # Create composite searchable text
@@ -179,7 +206,7 @@ class EndpointDocumentProcessor:
             content_types=response_info["content_types"],
             has_request_body=bool(endpoint_data.get("requestBody")),
             has_examples=self.has_examples(endpoint_data),
-            external_docs=operation_info.get("external_docs", "")
+            external_docs=operation_info.get("external_docs", ""),
         )
 
     def extract_path_segments(self, path: str) -> List[str]:
@@ -192,13 +219,16 @@ class EndpointDocumentProcessor:
             List[str]: Clean path segments for hierarchical search
         """
         # Remove path parameters: /users/{id}/posts → /users/posts
-        clean_path = re.sub(r'\{[^}]+\}', '', path)
-        clean_path = re.sub(r':[^/]+', '', clean_path)  # Handle :id style parameters
+        clean_path = re.sub(r"\{[^}]+\}", "", path)
+        clean_path = re.sub(
+            r":[^/]+", "", clean_path
+        )  # Handle :id style parameters
 
         # Split and filter segments
         segments = [
-            seg.lower() for seg in clean_path.split('/')
-            if seg and seg not in ('api', 'v1', 'v2', 'v3')
+            seg.lower()
+            for seg in clean_path.split("/")
+            if seg and seg not in ("api", "v1", "v2", "v3")
         ]
 
         return segments
@@ -213,12 +243,14 @@ class EndpointDocumentProcessor:
             List[str]: Path parameter names
         """
         # Handle both {param} and :param styles
-        curly_params = re.findall(r'\{([^}]+)\}', path)
-        colon_params = re.findall(r':([^/]+)', path)
+        curly_params = re.findall(r"\{([^}]+)\}", path)
+        colon_params = re.findall(r":([^/]+)", path)
 
         return curly_params + colon_params
 
-    async def process_parameters(self, parameters: List[Dict[str, Any]]) -> Dict[str, Any]:
+    async def process_parameters(
+        self, parameters: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
         """Process all parameter types comprehensively.
 
         Args:
@@ -243,7 +275,9 @@ class EndpointDocumentProcessor:
 
             name = param.get("name", "")
             description = param.get("description", "")
-            param_type = param.get("type", param.get("schema", {}).get("type", ""))
+            param_type = param.get(
+                "type", param.get("schema", {}).get("type", "")
+            )
             param_in = param.get("in", "")
             is_required = param.get("required", False)
 
@@ -279,10 +313,12 @@ class EndpointDocumentProcessor:
             "path_params": path_params,
             "query_params": query_params,
             "header_params": header_params,
-            "cookie_params": cookie_params
+            "cookie_params": cookie_params,
         }
 
-    async def extract_response_info(self, responses: Dict[str, Any]) -> Dict[str, Any]:
+    async def extract_response_info(
+        self, responses: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Extract comprehensive response information.
 
         Args:
@@ -335,10 +371,12 @@ class EndpointDocumentProcessor:
             "content_types": list(content_types),
             "schema_names": list(set(schema_names)),
             "status_codes": sorted(status_codes),
-            "descriptions": " ".join(descriptions)
+            "descriptions": " ".join(descriptions),
         }
 
-    async def extract_security_info(self, security: List[Dict[str, Any]]) -> Dict[str, Any]:
+    async def extract_security_info(
+        self, security: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
         """Extract and organize security requirements.
 
         Args:
@@ -360,16 +398,16 @@ class EndpointDocumentProcessor:
 
                 # Determine scheme type from name patterns
                 scheme_lower = scheme_name.lower()
-                if 'bearer' in scheme_lower or 'jwt' in scheme_lower:
-                    scheme_types.add('bearer')
-                elif 'api' in scheme_lower and 'key' in scheme_lower:
-                    scheme_types.add('apiKey')
-                elif 'oauth' in scheme_lower:
-                    scheme_types.add('oauth2')
-                elif 'openid' in scheme_lower:
-                    scheme_types.add('openIdConnect')
+                if "bearer" in scheme_lower or "jwt" in scheme_lower:
+                    scheme_types.add("bearer")
+                elif "api" in scheme_lower and "key" in scheme_lower:
+                    scheme_types.add("apiKey")
+                elif "oauth" in scheme_lower:
+                    scheme_types.add("oauth2")
+                elif "openid" in scheme_lower:
+                    scheme_types.add("openIdConnect")
                 else:
-                    scheme_types.add('unknown')
+                    scheme_types.add("unknown")
 
                 # Add scopes if they exist
                 if isinstance(scheme_scopes, list):
@@ -378,10 +416,12 @@ class EndpointDocumentProcessor:
         return {
             "schemes": list(set(schemes)),
             "scopes": list(set(scopes)),
-            "scheme_types": list(scheme_types)
+            "scheme_types": list(scheme_types),
         }
 
-    def extract_operation_info(self, endpoint_data: Dict[str, Any]) -> Dict[str, Any]:
+    def extract_operation_info(
+        self, endpoint_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Extract operation-level information.
 
         Args:
@@ -393,8 +433,12 @@ class EndpointDocumentProcessor:
         return {
             "summary": endpoint_data.get("summary", ""),
             "description": endpoint_data.get("description", ""),
-            "operation_id": endpoint_data.get("operationId", endpoint_data.get("operation_id", "")),
-            "external_docs": endpoint_data.get("externalDocs", {}).get("url", "")
+            "operation_id": endpoint_data.get(
+                "operationId", endpoint_data.get("operation_id", "")
+            ),
+            "external_docs": endpoint_data.get("externalDocs", {}).get(
+                "url", ""
+            ),
         }
 
     def extract_resource_name(self, path: str) -> str:
@@ -415,7 +459,9 @@ class EndpointDocumentProcessor:
 
         return segments[0] if segments else ""
 
-    def classify_operation_type(self, method: str, path: str, summary: str) -> str:
+    def classify_operation_type(
+        self, method: str, path: str, summary: str
+    ) -> str:
         """Classify the operation type based on method, path, and summary.
 
         Args:
@@ -431,46 +477,51 @@ class EndpointDocumentProcessor:
         path_lower = path.lower()
 
         # Check for specific patterns in summary
-        if any(word in summary_lower for word in ['create', 'add', 'new']):
-            return 'create'
-        elif any(word in summary_lower for word in ['update', 'modify', 'change', 'edit']):
-            return 'update'
-        elif any(word in summary_lower for word in ['delete', 'remove']):
-            return 'delete'
-        elif any(word in summary_lower for word in ['search', 'find', 'query']):
-            return 'search'
-        elif any(word in summary_lower for word in ['list', 'get all']):
-            return 'list'
+        if any(word in summary_lower for word in ["create", "add", "new"]):
+            return "create"
+        elif any(
+            word in summary_lower
+            for word in ["update", "modify", "change", "edit"]
+        ):
+            return "update"
+        elif any(word in summary_lower for word in ["delete", "remove"]):
+            return "delete"
+        elif any(
+            word in summary_lower for word in ["search", "find", "query"]
+        ):
+            return "search"
+        elif any(word in summary_lower for word in ["list", "get all"]):
+            return "list"
 
         # Check path patterns
-        if '{' in path_lower or ':' in path_lower:
+        if "{" in path_lower or ":" in path_lower:
             # Has path parameters, likely operating on specific resource
-            if method_lower == 'get':
-                return 'read'
-            elif method_lower in ['put', 'patch']:
-                return 'update'
-            elif method_lower == 'delete':
-                return 'delete'
+            if method_lower == "get":
+                return "read"
+            elif method_lower in ["put", "patch"]:
+                return "update"
+            elif method_lower == "delete":
+                return "delete"
         else:
             # No path parameters, likely collection operation
-            if method_lower == 'get':
-                return 'list'
-            elif method_lower == 'post':
-                return 'create'
+            if method_lower == "get":
+                return "list"
+            elif method_lower == "post":
+                return "create"
 
         # Fallback to method-based classification
         for operation, methods in self.OPERATION_PATTERNS.items():
             if method_lower in methods:
                 return operation
 
-        return 'unknown'
+        return "unknown"
 
     def create_composite_text(
         self,
         endpoint_data: Dict[str, Any],
         parameter_info: Dict[str, Any],
         response_info: Dict[str, Any],
-        operation_info: Dict[str, Any]
+        operation_info: Dict[str, Any],
     ) -> str:
         """Create comprehensive searchable text combining all endpoint aspects.
 
@@ -489,7 +540,7 @@ class EndpointDocumentProcessor:
             parameter_info.get("descriptions", ""),
             response_info.get("descriptions", ""),
             " ".join(endpoint_data.get("tags", [])),
-            operation_info.get("operation_id", "")
+            operation_info.get("operation_id", ""),
         ]
 
         # Add path segments as text
@@ -497,10 +548,14 @@ class EndpointDocumentProcessor:
         text_components.append(" ".join(path_segments))
 
         # Clean and combine
-        cleaned_components = [comp.strip() for comp in text_components if comp and comp.strip()]
+        cleaned_components = [
+            comp.strip() for comp in text_components if comp and comp.strip()
+        ]
         return " ".join(cleaned_components)
 
-    def extract_keywords(self, searchable_text: str, endpoint_data: Dict[str, Any]) -> List[str]:
+    def extract_keywords(
+        self, searchable_text: str, endpoint_data: Dict[str, Any]
+    ) -> List[str]:
         """Extract relevant keywords from searchable text and endpoint data.
 
         Args:
@@ -513,7 +568,7 @@ class EndpointDocumentProcessor:
         keywords = set()
 
         # Extract from text using simple tokenization
-        words = re.findall(r'\b[a-zA-Z]{3,}\b', searchable_text.lower())
+        words = re.findall(r"\b[a-zA-Z]{3,}\b", searchable_text.lower())
         keywords.update(word for word in words if word not in self.STOP_WORDS)
 
         # Add path segments if path exists
@@ -532,12 +587,16 @@ class EndpointDocumentProcessor:
         keywords.update(tag.lower() for tag in tags if isinstance(tag, str))
 
         # Add operation ID components
-        operation_id = endpoint_data.get("operationId", endpoint_data.get("operation_id", ""))
+        operation_id = endpoint_data.get(
+            "operationId", endpoint_data.get("operation_id", "")
+        )
         if operation_id:
             # Split camelCase and snake_case
-            words = re.sub(r'([a-z])([A-Z])', r'\1 \2', operation_id)
-            words = words.replace('_', ' ').replace('-', ' ')
-            keywords.update(word.lower() for word in words.split() if len(word) > 2)
+            words = re.sub(r"([a-z])([A-Z])", r"\1 \2", operation_id)
+            words = words.replace("_", " ").replace("-", " ")
+            keywords.update(
+                word.lower() for word in words.split() if len(word) > 2
+            )
 
         return sorted(list(keywords))
 
@@ -570,7 +629,9 @@ class EndpointDocumentProcessor:
             if isinstance(response, dict):
                 content = response.get("content", {})
                 for content_type, schema_info in content.items():
-                    if schema_info.get("example") or schema_info.get("examples"):
+                    if schema_info.get("example") or schema_info.get(
+                        "examples"
+                    ):
                         return True
 
         return False

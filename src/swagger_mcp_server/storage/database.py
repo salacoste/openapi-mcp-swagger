@@ -1,24 +1,31 @@
 """Database connection management and initialization."""
 
 import asyncio
+import hashlib
 import os
 import sqlite3
-import hashlib
-from pathlib import Path
-from typing import Optional, Dict, Any, AsyncGenerator, List
 from contextlib import asynccontextmanager
+from pathlib import Path
+from typing import Any, AsyncGenerator, Dict, List, Optional
+
 import aiosqlite
-
 from sqlalchemy import create_engine, event
-from sqlalchemy.pool import StaticPool
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-
-from swagger_mcp_server.storage.models import (
-    Base, DatabaseMigration,
-    ENDPOINTS_FTS_SQL, SCHEMAS_FTS_SQL,
-    ENDPOINTS_FTS_TRIGGERS, SCHEMAS_FTS_TRIGGERS
+from sqlalchemy.ext.asyncio import (
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
 )
+from sqlalchemy.pool import StaticPool
+
 from swagger_mcp_server.config.logging import get_logger
+from swagger_mcp_server.storage.models import (
+    ENDPOINTS_FTS_SQL,
+    ENDPOINTS_FTS_TRIGGERS,
+    SCHEMAS_FTS_SQL,
+    SCHEMAS_FTS_TRIGGERS,
+    Base,
+    DatabaseMigration,
+)
 
 logger = get_logger(__name__)
 
@@ -81,7 +88,7 @@ class DatabaseManager:
             try:
                 self.logger.info(
                     "Initializing database",
-                    database_path=self.config.database_path
+                    database_path=self.config.database_path,
                 )
 
                 # Create database directory if it doesn't exist
@@ -105,9 +112,7 @@ class DatabaseManager:
 
                 # Create session factory
                 self._session_factory = async_sessionmaker(
-                    self._engine,
-                    class_=AsyncSession,
-                    expire_on_commit=False
+                    self._engine, class_=AsyncSession, expire_on_commit=False
                 )
 
                 # Create tables
@@ -127,12 +132,13 @@ class DatabaseManager:
 
                 self._initialized = True
 
-                self.logger.info("Database initialization completed successfully")
+                self.logger.info(
+                    "Database initialization completed successfully"
+                )
 
             except Exception as e:
                 self.logger.error(
-                    "Database initialization failed",
-                    error=str(e)
+                    "Database initialization failed", error=str(e)
                 )
                 raise
 
@@ -148,7 +154,9 @@ class DatabaseManager:
                 await conn.execute("PRAGMA foreign_keys=ON")
 
             # Set busy timeout
-            await conn.execute(f"PRAGMA busy_timeout={int(self.config.busy_timeout * 1000)}")
+            await conn.execute(
+                f"PRAGMA busy_timeout={int(self.config.busy_timeout * 1000)}"
+            )
 
             # Optimize for better performance
             await conn.execute("PRAGMA synchronous=NORMAL")
@@ -175,13 +183,12 @@ class DatabaseManager:
 
                 await conn.commit()
 
-                self.logger.info("FTS5 tables and triggers created successfully")
+                self.logger.info(
+                    "FTS5 tables and triggers created successfully"
+                )
 
             except Exception as e:
-                self.logger.error(
-                    "Failed to setup FTS5 tables",
-                    error=str(e)
-                )
+                self.logger.error("Failed to setup FTS5 tables", error=str(e))
                 # Continue without FTS5 if it fails
                 pass
 
@@ -199,15 +206,16 @@ class DatabaseManager:
             if applied_versions:
                 self.logger.info(
                     "Database migrations applied successfully",
-                    applied_versions=applied_versions
+                    applied_versions=applied_versions,
                 )
             else:
-                self.logger.info("Database is up to date, no migrations needed")
+                self.logger.info(
+                    "Database is up to date, no migrations needed"
+                )
 
         except Exception as e:
             self.logger.error(
-                "Failed to run database migrations",
-                error=str(e)
+                "Failed to run database migrations", error=str(e)
             )
             # Don't fail initialization if migrations fail - log and continue
             # This allows manual migration handling if needed
@@ -221,10 +229,7 @@ class DatabaseManager:
 
             self.logger.info("Database vacuum completed")
         except Exception as e:
-            self.logger.warning(
-                "Database vacuum failed",
-                error=str(e)
-            )
+            self.logger.warning("Database vacuum failed", error=str(e))
 
     @asynccontextmanager
     async def get_session(self) -> AsyncGenerator[AsyncSession, None]:
@@ -238,14 +243,15 @@ class DatabaseManager:
             except Exception as e:
                 await session.rollback()
                 self.logger.error(
-                    "Database session error, rolling back",
-                    error=str(e)
+                    "Database session error, rolling back", error=str(e)
                 )
                 raise
             finally:
                 await session.close()
 
-    async def execute_raw_sql(self, sql: str, params: Optional[tuple] = None) -> Any:
+    async def execute_raw_sql(
+        self, sql: str, params: Optional[tuple] = None
+    ) -> Any:
         """Execute raw SQL query."""
         async with aiosqlite.connect(self.config.database_path) as conn:
             if params:
@@ -292,23 +298,22 @@ class DatabaseManager:
         """Get row counts for all tables."""
         counts = {}
         tables = [
-            'api_metadata',
-            'endpoints',
-            'schemas',
-            'security_schemes',
-            'endpoint_dependencies',
-            'database_migrations'
+            "api_metadata",
+            "endpoints",
+            "schemas",
+            "security_schemes",
+            "endpoint_dependencies",
+            "database_migrations",
         ]
 
         try:
             for table in tables:
-                result = await self.execute_raw_sql(f"SELECT COUNT(*) FROM {table}")
+                result = await self.execute_raw_sql(
+                    f"SELECT COUNT(*) FROM {table}"
+                )
                 counts[table] = result[0][0] if result else 0
         except Exception as e:
-            self.logger.warning(
-                "Failed to get table counts",
-                error=str(e)
-            )
+            self.logger.warning("Failed to get table counts", error=str(e))
 
         return counts
 
@@ -321,6 +326,7 @@ class DatabaseManager:
         try:
             # Simple file copy for SQLite
             import shutil
+
             shutil.copy2(self.config.database_path, backup_path)
 
             # Verify backup integrity
@@ -328,17 +334,14 @@ class DatabaseManager:
                 await conn.execute("PRAGMA integrity_check")
 
             self.logger.info(
-                "Database backup created",
-                backup_path=backup_path
+                "Database backup created", backup_path=backup_path
             )
 
             return backup_path
 
         except Exception as e:
             self.logger.error(
-                "Database backup failed",
-                backup_path=backup_path,
-                error=str(e)
+                "Database backup failed", backup_path=backup_path, error=str(e)
             )
             raise
 
@@ -350,7 +353,9 @@ class DatabaseManager:
                 result = await conn.execute("PRAGMA integrity_check")
                 integrity_result = await result.fetchone()
                 if integrity_result[0] != "ok":
-                    raise ValueError(f"Backup integrity check failed: {integrity_result[0]}")
+                    raise ValueError(
+                        f"Backup integrity check failed: {integrity_result[0]}"
+                    )
 
             # Close existing connections
             if self._engine:
@@ -358,6 +363,7 @@ class DatabaseManager:
 
             # Replace current database
             import shutil
+
             shutil.copy2(backup_path, self.config.database_path)
 
             # Reinitialize
@@ -365,15 +371,14 @@ class DatabaseManager:
             await self.initialize()
 
             self.logger.info(
-                "Database restored from backup",
-                backup_path=backup_path
+                "Database restored from backup", backup_path=backup_path
             )
 
         except Exception as e:
             self.logger.error(
                 "Database restore failed",
                 backup_path=backup_path,
-                error=str(e)
+                error=str(e),
             )
             raise
 
@@ -417,10 +422,7 @@ class DatabaseManager:
                 }
 
         except Exception as e:
-            self.logger.error(
-                "Failed to get database info",
-                error=str(e)
-            )
+            self.logger.error("Failed to get database info", error=str(e))
             return {"error": str(e)}
 
     async def get_migration_status(self) -> Dict[str, Any]:
@@ -431,10 +433,7 @@ class DatabaseManager:
             migration_manager = MigrationManager(self)
             return await migration_manager.get_migration_status()
         except Exception as e:
-            self.logger.error(
-                "Failed to get migration status",
-                error=str(e)
-            )
+            self.logger.error("Failed to get migration status", error=str(e))
             return {"error": str(e)}
 
     async def apply_migrations(self, dry_run: bool = False) -> List[str]:
@@ -446,10 +445,7 @@ class DatabaseManager:
             await migration_manager.initialize_migration_system()
             return await migration_manager.migrate_to_latest(dry_run=dry_run)
         except Exception as e:
-            self.logger.error(
-                "Failed to apply migrations",
-                error=str(e)
-            )
+            self.logger.error("Failed to apply migrations", error=str(e))
             raise
 
     async def validate_integrity(self) -> Dict[str, Any]:
@@ -461,8 +457,7 @@ class DatabaseManager:
             return await migration_manager.validate_database_integrity()
         except Exception as e:
             self.logger.error(
-                "Failed to validate database integrity",
-                error=str(e)
+                "Failed to validate database integrity", error=str(e)
             )
             return {"error": str(e)}
 
@@ -500,7 +495,9 @@ def get_db_manager() -> DatabaseManager:
     return _db_manager
 
 
-async def initialize_database(config: Optional[DatabaseConfig] = None) -> DatabaseManager:
+async def initialize_database(
+    config: Optional[DatabaseConfig] = None,
+) -> DatabaseManager:
     """Initialize and return the database manager."""
     if config:
         configure_database(config)

@@ -5,48 +5,49 @@ Updated implementation using the correct MCP SDK v1.15 API structure.
 
 import asyncio
 import uuid
-from typing import Any, Dict, List, Optional
 from contextlib import asynccontextmanager
+from typing import Any, Dict, List, Optional
 
+from mcp import types
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
-from mcp import types
 
-from swagger_mcp_server.config.settings import Settings
 from swagger_mcp_server.config.logging import get_logger
-from swagger_mcp_server.storage.database import DatabaseManager, DatabaseConfig
+from swagger_mcp_server.config.settings import Settings
+from swagger_mcp_server.storage.database import DatabaseConfig, DatabaseManager
 from swagger_mcp_server.storage.repositories import (
     EndpointRepository,
+    MetadataRepository,
     SchemaRepository,
-    MetadataRepository
 )
+
 from .exceptions import (
-    MCPServerError,
-    ValidationError,
-    DatabaseConnectionError,
-    ResourceNotFoundError,
     CodeGenerationError,
-    SchemaResolutionError,
+    DatabaseConnectionError,
     ErrorLogger,
+    MCPServerError,
+    ResourceNotFoundError,
+    SchemaResolutionError,
+    ValidationError,
     create_mcp_error_response,
-    sanitize_error_data
-)
-from .resilience import (
-    retry_on_failure,
-    with_timeout,
-    with_circuit_breaker,
-    database_circuit_breaker,
-    connection_pool,
-    health_checker
-)
-from .monitoring import (
-    PerformanceMonitor,
-    PerformanceThresholds,
-    monitor_performance,
-    MetricsCollector,
-    global_monitor
+    sanitize_error_data,
 )
 from .health import HealthChecker
+from .monitoring import (
+    MetricsCollector,
+    PerformanceMonitor,
+    PerformanceThresholds,
+    global_monitor,
+    monitor_performance,
+)
+from .resilience import (
+    connection_pool,
+    database_circuit_breaker,
+    health_checker,
+    retry_on_failure,
+    with_circuit_breaker,
+    with_timeout,
+)
 
 logger = get_logger(__name__)
 
@@ -73,7 +74,7 @@ class SwaggerMcpServer:
         db_config = DatabaseConfig(
             database_path=str(settings.get_database_path()),
             max_connections=settings.database.pool_size,
-            connection_timeout=settings.database.timeout
+            connection_timeout=settings.database.timeout,
         )
         self.db_manager = DatabaseManager(db_config)
 
@@ -92,7 +93,7 @@ class SwaggerMcpServer:
             "MCP server initialized",
             name=settings.server.name,
             version=settings.server.version,
-            database_path=str(settings.get_database_path())
+            database_path=str(settings.get_database_path()),
         )
 
     async def initialize(self) -> None:
@@ -111,13 +112,12 @@ class SwaggerMcpServer:
             # Start performance monitoring
             await self.start_monitoring()
 
-            self.logger.info("MCP server initialization completed successfully")
+            self.logger.info(
+                "MCP server initialization completed successfully"
+            )
 
         except Exception as e:
-            self.logger.error(
-                "Failed to initialize MCP server",
-                error=str(e)
-            )
+            self.logger.error("Failed to initialize MCP server", error=str(e))
             raise
 
     def _register_handlers(self) -> None:
@@ -137,33 +137,41 @@ class SwaggerMcpServer:
                                 "type": "string",
                                 "description": "Search keywords for paths, descriptions, and parameter names",
                                 "maxLength": 500,
-                                "minLength": 1
+                                "minLength": 1,
                             },
                             "httpMethods": {
                                 "type": "array",
                                 "description": "Optional array of HTTP methods to filter by",
                                 "items": {
                                     "type": "string",
-                                    "enum": ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"]
+                                    "enum": [
+                                        "GET",
+                                        "POST",
+                                        "PUT",
+                                        "DELETE",
+                                        "PATCH",
+                                        "HEAD",
+                                        "OPTIONS",
+                                    ],
                                 },
-                                "uniqueItems": True
+                                "uniqueItems": True,
                             },
                             "page": {
                                 "type": "integer",
                                 "description": "Page number for pagination (1-based)",
                                 "default": 1,
-                                "minimum": 1
+                                "minimum": 1,
                             },
                             "perPage": {
                                 "type": "integer",
                                 "description": "Results per page (max 50)",
                                 "default": 20,
                                 "minimum": 1,
-                                "maximum": 50
-                            }
+                                "maximum": 50,
+                            },
                         },
-                        "required": ["keywords"]
-                    }
+                        "required": ["keywords"],
+                    },
                 ),
                 types.Tool(
                     name="getSchema",
@@ -175,33 +183,33 @@ class SwaggerMcpServer:
                                 "type": "string",
                                 "description": "OpenAPI component name (e.g., 'User' or '#/components/schemas/User')",
                                 "minLength": 1,
-                                "maxLength": 255
+                                "maxLength": 255,
                             },
                             "resolveDependencies": {
                                 "type": "boolean",
                                 "description": "Automatically resolve all $ref dependencies",
-                                "default": True
+                                "default": True,
                             },
                             "maxDepth": {
                                 "type": "integer",
                                 "description": "Maximum dependency resolution depth (1-10)",
                                 "default": 5,
                                 "minimum": 1,
-                                "maximum": 10
+                                "maximum": 10,
                             },
                             "includeExamples": {
                                 "type": "boolean",
                                 "description": "Include example values and default values in schema",
-                                "default": True
+                                "default": True,
                             },
                             "includeExtensions": {
                                 "type": "boolean",
                                 "description": "Include OpenAPI extensions (x-* properties)",
-                                "default": True
-                            }
+                                "default": True,
+                            },
                         },
-                        "required": ["componentName"]
-                    }
+                        "required": ["componentName"],
+                    },
                 ),
                 types.Tool(
                     name="getExample",
@@ -213,37 +221,47 @@ class SwaggerMcpServer:
                                 "type": "string",
                                 "description": "API endpoint path (e.g., '/api/v1/users/{id}') or endpoint ID",
                                 "minLength": 1,
-                                "maxLength": 500
+                                "maxLength": 500,
                             },
                             "format": {
                                 "type": "string",
                                 "description": "Code format for the example",
                                 "enum": ["curl", "javascript", "python"],
-                                "default": "curl"
+                                "default": "curl",
                             },
                             "method": {
                                 "type": "string",
                                 "description": "HTTP method (required if endpoint is a path)",
-                                "enum": ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"]
+                                "enum": [
+                                    "GET",
+                                    "POST",
+                                    "PUT",
+                                    "DELETE",
+                                    "PATCH",
+                                    "HEAD",
+                                    "OPTIONS",
+                                ],
                             },
                             "includeAuth": {
                                 "type": "boolean",
                                 "description": "Include authentication patterns in generated code",
-                                "default": True
+                                "default": True,
                             },
                             "baseUrl": {
                                 "type": "string",
                                 "description": "Base URL for the API (optional, uses example URL if not provided)",
-                                "format": "uri"
-                            }
+                                "format": "uri",
+                            },
                         },
-                        "required": ["endpoint", "format"]
-                    }
-                )
+                        "required": ["endpoint", "format"],
+                    },
+                ),
             ]
 
         @self.server.call_tool()
-        async def call_tool(name: str, arguments: Dict[str, Any]) -> List[types.TextContent]:
+        async def call_tool(
+            name: str, arguments: Dict[str, Any]
+        ) -> List[types.TextContent]:
             """Handle tool calls from AI agents with comprehensive error handling."""
             request_id = str(uuid.uuid4())
 
@@ -254,11 +272,21 @@ class SwaggerMcpServer:
                         parameter="method",
                         message=f"Unknown method '{name}'",
                         value=name,
-                        suggestions=["searchEndpoints", "getSchema", "getExample"]
+                        suggestions=[
+                            "searchEndpoints",
+                            "getSchema",
+                            "getExample",
+                        ],
                     )
                     self.error_logger.log_error(error, request_id=request_id)
-                    error_response = create_mcp_error_response(error, request_id)
-                    return [types.TextContent(type="text", text=str(error_response))]
+                    error_response = create_mcp_error_response(
+                        error, request_id
+                    )
+                    return [
+                        types.TextContent(
+                            type="text", text=str(error_response)
+                        )
+                    ]
 
                 # Sanitize arguments for logging
                 safe_arguments = sanitize_error_data(arguments)
@@ -268,22 +296,28 @@ class SwaggerMcpServer:
                     extra={
                         "request_id": request_id,
                         "method": name,
-                        "arguments": safe_arguments
-                    }
+                        "arguments": safe_arguments,
+                    },
                 )
 
                 # Execute method with timeout and circuit breaker protection
                 if name == "searchEndpoints":
-                    result = await self._search_endpoints_with_resilience(arguments, request_id)
+                    result = await self._search_endpoints_with_resilience(
+                        arguments, request_id
+                    )
                 elif name == "getSchema":
-                    result = await self._get_schema_with_resilience(arguments, request_id)
+                    result = await self._get_schema_with_resilience(
+                        arguments, request_id
+                    )
                 elif name == "getExample":
-                    result = await self._get_example_with_resilience(arguments, request_id)
+                    result = await self._get_example_with_resilience(
+                        arguments, request_id
+                    )
 
                 # Log successful completion
                 self.logger.info(
                     f"{name} request completed successfully",
-                    extra={"request_id": request_id, "method": name}
+                    extra={"request_id": request_id, "method": name},
                 )
 
                 return [types.TextContent(type="text", text=str(result))]
@@ -292,29 +326,44 @@ class SwaggerMcpServer:
                 # Log structured MCP server error
                 self.error_logger.log_error(
                     e,
-                    context={"method": name, "arguments": sanitize_error_data(arguments)},
-                    request_id=request_id
+                    context={
+                        "method": name,
+                        "arguments": sanitize_error_data(arguments),
+                    },
+                    request_id=request_id,
                 )
                 error_response = create_mcp_error_response(e, request_id)
-                return [types.TextContent(type="text", text=str(error_response))]
+                return [
+                    types.TextContent(type="text", text=str(error_response))
+                ]
 
             except Exception as e:
                 # Log unexpected error
                 self.error_logger.log_operation_error(
                     operation=f"call_tool_{name}",
                     error=e,
-                    context={"method": name, "arguments": sanitize_error_data(arguments)},
-                    request_id=request_id
+                    context={
+                        "method": name,
+                        "arguments": sanitize_error_data(arguments),
+                    },
+                    request_id=request_id,
                 )
 
                 # Convert to generic MCP server error
                 server_error = MCPServerError(
                     code=-32603,
                     message="Internal server error",
-                    data={"error_type": "internal_error", "request_id": request_id}
+                    data={
+                        "error_type": "internal_error",
+                        "request_id": request_id,
+                    },
                 )
-                error_response = create_mcp_error_response(server_error, request_id)
-                return [types.TextContent(type="text", text=str(error_response))]
+                error_response = create_mcp_error_response(
+                    server_error, request_id
+                )
+                return [
+                    types.TextContent(type="text", text=str(error_response))
+                ]
 
         @self.server.list_resources()
         async def list_resources() -> List[types.Resource]:
@@ -323,13 +372,13 @@ class SwaggerMcpServer:
                 types.Resource(
                     uri="swagger://api-info",
                     name="API Information",
-                    description="General information about the loaded API"
+                    description="General information about the loaded API",
                 ),
                 types.Resource(
                     uri="swagger://health",
                     name="Server Health",
-                    description="Server and database health status"
-                )
+                    description="Server and database health status",
+                ),
             ]
 
         @self.server.read_resource()
@@ -345,9 +394,7 @@ class SwaggerMcpServer:
 
             except Exception as e:
                 self.logger.error(
-                    "Resource read failed",
-                    uri=uri,
-                    error=str(e)
+                    "Resource read failed", uri=uri, error=str(e)
                 )
                 return f"Error reading resource: {str(e)}"
 
@@ -358,9 +405,7 @@ class SwaggerMcpServer:
     @with_circuit_breaker(database_circuit_breaker)
     @retry_on_failure(max_retries=3)
     async def _search_endpoints_with_resilience(
-        self,
-        arguments: Dict[str, Any],
-        request_id: str
+        self, arguments: Dict[str, Any], request_id: str
     ) -> Dict[str, Any]:
         """Resilient wrapper for searchEndpoints with error handling and monitoring."""
         try:
@@ -368,20 +413,24 @@ class SwaggerMcpServer:
         except Exception as e:
             # Convert to appropriate MCP error
             if "not properly initialized" in str(e):
-                raise DatabaseConnectionError("Server not properly initialized", "initialization")
+                raise DatabaseConnectionError(
+                    "Server not properly initialized", "initialization"
+                )
             elif "not found" in str(e).lower():
-                raise ResourceNotFoundError("endpoint", arguments.get("keywords", "unknown"))
+                raise ResourceNotFoundError(
+                    "endpoint", arguments.get("keywords", "unknown")
+                )
             else:
-                raise DatabaseConnectionError(f"Search operation failed: {str(e)}", "search")
+                raise DatabaseConnectionError(
+                    f"Search operation failed: {str(e)}", "search"
+                )
 
     @monitor_performance("getSchema", global_monitor)
     @with_timeout(30.0)
     @with_circuit_breaker(database_circuit_breaker)
     @retry_on_failure(max_retries=3)
     async def _get_schema_with_resilience(
-        self,
-        arguments: Dict[str, Any],
-        request_id: str
+        self, arguments: Dict[str, Any], request_id: str
     ) -> Dict[str, Any]:
         """Resilient wrapper for getSchema with error handling and monitoring."""
         try:
@@ -389,24 +438,28 @@ class SwaggerMcpServer:
         except Exception as e:
             # Convert to appropriate MCP error
             if "not properly initialized" in str(e):
-                raise DatabaseConnectionError("Server not properly initialized", "initialization")
+                raise DatabaseConnectionError(
+                    "Server not properly initialized", "initialization"
+                )
             elif "not found" in str(e).lower():
                 component_name = arguments.get("componentName", "unknown")
                 raise ResourceNotFoundError("schema", component_name)
             elif "circular" in str(e).lower():
                 component_name = arguments.get("componentName", "unknown")
-                raise SchemaResolutionError(component_name, "Circular reference detected")
+                raise SchemaResolutionError(
+                    component_name, "Circular reference detected"
+                )
             else:
-                raise DatabaseConnectionError(f"Schema operation failed: {str(e)}", "schema_resolution")
+                raise DatabaseConnectionError(
+                    f"Schema operation failed: {str(e)}", "schema_resolution"
+                )
 
     @monitor_performance("getExample", global_monitor)
     @with_timeout(30.0)
     @with_circuit_breaker(database_circuit_breaker)
     @retry_on_failure(max_retries=2)  # Fewer retries for code generation
     async def _get_example_with_resilience(
-        self,
-        arguments: Dict[str, Any],
-        request_id: str
+        self, arguments: Dict[str, Any], request_id: str
     ) -> Dict[str, Any]:
         """Resilient wrapper for getExample with error handling and monitoring."""
         try:
@@ -414,19 +467,29 @@ class SwaggerMcpServer:
         except Exception as e:
             # Convert to appropriate MCP error
             if "not properly initialized" in str(e):
-                raise DatabaseConnectionError("Server not properly initialized", "initialization")
+                raise DatabaseConnectionError(
+                    "Server not properly initialized", "initialization"
+                )
             elif "not found" in str(e).lower():
                 endpoint = arguments.get("endpoint", "unknown")
                 raise ResourceNotFoundError("endpoint", endpoint)
             elif "Unsupported format" in str(e):
                 format_type = arguments.get("format", "unknown")
-                raise ValidationError("format", f"Unsupported format '{format_type}'", format_type, ["curl", "javascript", "python"])
+                raise ValidationError(
+                    "format",
+                    f"Unsupported format '{format_type}'",
+                    format_type,
+                    ["curl", "javascript", "python"],
+                )
             elif "generation failed" in str(e).lower():
                 endpoint = arguments.get("endpoint", "unknown")
                 format_type = arguments.get("format", "unknown")
                 raise CodeGenerationError(format_type, endpoint, str(e))
             else:
-                raise DatabaseConnectionError(f"Example generation failed: {str(e)}", "example_generation")
+                raise DatabaseConnectionError(
+                    f"Example generation failed: {str(e)}",
+                    "example_generation",
+                )
 
     # Original method implementations with enhanced error handling
 
@@ -435,7 +498,7 @@ class SwaggerMcpServer:
         keywords: str,
         httpMethods: Optional[List[str]] = None,
         page: int = 1,
-        perPage: int = 20
+        perPage: int = 20,
     ) -> Dict[str, Any]:
         """Search for API endpoints with enhanced functionality per Story 2.2.
 
@@ -449,61 +512,86 @@ class SwaggerMcpServer:
             Dict with results, pagination metadata, and search statistics
         """
         if not self.endpoint_repo:
-            raise DatabaseConnectionError("Server not properly initialized", "initialization")
+            raise DatabaseConnectionError(
+                "Server not properly initialized", "initialization"
+            )
 
         try:
             # Enhanced parameter validation per Story 2.5 requirements
             if not keywords or len(keywords.strip()) == 0:
-                raise ValidationError("keywords", "Keywords parameter is required and cannot be empty")
+                raise ValidationError(
+                    "keywords",
+                    "Keywords parameter is required and cannot be empty",
+                )
 
             if len(keywords) > 500:
-                raise ValidationError("keywords", f"Keywords parameter cannot exceed 500 characters (got {len(keywords)})")
+                raise ValidationError(
+                    "keywords",
+                    f"Keywords parameter cannot exceed 500 characters (got {len(keywords)})",
+                )
 
             # Validate HTTP methods
-            valid_methods = {"GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"}
+            valid_methods = {
+                "GET",
+                "POST",
+                "PUT",
+                "DELETE",
+                "PATCH",
+                "HEAD",
+                "OPTIONS",
+            }
             if httpMethods:
-                invalid_methods = [m for m in httpMethods if m not in valid_methods]
+                invalid_methods = [
+                    m for m in httpMethods if m not in valid_methods
+                ]
                 if invalid_methods:
                     raise ValidationError(
                         "httpMethods",
                         f"Invalid HTTP methods: {', '.join(invalid_methods)}",
                         invalid_methods,
-                        list(valid_methods)
+                        list(valid_methods),
                     )
 
             # Validate pagination parameters
             if page < 1:
-                raise ValidationError("page", "Page number must be 1 or greater", page)
+                raise ValidationError(
+                    "page", "Page number must be 1 or greater", page
+                )
             if perPage < 1 or perPage > 50:
-                raise ValidationError("perPage", "perPage must be between 1 and 50", perPage)
+                raise ValidationError(
+                    "perPage", "perPage must be between 1 and 50", perPage
+                )
 
             self.logger.info(
                 "Enhanced endpoint search",
                 keywords=keywords,
                 httpMethods=httpMethods,
                 page=page,
-                perPage=perPage
+                perPage=perPage,
             )
 
             # Calculate offset for pagination
             offset = (page - 1) * perPage
 
             # Try enhanced repository search with pagination first
-            if hasattr(self.endpoint_repo, 'search_endpoints_paginated'):
-                search_result = await self.endpoint_repo.search_endpoints_paginated(
-                    query=keywords.strip(),
-                    methods=httpMethods,
-                    limit=perPage,
-                    offset=offset
+            if hasattr(self.endpoint_repo, "search_endpoints_paginated"):
+                search_result = (
+                    await self.endpoint_repo.search_endpoints_paginated(
+                        query=keywords.strip(),
+                        methods=httpMethods,
+                        limit=perPage,
+                        offset=offset,
+                    )
                 )
-                paginated_endpoints = search_result.get('endpoints', [])
-                total_count = search_result.get('total_count', 0)
+                paginated_endpoints = search_result.get("endpoints", [])
+                total_count = search_result.get("total_count", 0)
             else:
                 # Fall back to basic search with simulated pagination
                 endpoints = await self.endpoint_repo.search_endpoints(
                     query=keywords.strip(),
                     methods=httpMethods,
-                    limit=perPage * 5  # Get more results to simulate total count better
+                    limit=perPage
+                    * 5,  # Get more results to simulate total count better
                 )
 
                 # Simulate pagination
@@ -516,19 +604,22 @@ class SwaggerMcpServer:
             results = []
             for endpoint in paginated_endpoints:
                 # Parse parameters to provide detailed metadata
-                parameters_info = self._parse_endpoint_parameters(endpoint.parameters)
+                parameters_info = self._parse_endpoint_parameters(
+                    endpoint.parameters
+                )
 
                 result = {
                     "endpoint_id": str(endpoint.id),
                     "path": endpoint.path,
                     "method": endpoint.method,
                     "summary": endpoint.summary or "No summary available",
-                    "description": endpoint.description or "No description available",
+                    "description": endpoint.description
+                    or "No description available",
                     "operationId": endpoint.operation_id,
                     "tags": endpoint.tags or [],
                     "parameters": parameters_info,
                     "authentication": self._get_endpoint_auth_info(endpoint),
-                    "deprecated": getattr(endpoint, 'deprecated', False)
+                    "deprecated": getattr(endpoint, "deprecated", False),
                 }
                 results.append(result)
 
@@ -545,14 +636,14 @@ class SwaggerMcpServer:
                     "per_page": perPage,
                     "total_pages": total_pages,
                     "has_more": has_next,
-                    "has_previous": has_prev
+                    "has_previous": has_prev,
                 },
                 "search_metadata": {
                     "keywords": keywords,
                     "http_methods_filter": httpMethods,
                     "result_count": len(results),
-                    "search_time_ms": 0  # Will be populated if we add timing
-                }
+                    "search_time_ms": 0,  # Will be populated if we add timing
+                },
             }
 
             self.logger.info(
@@ -560,7 +651,7 @@ class SwaggerMcpServer:
                 keywords=keywords,
                 total_results=total_count,
                 page_results=len(results),
-                page=page
+                page=page,
             )
 
             return response
@@ -570,11 +661,13 @@ class SwaggerMcpServer:
                 "Enhanced endpoint search failed",
                 keywords=keywords,
                 httpMethods=httpMethods,
-                error=str(e)
+                error=str(e),
             )
             return {"error": f"Search failed: {str(e)}"}
 
-    def _parse_endpoint_parameters(self, parameters_data: Any) -> Dict[str, Any]:
+    def _parse_endpoint_parameters(
+        self, parameters_data: Any
+    ) -> Dict[str, Any]:
         """Parse endpoint parameters to provide structured metadata."""
         if not parameters_data:
             return {
@@ -582,7 +675,7 @@ class SwaggerMcpServer:
                 "query": [],
                 "header": [],
                 "body": None,
-                "required": []
+                "required": [],
             }
 
         try:
@@ -613,7 +706,7 @@ class SwaggerMcpServer:
                     "query": query_params,
                     "header": header_params,
                     "body": None,  # Request body info would need separate handling
-                    "required": required_params
+                    "required": required_params,
                 }
 
             return {
@@ -621,7 +714,7 @@ class SwaggerMcpServer:
                 "query": [],
                 "header": [],
                 "body": None,
-                "required": []
+                "required": [],
             }
 
         except Exception as e:
@@ -631,13 +724,13 @@ class SwaggerMcpServer:
                 "query": [],
                 "header": [],
                 "body": None,
-                "required": []
+                "required": [],
             }
 
     def _get_endpoint_auth_info(self, endpoint) -> Optional[str]:
         """Extract authentication information from endpoint."""
         try:
-            if hasattr(endpoint, 'security') and endpoint.security:
+            if hasattr(endpoint, "security") and endpoint.security:
                 # Parse security requirements
                 if isinstance(endpoint.security, list) and endpoint.security:
                     # Return the first security requirement type
@@ -657,7 +750,7 @@ class SwaggerMcpServer:
         resolveDependencies: bool = True,
         maxDepth: int = 5,
         includeExamples: bool = True,
-        includeExtensions: bool = True
+        includeExtensions: bool = True,
     ) -> Dict[str, Any]:
         """Get complete schema definition with dependency resolution per Story 2.3.
 
@@ -677,10 +770,14 @@ class SwaggerMcpServer:
         try:
             # Parameter validation per Story 2.3 requirements
             if not componentName or len(componentName.strip()) == 0:
-                return {"error": "componentName parameter is required and cannot be empty"}
+                return {
+                    "error": "componentName parameter is required and cannot be empty"
+                }
 
             if len(componentName) > 255:
-                return {"error": "componentName parameter cannot exceed 255 characters"}
+                return {
+                    "error": "componentName parameter cannot exceed 255 characters"
+                }
 
             if maxDepth < 1 or maxDepth > 10:
                 return {"error": "maxDepth parameter must be between 1 and 10"}
@@ -695,17 +792,17 @@ class SwaggerMcpServer:
                 resolveDependencies=resolveDependencies,
                 maxDepth=maxDepth,
                 includeExamples=includeExamples,
-                includeExtensions=includeExtensions
+                includeExtensions=includeExtensions,
             )
 
             # Initialize resolution context
             resolution_context = {
-                'visited_schemas': set(),  # For circular reference detection
-                'resolution_stack': [],    # Current resolution path
-                'resolved_cache': {},      # Cache for resolved schemas within this request
-                'circular_refs': [],       # Detected circular references
-                'max_depth': maxDepth,
-                'current_depth': 0
+                "visited_schemas": set(),  # For circular reference detection
+                "resolution_stack": [],  # Current resolution path
+                "resolved_cache": {},  # Cache for resolved schemas within this request
+                "circular_refs": [],  # Detected circular references
+                "max_depth": maxDepth,
+                "current_depth": 0,
             }
 
             # Get base schema from repository
@@ -713,7 +810,7 @@ class SwaggerMcpServer:
                 normalized_name,
                 resolution_context,
                 includeExamples,
-                includeExtensions
+                includeExtensions,
             )
 
             if not base_schema:
@@ -725,7 +822,7 @@ class SwaggerMcpServer:
                     base_schema,
                     resolution_context,
                     includeExamples,
-                    includeExtensions
+                    includeExtensions,
                 )
             else:
                 resolved_schema = base_schema
@@ -733,29 +830,36 @@ class SwaggerMcpServer:
             # Build enhanced response per Story 2.3
             response = {
                 "schema": resolved_schema,
-                "dependencies": list(resolution_context['resolved_cache'].values()),
+                "dependencies": list(
+                    resolution_context["resolved_cache"].values()
+                ),
                 "metadata": {
                     "component_name": componentName,
                     "normalized_name": normalized_name,
-                    "resolution_depth": resolution_context['current_depth'],
-                    "total_dependencies": len(resolution_context['resolved_cache']),
-                    "circular_references": resolution_context['circular_refs'],
-                    "max_depth_reached": resolution_context['current_depth'] >= maxDepth,
+                    "resolution_depth": resolution_context["current_depth"],
+                    "total_dependencies": len(
+                        resolution_context["resolved_cache"]
+                    ),
+                    "circular_references": resolution_context["circular_refs"],
+                    "max_depth_reached": resolution_context["current_depth"]
+                    >= maxDepth,
                     "resolution_settings": {
                         "resolve_dependencies": resolveDependencies,
                         "max_depth": maxDepth,
                         "include_examples": includeExamples,
-                        "include_extensions": includeExtensions
-                    }
-                }
+                        "include_extensions": includeExtensions,
+                    },
+                },
             }
 
             self.logger.info(
                 "Schema retrieval completed",
                 componentName=componentName,
-                dependencies_resolved=len(resolution_context['resolved_cache']),
-                circular_refs=len(resolution_context['circular_refs']),
-                final_depth=resolution_context['current_depth']
+                dependencies_resolved=len(
+                    resolution_context["resolved_cache"]
+                ),
+                circular_refs=len(resolution_context["circular_refs"]),
+                final_depth=resolution_context["current_depth"],
             )
 
             return response
@@ -764,7 +868,7 @@ class SwaggerMcpServer:
             self.logger.error(
                 "Enhanced schema retrieval failed",
                 componentName=componentName,
-                error=str(e)
+                error=str(e),
             )
             return {"error": f"Schema retrieval failed: {str(e)}"}
 
@@ -790,13 +894,13 @@ class SwaggerMcpServer:
         schema_name: str,
         resolution_context: Dict[str, Any],
         include_examples: bool,
-        include_extensions: bool
+        include_extensions: bool,
     ) -> Optional[Dict[str, Any]]:
         """Resolve a single schema from the database."""
         try:
             # Check cache first
-            if schema_name in resolution_context['resolved_cache']:
-                return resolution_context['resolved_cache'][schema_name]
+            if schema_name in resolution_context["resolved_cache"]:
+                return resolution_context["resolved_cache"][schema_name]
 
             # Get schema from repository
             schema = await self.schema_repo.get_schema_by_name(schema_name)
@@ -814,37 +918,52 @@ class SwaggerMcpServer:
             }
 
             # Add optional fields
-            if hasattr(schema, 'format') and schema.format:
+            if hasattr(schema, "format") and schema.format:
                 schema_def["format"] = schema.format
 
-            if hasattr(schema, 'enum') and schema.enum:
+            if hasattr(schema, "enum") and schema.enum:
                 schema_def["enum"] = schema.enum
 
-            if hasattr(schema, 'items') and schema.items:
+            if hasattr(schema, "items") and schema.items:
                 schema_def["items"] = schema.items
 
-            if hasattr(schema, 'additional_properties') and schema.additional_properties:
-                schema_def["additionalProperties"] = schema.additional_properties
+            if (
+                hasattr(schema, "additional_properties")
+                and schema.additional_properties
+            ):
+                schema_def[
+                    "additionalProperties"
+                ] = schema.additional_properties
 
             # Include examples if requested
-            if include_examples and hasattr(schema, 'example') and schema.example:
+            if (
+                include_examples
+                and hasattr(schema, "example")
+                and schema.example
+            ):
                 schema_def["example"] = schema.example
 
             # Include extensions if requested
-            if include_extensions and hasattr(schema, 'extensions') and schema.extensions:
+            if (
+                include_extensions
+                and hasattr(schema, "extensions")
+                and schema.extensions
+            ):
                 # Add x-* properties from extensions
                 if isinstance(schema.extensions, dict):
                     for key, value in schema.extensions.items():
-                        if key.startswith('x-'):
+                        if key.startswith("x-"):
                             schema_def[key] = value
 
             # Cache the resolved schema
-            resolution_context['resolved_cache'][schema_name] = schema_def
+            resolution_context["resolved_cache"][schema_name] = schema_def
 
             return schema_def
 
         except Exception as e:
-            self.logger.warning(f"Failed to resolve schema '{schema_name}': {e}")
+            self.logger.warning(
+                f"Failed to resolve schema '{schema_name}': {e}"
+            )
             return None
 
     async def _resolve_schema_dependencies(
@@ -852,62 +971,79 @@ class SwaggerMcpServer:
         schema: Dict[str, Any],
         resolution_context: Dict[str, Any],
         include_examples: bool,
-        include_extensions: bool
+        include_extensions: bool,
     ) -> Dict[str, Any]:
         """Recursively resolve schema dependencies with circular reference detection."""
-        if resolution_context['current_depth'] >= resolution_context['max_depth']:
+        if (
+            resolution_context["current_depth"]
+            >= resolution_context["max_depth"]
+        ):
             self.logger.warning(
                 f"Maximum resolution depth ({resolution_context['max_depth']}) reached"
             )
             return schema
 
-        schema_name = schema.get('name', 'unknown')
+        schema_name = schema.get("name", "unknown")
 
         # Circular reference detection
-        if schema_name in resolution_context['resolution_stack']:
-            circular_path = ' -> '.join(resolution_context['resolution_stack'] + [schema_name])
-            self.logger.warning(f"Circular reference detected: {circular_path}")
-            resolution_context['circular_refs'].append(circular_path)
+        if schema_name in resolution_context["resolution_stack"]:
+            circular_path = " -> ".join(
+                resolution_context["resolution_stack"] + [schema_name]
+            )
+            self.logger.warning(
+                f"Circular reference detected: {circular_path}"
+            )
+            resolution_context["circular_refs"].append(circular_path)
             return schema  # Return schema without further resolution
 
         # Add to resolution stack
-        resolution_context['resolution_stack'].append(schema_name)
-        resolution_context['current_depth'] += 1
+        resolution_context["resolution_stack"].append(schema_name)
+        resolution_context["current_depth"] += 1
 
         try:
             resolved_schema = schema.copy()
 
             # Resolve properties
-            if 'properties' in schema and isinstance(schema['properties'], dict):
+            if "properties" in schema and isinstance(
+                schema["properties"], dict
+            ):
                 resolved_properties = {}
-                for prop_name, prop_def in schema['properties'].items():
-                    resolved_properties[prop_name] = await self._resolve_property_references(
+                for prop_name, prop_def in schema["properties"].items():
+                    resolved_properties[
+                        prop_name
+                    ] = await self._resolve_property_references(
                         prop_def,
                         resolution_context,
                         include_examples,
-                        include_extensions
+                        include_extensions,
                     )
-                resolved_schema['properties'] = resolved_properties
+                resolved_schema["properties"] = resolved_properties
 
             # Resolve array items
-            if 'items' in schema and isinstance(schema['items'], dict):
-                resolved_schema['items'] = await self._resolve_property_references(
-                    schema['items'],
+            if "items" in schema and isinstance(schema["items"], dict):
+                resolved_schema[
+                    "items"
+                ] = await self._resolve_property_references(
+                    schema["items"],
                     resolution_context,
                     include_examples,
-                    include_extensions
+                    include_extensions,
                 )
 
             # Resolve allOf, oneOf, anyOf compositions
-            for composition_key in ['allOf', 'oneOf', 'anyOf']:
-                if composition_key in schema and isinstance(schema[composition_key], list):
+            for composition_key in ["allOf", "oneOf", "anyOf"]:
+                if composition_key in schema and isinstance(
+                    schema[composition_key], list
+                ):
                     resolved_compositions = []
                     for composition_schema in schema[composition_key]:
-                        resolved_composition = await self._resolve_property_references(
-                            composition_schema,
-                            resolution_context,
-                            include_examples,
-                            include_extensions
+                        resolved_composition = (
+                            await self._resolve_property_references(
+                                composition_schema,
+                                resolution_context,
+                                include_examples,
+                                include_extensions,
+                            )
                         )
                         resolved_compositions.append(resolved_composition)
                     resolved_schema[composition_key] = resolved_compositions
@@ -916,23 +1052,23 @@ class SwaggerMcpServer:
 
         finally:
             # Remove from resolution stack
-            resolution_context['resolution_stack'].pop()
-            resolution_context['current_depth'] -= 1
+            resolution_context["resolution_stack"].pop()
+            resolution_context["current_depth"] -= 1
 
     async def _resolve_property_references(
         self,
         property_def: Any,
         resolution_context: Dict[str, Any],
         include_examples: bool,
-        include_extensions: bool
+        include_extensions: bool,
     ) -> Any:
         """Resolve $ref references in property definitions."""
         if not isinstance(property_def, dict):
             return property_def
 
         # Handle $ref references
-        if '$ref' in property_def:
-            ref_path = property_def['$ref']
+        if "$ref" in property_def:
+            ref_path = property_def["$ref"]
             ref_name = self._extract_ref_name(ref_path)
 
             if ref_name:
@@ -941,7 +1077,7 @@ class SwaggerMcpServer:
                     ref_name,
                     resolution_context,
                     include_examples,
-                    include_extensions
+                    include_extensions,
                 )
 
                 if referenced_schema:
@@ -952,8 +1088,8 @@ class SwaggerMcpServer:
                             referenced_schema,
                             resolution_context,
                             include_examples,
-                            include_extensions
-                        )
+                            include_extensions,
+                        ),
                     }
 
             # If resolution failed, return original $ref
@@ -962,23 +1098,27 @@ class SwaggerMcpServer:
         # Handle nested objects and arrays
         result = property_def.copy()
 
-        if 'properties' in property_def and isinstance(property_def['properties'], dict):
+        if "properties" in property_def and isinstance(
+            property_def["properties"], dict
+        ):
             resolved_properties = {}
-            for prop_name, nested_prop in property_def['properties'].items():
-                resolved_properties[prop_name] = await self._resolve_property_references(
+            for prop_name, nested_prop in property_def["properties"].items():
+                resolved_properties[
+                    prop_name
+                ] = await self._resolve_property_references(
                     nested_prop,
                     resolution_context,
                     include_examples,
-                    include_extensions
+                    include_extensions,
                 )
-            result['properties'] = resolved_properties
+            result["properties"] = resolved_properties
 
-        if 'items' in property_def and isinstance(property_def['items'], dict):
-            result['items'] = await self._resolve_property_references(
-                property_def['items'],
+        if "items" in property_def and isinstance(property_def["items"], dict):
+            result["items"] = await self._resolve_property_references(
+                property_def["items"],
                 resolution_context,
                 include_examples,
-                include_extensions
+                include_extensions,
             )
 
         return result
@@ -1004,7 +1144,7 @@ class SwaggerMcpServer:
         format: str = "curl",
         method: Optional[str] = None,
         includeAuth: bool = True,
-        baseUrl: Optional[str] = None
+        baseUrl: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Generate working code example for API endpoint per Story 2.4.
 
@@ -1027,32 +1167,36 @@ class SwaggerMcpServer:
                 return {"error": "Endpoint parameter is required"}
 
             if format not in ["curl", "javascript", "python"]:
-                return {"error": f"Unsupported format: {format}. Supported formats: curl, javascript, python"}
+                return {
+                    "error": f"Unsupported format: {format}. Supported formats: curl, javascript, python"
+                }
 
             self.logger.info(
                 "Generating code example per Story 2.4",
                 endpoint=endpoint,
                 format=format,
-                method=method
+                method=method,
             )
 
             # Try to find endpoint by ID first, then by path+method
             endpoint_data = None
 
             # Check if it looks like an endpoint ID (no slashes)
-            if not endpoint.startswith('/') and '/' not in endpoint:
-                endpoint_data = await self.endpoint_repo.get_endpoint_by_id(endpoint)
+            if not endpoint.startswith("/") and "/" not in endpoint:
+                endpoint_data = await self.endpoint_repo.get_endpoint_by_id(
+                    endpoint
+                )
 
             # If not found by ID or looks like a path, search by path+method
             if not endpoint_data:
                 if not method:
-                    return {"error": "HTTP method is required when using endpoint path"}
+                    return {
+                        "error": "HTTP method is required when using endpoint path"
+                    }
 
                 # Search for endpoint by path and method
                 search_results = await self.endpoint_repo.search_endpoints(
-                    query=endpoint,
-                    methods=[method],
-                    limit=1
+                    query=endpoint, methods=[method], limit=1
                 )
 
                 if search_results:
@@ -1067,15 +1211,23 @@ class SwaggerMcpServer:
                         endpoint_data = search_results[0]
 
             if not endpoint_data:
-                return {"error": f"Endpoint not found: {endpoint} {method or ''}"}
+                return {
+                    "error": f"Endpoint not found: {endpoint} {method or ''}"
+                }
 
             # Generate code example based on format
             if format == "curl":
-                code_example = await self._generate_curl_example(endpoint_data, includeAuth, baseUrl)
+                code_example = await self._generate_curl_example(
+                    endpoint_data, includeAuth, baseUrl
+                )
             elif format == "javascript":
-                code_example = await self._generate_javascript_example(endpoint_data, includeAuth, baseUrl)
+                code_example = await self._generate_javascript_example(
+                    endpoint_data, includeAuth, baseUrl
+                )
             elif format == "python":
-                code_example = await self._generate_python_example(endpoint_data, includeAuth, baseUrl)
+                code_example = await self._generate_python_example(
+                    endpoint_data, includeAuth, baseUrl
+                )
             else:
                 return {"error": f"Unsupported format: {format}"}
 
@@ -1085,14 +1237,15 @@ class SwaggerMcpServer:
                 "method": endpoint_data.method,
                 "format": format,
                 "code": code_example,
-                "summary": endpoint_data.summary or f"{endpoint_data.method} {endpoint_data.path}",
+                "summary": endpoint_data.summary
+                or f"{endpoint_data.method} {endpoint_data.path}",
                 "description": endpoint_data.description,
                 "metadata": {
                     "includeAuth": includeAuth,
                     "baseUrl": baseUrl or "https://api.example.com",
                     "generation_timestamp": "2025-09-26T22:15:00Z",
-                    "syntax_validated": True
-                }
+                    "syntax_validated": True,
+                },
             }
 
             return result
@@ -1102,7 +1255,7 @@ class SwaggerMcpServer:
                 "Code example generation failed",
                 endpoint=endpoint,
                 format=format,
-                error=str(e)
+                error=str(e),
             )
             return {"error": f"Code example generation failed: {str(e)}"}
 
@@ -1110,20 +1263,21 @@ class SwaggerMcpServer:
         self,
         endpoint_data,
         include_auth: bool = True,
-        base_url: Optional[str] = None
+        base_url: Optional[str] = None,
     ) -> str:
         """Generate cURL command example."""
         url = f"{base_url or 'https://api.example.com'}{endpoint_data.path}"
 
         # Handle path parameters
-        if '{' in url:
-            url = url.replace('{id}', '12345').replace('{user_id}', '67890')
+        if "{" in url:
+            url = url.replace("{id}", "12345").replace("{user_id}", "67890")
             # Replace other common path parameters
             import re
-            url = re.sub(r'\{[^}]+\}', 'EXAMPLE_VALUE', url)
+
+            url = re.sub(r"\{[^}]+\}", "EXAMPLE_VALUE", url)
 
         # Start building the curl command
-        curl_parts = [f'curl -X {endpoint_data.method}']
+        curl_parts = [f"curl -X {endpoint_data.method}"]
         curl_parts.append(f'"{url}"')
 
         # Add headers
@@ -1132,38 +1286,39 @@ class SwaggerMcpServer:
             headers.append('-H "Authorization: Bearer YOUR_TOKEN_HERE"')
         headers.append('-H "Accept: application/json"')
 
-        if endpoint_data.method in ['POST', 'PUT', 'PATCH']:
+        if endpoint_data.method in ["POST", "PUT", "PATCH"]:
             headers.append('-H "Content-Type: application/json"')
 
         curl_parts.extend(headers)
 
         # Add request body for POST/PUT/PATCH
-        if endpoint_data.method in ['POST', 'PUT', 'PATCH']:
+        if endpoint_data.method in ["POST", "PUT", "PATCH"]:
             # Generate example request body
             example_body = self._generate_example_body(endpoint_data)
             if example_body:
-                curl_parts.append(f'-d \'{example_body}\'')
+                curl_parts.append(f"-d '{example_body}'")
 
         # Join with line continuations for readability
-        return ' \\\n  '.join(curl_parts)
+        return " \\\n  ".join(curl_parts)
 
     async def _generate_javascript_example(
         self,
         endpoint_data,
         include_auth: bool = True,
-        base_url: Optional[str] = None
+        base_url: Optional[str] = None,
     ) -> str:
         """Generate JavaScript fetch example."""
         url = f"{base_url or 'https://api.example.com'}{endpoint_data.path}"
 
         # Handle path parameters
         path_params = []
-        if '{' in url:
+        if "{" in url:
             import re
-            params = re.findall(r'\{([^}]+)\}', url)
+
+            params = re.findall(r"\{([^}]+)\}", url)
             for param in params:
                 path_params.append(param)
-                url = url.replace(f'{{{param}}}', f'${{{param}}}')
+                url = url.replace(f"{{{param}}}", f"${{{param}}}")
 
         # Function name
         func_name = f"{endpoint_data.method.lower()}{endpoint_data.path.split('/')[-1].title().replace('{', '').replace('}', '')}"
@@ -1173,7 +1328,7 @@ class SwaggerMcpServer:
         if path_params:
             func_params.extend(path_params)
         if include_auth:
-            func_params.append('token')
+            func_params.append("token")
 
         code = f"""// {endpoint_data.summary or f'{endpoint_data.method} {endpoint_data.path}'}
 async function {func_name}({', '.join(func_params)}) {{
@@ -1192,7 +1347,7 @@ async function {func_name}({', '.join(func_params)}) {{
       }"""
 
         # Add body for POST/PUT/PATCH
-        if endpoint_data.method in ['POST', 'PUT', 'PATCH']:
+        if endpoint_data.method in ["POST", "PUT", "PATCH"]:
             example_body = self._generate_example_body(endpoint_data)
             if example_body:
                 code += f""",
@@ -1219,19 +1374,20 @@ async function {func_name}({', '.join(func_params)}) {{
         self,
         endpoint_data,
         include_auth: bool = True,
-        base_url: Optional[str] = None
+        base_url: Optional[str] = None,
     ) -> str:
         """Generate Python requests example."""
         url = f"{base_url or 'https://api.example.com'}{endpoint_data.path}"
 
         # Handle path parameters
         path_params = []
-        if '{' in url:
+        if "{" in url:
             import re
-            params = re.findall(r'\{([^}]+)\}', url)
+
+            params = re.findall(r"\{([^}]+)\}", url)
             for param in params:
                 path_params.append(param)
-                url = url.replace(f'{{{param}}}', f'{{{param}}}')
+                url = url.replace(f"{{{param}}}", f"{{{param}}}")
 
         # Function name
         func_name = f"{endpoint_data.method.lower()}_{endpoint_data.path.split('/')[-1].lower().replace('{', '').replace('}', '')}"
@@ -1241,7 +1397,7 @@ async function {func_name}({', '.join(func_params)}) {{
         if path_params:
             func_params.extend([f"{param}: str" for param in path_params])
         if include_auth:
-            func_params.append('token: str')
+            func_params.append("token: str")
 
         code = f"""import requests
 from typing import Dict, Any
@@ -1270,7 +1426,7 @@ def {func_name}({', '.join(func_params)}) -> Dict[Any, Any]:
 
     try:"""
 
-        if endpoint_data.method in ['POST', 'PUT', 'PATCH']:
+        if endpoint_data.method in ["POST", "PUT", "PATCH"]:
             example_body = self._generate_example_body(endpoint_data)
             if example_body:
                 code += f"""
@@ -1295,11 +1451,13 @@ def {func_name}({', '.join(func_params)}) -> Dict[Any, Any]:
         """Generate example request body based on endpoint schema."""
         # For now, return a simple example
         # This could be enhanced to use actual schema data
-        if endpoint_data.method in ['POST', 'PUT', 'PATCH']:
-            if 'user' in endpoint_data.path.lower():
+        if endpoint_data.method in ["POST", "PUT", "PATCH"]:
+            if "user" in endpoint_data.path.lower():
                 return '{"name": "John Doe", "email": "john@example.com"}'
-            elif 'order' in endpoint_data.path.lower():
-                return '{"items": [{"id": "123", "quantity": 1}], "total": 29.99}'
+            elif "order" in endpoint_data.path.lower():
+                return (
+                    '{"items": [{"id": "123", "quantity": 1}], "total": 29.99}'
+                )
             else:
                 return '{"data": "example_value"}'
         return ""
@@ -1321,7 +1479,9 @@ def {func_name}({', '.join(func_params)}) -> Dict[Any, Any]:
                 info_parts.append(f"API: {metadata.title} v{metadata.version}")
                 if metadata.description:
                     info_parts.append(f"Description: {metadata.description}")
-                info_parts.append(f"OpenAPI Version: {metadata.openapi_version}")
+                info_parts.append(
+                    f"OpenAPI Version: {metadata.openapi_version}"
+                )
                 if metadata.base_url:
                     info_parts.append(f"Base URL: {metadata.base_url}")
                 info_parts.append("---")
@@ -1329,10 +1489,7 @@ def {func_name}({', '.join(func_params)}) -> Dict[Any, Any]:
             return "\n".join(info_parts)
 
         except Exception as e:
-            self.logger.error(
-                "Failed to get API info",
-                error=str(e)
-            )
+            self.logger.error("Failed to get API info", error=str(e))
             return f"Error retrieving API information: {str(e)}"
 
     async def _get_health_status(self) -> str:
@@ -1345,21 +1502,18 @@ def {func_name}({', '.join(func_params)}) -> Dict[Any, Any]:
                 f"Server Status: {self.settings.server.name} v{self.settings.server.version}",
                 f"Database Status: {db_health.get('status', 'unknown')}",
                 f"Database Path: {db_health.get('database_path', 'unknown')}",
-                f"Database Size: {db_health.get('file_size_bytes', 0)} bytes"
+                f"Database Size: {db_health.get('file_size_bytes', 0)} bytes",
             ]
 
-            if 'table_counts' in db_health:
+            if "table_counts" in db_health:
                 health_info.append("Table Counts:")
-                for table, count in db_health['table_counts'].items():
+                for table, count in db_health["table_counts"].items():
                     health_info.append(f"  {table}: {count}")
 
             return "\n".join(health_info)
 
         except Exception as e:
-            self.logger.error(
-                "Failed to get health status",
-                error=str(e)
-            )
+            self.logger.error("Failed to get health status", error=str(e))
             return f"Error retrieving health status: {str(e)}"
 
     async def run_stdio(self) -> None:
@@ -1373,7 +1527,7 @@ def {func_name}({', '.join(func_params)}) -> Dict[Any, Any]:
             # Set up server capabilities
             capabilities = types.ServerCapabilities(
                 tools=types.ToolsCapability(),
-                resources=types.ResourcesCapability()
+                resources=types.ResourcesCapability(),
             )
 
             # Run server with stdio transport
@@ -1386,16 +1540,13 @@ def {func_name}({', '.join(func_params)}) -> Dict[Any, Any]:
                         capabilities=capabilities,
                         serverInfo=types.Implementation(
                             name=self.settings.server.name,
-                            version=self.settings.server.version
-                        )
-                    )
+                            version=self.settings.server.version,
+                        ),
+                    ),
                 )
 
         except Exception as e:
-            self.logger.error(
-                "Failed to run MCP server",
-                error=str(e)
-            )
+            self.logger.error("Failed to run MCP server", error=str(e))
             raise
         finally:
             await self.cleanup()
@@ -1408,7 +1559,7 @@ def {func_name}({', '.join(func_params)}) -> Dict[Any, Any]:
             if not self.metrics_collector:
                 self.metrics_collector = MetricsCollector(
                     self.performance_monitor,
-                    collection_interval=30.0  # 30 seconds
+                    collection_interval=30.0,  # 30 seconds
                 )
             await self.metrics_collector.start()
             self.logger.info("Performance monitoring started")
@@ -1430,7 +1581,9 @@ def {func_name}({', '.join(func_params)}) -> Dict[Any, Any]:
 
     async def get_health_status(self) -> Dict[str, Any]:
         """Get comprehensive health status."""
-        return await self.health_checker.get_overall_health(self, self.db_manager)
+        return await self.health_checker.get_overall_health(
+            self, self.db_manager
+        )
 
     async def get_basic_health(self) -> Dict[str, Any]:
         """Get basic health status for quick checks."""
@@ -1456,10 +1609,7 @@ def {func_name}({', '.join(func_params)}) -> Dict[Any, Any]:
                 await self.db_manager.close()
 
         except Exception as e:
-            self.logger.error(
-                "Error during cleanup",
-                error=str(e)
-            )
+            self.logger.error("Error during cleanup", error=str(e))
 
     @asynccontextmanager
     async def lifespan(self):
@@ -1492,9 +1642,7 @@ async def main() -> None:
 
     parser = argparse.ArgumentParser(description="Swagger MCP Server")
     parser.add_argument(
-        "--debug",
-        action="store_true",
-        help="Enable debug logging"
+        "--debug", action="store_true", help="Enable debug logging"
     )
 
     args = parser.parse_args()
@@ -1515,6 +1663,7 @@ async def main() -> None:
     except Exception as e:
         logger.error(f"Server failed: {e}")
         import sys
+
         sys.exit(1)
 
 

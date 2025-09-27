@@ -1,13 +1,11 @@
 """Tests for relevance ranking functionality."""
 
-import pytest
 from unittest.mock import Mock, patch
 
-from swagger_mcp_server.search.relevance import (
-    RelevanceRanker,
-    RelevanceScore,
-)
+import pytest
+
 from swagger_mcp_server.config.settings import SearchConfig
+from swagger_mcp_server.search.relevance import RelevanceRanker, RelevanceScore
 
 
 @pytest.fixture
@@ -38,8 +36,8 @@ class TestRelevanceRanker:
             "description": [
                 "Get all users from the system",
                 "Get a specific user by ID",
-                "Retrieve all blog posts"
-            ]
+                "Retrieve all blog posts",
+            ],
         }
 
         relevance_ranker.train_bm25_models(corpus)
@@ -49,10 +47,7 @@ class TestRelevanceRanker:
 
     def test_train_bm25_models_with_empty_corpus(self, relevance_ranker):
         """Test training with empty corpus."""
-        corpus = {
-            "endpoint_path": [],
-            "description": ["Some content"]
-        }
+        corpus = {"endpoint_path": [], "description": ["Some content"]}
 
         relevance_ranker.train_bm25_models(corpus)
 
@@ -69,10 +64,12 @@ class TestRelevanceRanker:
             "description": "Retrieve user information from the API",
             "parameters": "user_id (string): The user identifier",
             "tags": "users api",
-            "operation_id": "getUser"
+            "operation_id": "getUser",
         }
 
-        score = relevance_ranker.calculate_relevance_score(query_terms, document)
+        score = relevance_ranker.calculate_relevance_score(
+            query_terms, document
+        )
 
         assert isinstance(score, RelevanceScore)
         assert score.total_score >= 0
@@ -81,14 +78,14 @@ class TestRelevanceRanker:
         assert isinstance(score.boost_factors, dict)
         assert isinstance(score.metadata, dict)
 
-    def test_calculate_relevance_score_with_trained_models(self, relevance_ranker):
+    def test_calculate_relevance_score_with_trained_models(
+        self, relevance_ranker
+    ):
         """Test relevance calculation with trained BM25 models."""
         # Train models first
         corpus = {
             "endpoint_path": ["/api/users", "/api/posts", "/api/comments"],
-            "description": [
-                "Get users", "Get posts", "Get comments"
-            ]
+            "description": ["Get users", "Get posts", "Get comments"],
         }
         relevance_ranker.train_bm25_models(corpus)
 
@@ -99,10 +96,12 @@ class TestRelevanceRanker:
             "summary": "User endpoint",
             "parameters": "",
             "tags": "users",
-            "operation_id": "getUsers"
+            "operation_id": "getUsers",
         }
 
-        score = relevance_ranker.calculate_relevance_score(query_terms, document)
+        score = relevance_ranker.calculate_relevance_score(
+            query_terms, document
+        )
 
         assert score.total_score > 0
         assert "endpoint_path" in score.field_scores
@@ -118,7 +117,7 @@ class TestRelevanceRanker:
                 "description": "Retrieve all users",
                 "parameters": "",
                 "tags": "users",
-                "operation_id": "getUsers"
+                "operation_id": "getUsers",
             },
             {
                 "endpoint_path": "/api/posts",
@@ -126,7 +125,7 @@ class TestRelevanceRanker:
                 "description": "Retrieve user posts",
                 "parameters": "user_id",
                 "tags": "posts",
-                "operation_id": "getPosts"
+                "operation_id": "getPosts",
             },
             {
                 "endpoint_path": "/api/comments",
@@ -134,8 +133,8 @@ class TestRelevanceRanker:
                 "description": "Retrieve comments",
                 "parameters": "",
                 "tags": "comments",
-                "operation_id": "getComments"
-            }
+                "operation_id": "getComments",
+            },
         ]
 
         ranked_results = relevance_ranker.rank_results(query_terms, documents)
@@ -155,9 +154,14 @@ class TestRelevanceRanker:
     def test_rank_results_with_limit(self, relevance_ranker):
         """Test ranking with maximum results limit."""
         query_terms = ["test"]
-        documents = [{"endpoint_path": f"/api/test{i}", "description": "test"} for i in range(10)]
+        documents = [
+            {"endpoint_path": f"/api/test{i}", "description": "test"}
+            for i in range(10)
+        ]
 
-        ranked_results = relevance_ranker.rank_results(query_terms, documents, max_results=5)
+        ranked_results = relevance_ranker.rank_results(
+            query_terms, documents, max_results=5
+        )
 
         assert len(ranked_results) == 5
 
@@ -170,7 +174,7 @@ class TestRelevanceRanker:
             "description": "Get user data from API",
             "parameters": "user_id (string): User identifier",
             "tags": "users api",
-            "operation_id": "getUser"
+            "operation_id": "getUser",
         }
 
         explanation = relevance_ranker.explain_score(query_terms, document)
@@ -196,7 +200,7 @@ class TestRelevanceRanker:
         # Train some models
         corpus = {
             "endpoint_path": ["/api/test"],
-            "description": ["test description"]
+            "description": ["test description"],
         }
         relevance_ranker.train_bm25_models(corpus)
 
@@ -216,7 +220,7 @@ class TestRelevanceScore:
             bm25_score=0.75,
             field_scores={"endpoint_path": 0.9, "description": 0.6},
             boost_factors={"short_path": 1.1},
-            metadata={"query_term_count": 2}
+            metadata={"query_term_count": 2},
         )
 
         assert score.total_score == 0.85
@@ -240,7 +244,9 @@ class TestBoostFactors:
 
     def test_calculate_boost_factors_long_path(self, relevance_ranker):
         """Test penalty for long API paths."""
-        document = {"endpoint_path": "/api/v1/organizations/users/profiles/settings/preferences"}
+        document = {
+            "endpoint_path": "/api/v1/organizations/users/profiles/settings/preferences"
+        }
 
         boost_factors = relevance_ranker._calculate_boost_factors(document)
 
@@ -260,13 +266,19 @@ class TestBoostFactors:
         assert get_boosts["common_method"] > 1.0
         assert post_boosts["common_method"] > 1.0
 
-    def test_calculate_boost_factors_less_common_methods(self, relevance_ranker):
+    def test_calculate_boost_factors_less_common_methods(
+        self, relevance_ranker
+    ):
         """Test slight penalty for less common HTTP methods."""
         delete_document = {"http_method": "DELETE"}
         patch_document = {"http_method": "PATCH"}
 
-        delete_boosts = relevance_ranker._calculate_boost_factors(delete_document)
-        patch_boosts = relevance_ranker._calculate_boost_factors(patch_document)
+        delete_boosts = relevance_ranker._calculate_boost_factors(
+            delete_document
+        )
+        patch_boosts = relevance_ranker._calculate_boost_factors(
+            patch_document
+        )
 
         assert "less_common_method" in delete_boosts
         assert "less_common_method" in patch_boosts
@@ -277,7 +289,7 @@ class TestBoostFactors:
         """Test boost for well-documented endpoints."""
         document = {
             "summary": "Get user profile data",
-            "description": "Retrieve detailed user profile information including personal data, preferences, and settings"
+            "description": "Retrieve detailed user profile information including personal data, preferences, and settings",
         }
 
         boost_factors = relevance_ranker._calculate_boost_factors(document)
@@ -285,7 +297,9 @@ class TestBoostFactors:
         assert "well_documented" in boost_factors
         assert boost_factors["well_documented"] > 1.0
 
-    def test_calculate_boost_factors_poor_documentation(self, relevance_ranker):
+    def test_calculate_boost_factors_poor_documentation(
+        self, relevance_ranker
+    ):
         """Test penalty for poorly documented endpoints."""
         document = {"summary": "", "description": ""}
 
@@ -330,7 +344,7 @@ class TestPenalties:
         document = {
             "deprecated": False,
             "summary": "Good endpoint",
-            "description": "Well documented endpoint"
+            "description": "Well documented endpoint",
         }
 
         penalties = relevance_ranker._calculate_penalties(document)
@@ -375,7 +389,9 @@ class TestBM25Scoring:
         query_terms = ["test"]
         field_tokens = ["test", "endpoint"]
 
-        score = relevance_ranker._calculate_bm25_score(query_terms, field_tokens, "unknown_field")
+        score = relevance_ranker._calculate_bm25_score(
+            query_terms, field_tokens, "unknown_field"
+        )
 
         assert score == 0.0
 
@@ -384,7 +400,9 @@ class TestBM25Scoring:
         query_terms = ["test", "user"]
         field_tokens = ["test", "endpoint", "for", "user", "management"]
 
-        score = relevance_ranker._calculate_simple_score(query_terms, field_tokens)
+        score = relevance_ranker._calculate_simple_score(
+            query_terms, field_tokens
+        )
 
         assert score > 0
         assert isinstance(score, float)
@@ -394,7 +412,9 @@ class TestBM25Scoring:
         query_terms = ["nonexistent"]
         field_tokens = ["test", "endpoint"]
 
-        score = relevance_ranker._calculate_simple_score(query_terms, field_tokens)
+        score = relevance_ranker._calculate_simple_score(
+            query_terms, field_tokens
+        )
 
         assert score == 0.0
 
@@ -403,6 +423,8 @@ class TestBM25Scoring:
         query_terms = ["test"]
         field_tokens = []
 
-        score = relevance_ranker._calculate_simple_score(query_terms, field_tokens)
+        score = relevance_ranker._calculate_simple_score(
+            query_terms, field_tokens
+        )
 
         assert score == 0.0

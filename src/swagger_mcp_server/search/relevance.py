@@ -4,17 +4,19 @@ This module provides enhanced relevance ranking using BM25 and custom
 scoring algorithms to improve search result quality.
 """
 
-from typing import Dict, Any, List, Optional, Tuple
 import math
 from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Tuple
 
-from rank_bm25 import BM25Okapi, BM25L, BM25Plus
+from rank_bm25 import BM25L, BM25Okapi, BM25Plus
+
 from ..config.settings import SearchConfig
 
 
 @dataclass
 class RelevanceScore:
     """Represents a relevance score with breakdown."""
+
     total_score: float
     bm25_score: float
     field_scores: Dict[str, float]
@@ -50,7 +52,7 @@ class RelevanceRanker:
                     tokenized_docs,
                     k1=1.2,  # Controls term frequency saturation
                     b=0.75,  # Controls length normalization
-                    delta=1.0  # BM25Plus delta parameter
+                    delta=1.0,  # BM25Plus delta parameter
                 )
 
     def calculate_relevance_score(
@@ -96,7 +98,9 @@ class RelevanceRanker:
                     )
                 else:
                     # Fallback to simple TF-IDF-like scoring
-                    bm25_score = self._calculate_simple_score(query_terms, field_tokens)
+                    bm25_score = self._calculate_simple_score(
+                        query_terms, field_tokens
+                    )
 
                 field_scores[field_name] = bm25_score
                 total_score += bm25_score * weight
@@ -127,7 +131,7 @@ class RelevanceRanker:
                     len(str(document.get(field, "")).split())
                     for field in field_weights.keys()
                 ),
-            }
+            },
         )
 
     def rank_results(
@@ -149,7 +153,9 @@ class RelevanceRanker:
         scored_documents = []
 
         for document in documents:
-            relevance_score = self.calculate_relevance_score(query_terms, document)
+            relevance_score = self.calculate_relevance_score(
+                query_terms, document
+            )
             scored_documents.append((document, relevance_score))
 
         # Sort by total score in descending order
@@ -276,7 +282,9 @@ class RelevanceRanker:
 
         return score
 
-    def _calculate_boost_factors(self, document: Dict[str, Any]) -> Dict[str, float]:
+    def _calculate_boost_factors(
+        self, document: Dict[str, Any]
+    ) -> Dict[str, float]:
         """Calculate boost factors based on document characteristics.
 
         Args:
@@ -319,7 +327,9 @@ class RelevanceRanker:
 
         return boost_factors
 
-    def _calculate_penalties(self, document: Dict[str, Any]) -> Dict[str, float]:
+    def _calculate_penalties(
+        self, document: Dict[str, Any]
+    ) -> Dict[str, float]:
         """Calculate penalty factors for document characteristics.
 
         Args:
@@ -366,9 +376,9 @@ class RelevanceRanker:
         }
 
         for field_name, bm25 in self.bm25_instances.items():
-            if hasattr(bm25, 'corpus_size'):
+            if hasattr(bm25, "corpus_size"):
                 stats[f"{field_name}_corpus_size"] = bm25.corpus_size
-            if hasattr(bm25, 'avgdl'):
+            if hasattr(bm25, "avgdl"):
                 stats[f"{field_name}_avg_doc_length"] = bm25.avgdl
 
         return stats

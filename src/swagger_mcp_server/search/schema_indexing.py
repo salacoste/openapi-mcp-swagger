@@ -7,16 +7,17 @@ with endpoints as specified in Story 3.5.
 
 import asyncio
 from dataclasses import dataclass
-from typing import Dict, Any, List, Optional, Set, Union
 from enum import Enum
+from typing import Any, Dict, List, Optional, Set, Union
 
-from ..storage.repositories.schema_repository import SchemaRepository
-from ..storage.repositories.endpoint_repository import EndpointRepository
 from ..config.settings import SearchConfig
+from ..storage.repositories.endpoint_repository import EndpointRepository
+from ..storage.repositories.schema_repository import SchemaRepository
 
 
 class SchemaUsageContext(Enum):
     """Enumeration of schema usage contexts in API documentation."""
+
     REQUEST_BODY = "request_body"
     RESPONSE_BODY = "response_body"
     PARAMETER = "parameter"
@@ -107,13 +108,17 @@ class SchemaIndexManager:
                 properties = await self._extract_schema_properties(schema)
 
                 # Map endpoint relationships
-                endpoint_usage = await self._map_endpoint_relationships(schema["id"])
+                endpoint_usage = await self._map_endpoint_relationships(
+                    schema["id"]
+                )
 
                 # Extract composition relationships
                 composition = await self._extract_composition_info(schema)
 
                 # Calculate complexity and usage metrics
-                complexity = self._calculate_schema_complexity(schema, properties)
+                complexity = self._calculate_schema_complexity(
+                    schema, properties
+                )
                 usage_frequency = len(endpoint_usage["endpoints"])
 
                 # Create comprehensive searchable document
@@ -121,7 +126,9 @@ class SchemaIndexManager:
                     schema_id=schema["id"],
                     schema_name=schema.get("name", schema["id"]),
                     schema_type=schema.get("type", "object"),
-                    schema_path=schema.get("path", f"#/components/schemas/{schema['id']}"),
+                    schema_path=schema.get(
+                        "path", f"#/components/schemas/{schema['id']}"
+                    ),
                     description=schema.get("description", ""),
                     property_names=properties["names"],
                     property_descriptions=properties["descriptions"],
@@ -138,11 +145,15 @@ class SchemaIndexManager:
                     extended_by=composition.get("extended_by", []),
                     composed_schemas=composition.get("composed_schemas", []),
                     composition_type=composition.get("composition_type"),
-                    searchable_text=await self._create_schema_searchable_text(schema, properties),
-                    keywords=await self._extract_schema_keywords(schema, properties),
+                    searchable_text=await self._create_schema_searchable_text(
+                        schema, properties
+                    ),
+                    keywords=await self._extract_schema_keywords(
+                        schema, properties
+                    ),
                     complexity_level=complexity,
                     usage_frequency=usage_frequency,
-                    last_modified=schema.get("last_modified")
+                    last_modified=schema.get("last_modified"),
                 )
 
                 schema_documents.append(document)
@@ -150,9 +161,13 @@ class SchemaIndexManager:
             return schema_documents
 
         except Exception as e:
-            raise RuntimeError(f"Failed to create schema documents: {e}") from e
+            raise RuntimeError(
+                f"Failed to create schema documents: {e}"
+            ) from e
 
-    async def _extract_schema_properties(self, schema: Dict[str, Any]) -> Dict[str, Any]:
+    async def _extract_schema_properties(
+        self, schema: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Extract comprehensive property information from schema.
 
         Args:
@@ -168,7 +183,7 @@ class SchemaIndexManager:
             "required": [],
             "optional": [],
             "nested_schemas": [],
-            "validation_rules": {}
+            "validation_rules": {},
         }
 
         # Extract properties if schema is an object
@@ -186,7 +201,9 @@ class SchemaIndexManager:
             # Build descriptions text
             prop_desc = prop_def.get("description", "")
             if prop_desc:
-                properties_info["descriptions"] += f"{prop_name}: {prop_desc}. "
+                properties_info[
+                    "descriptions"
+                ] += f"{prop_name}: {prop_desc}. "
 
             # Categorize as required or optional
             if prop_name in required:
@@ -201,16 +218,27 @@ class SchemaIndexManager:
 
             # Extract validation rules
             validation_rules = {}
-            for rule in ["minimum", "maximum", "minLength", "maxLength", "pattern", "enum"]:
+            for rule in [
+                "minimum",
+                "maximum",
+                "minLength",
+                "maxLength",
+                "pattern",
+                "enum",
+            ]:
                 if rule in prop_def:
                     validation_rules[rule] = prop_def[rule]
 
             if validation_rules:
-                properties_info["validation_rules"][prop_name] = validation_rules
+                properties_info["validation_rules"][
+                    prop_name
+                ] = validation_rules
 
         return properties_info
 
-    async def _map_endpoint_relationships(self, schema_id: str) -> Dict[str, Any]:
+    async def _map_endpoint_relationships(
+        self, schema_id: str
+    ) -> Dict[str, Any]:
         """Map all endpoint usage relationships for a schema.
 
         Args:
@@ -219,48 +247,58 @@ class SchemaIndexManager:
         Returns:
             Dict[str, Any]: Endpoint relationship mapping
         """
-        relationships = {
-            "endpoints": [],
-            "contexts": [],
-            "usage_details": []
-        }
+        relationships = {"endpoints": [], "contexts": [], "usage_details": []}
 
         try:
             # Find request body usage
             request_usage = await self._find_request_body_usage(schema_id)
             for usage in request_usage:
                 relationships["endpoints"].append(usage["endpoint_id"])
-                relationships["contexts"].append(SchemaUsageContext.REQUEST_BODY)
-                relationships["usage_details"].append({
-                    "endpoint_id": usage["endpoint_id"],
-                    "context": SchemaUsageContext.REQUEST_BODY.value,
-                    "content_type": usage.get("content_type", "application/json"),
-                    "required": usage.get("required", True)
-                })
+                relationships["contexts"].append(
+                    SchemaUsageContext.REQUEST_BODY
+                )
+                relationships["usage_details"].append(
+                    {
+                        "endpoint_id": usage["endpoint_id"],
+                        "context": SchemaUsageContext.REQUEST_BODY.value,
+                        "content_type": usage.get(
+                            "content_type", "application/json"
+                        ),
+                        "required": usage.get("required", True),
+                    }
+                )
 
             # Find response body usage
             response_usage = await self._find_response_body_usage(schema_id)
             for usage in response_usage:
                 relationships["endpoints"].append(usage["endpoint_id"])
-                relationships["contexts"].append(SchemaUsageContext.RESPONSE_BODY)
-                relationships["usage_details"].append({
-                    "endpoint_id": usage["endpoint_id"],
-                    "context": SchemaUsageContext.RESPONSE_BODY.value,
-                    "status_code": usage.get("status_code", "200"),
-                    "content_type": usage.get("content_type", "application/json")
-                })
+                relationships["contexts"].append(
+                    SchemaUsageContext.RESPONSE_BODY
+                )
+                relationships["usage_details"].append(
+                    {
+                        "endpoint_id": usage["endpoint_id"],
+                        "context": SchemaUsageContext.RESPONSE_BODY.value,
+                        "status_code": usage.get("status_code", "200"),
+                        "content_type": usage.get(
+                            "content_type", "application/json"
+                        ),
+                    }
+                )
 
             # Find parameter usage
             parameter_usage = await self._find_parameter_usage(schema_id)
             for usage in parameter_usage:
                 relationships["endpoints"].append(usage["endpoint_id"])
                 relationships["contexts"].append(SchemaUsageContext.PARAMETER)
-                relationships["usage_details"].append({
-                    "endpoint_id": usage["endpoint_id"],
-                    "context": SchemaUsageContext.PARAMETER.value,
-                    "parameter_name": usage.get("parameter_name", ""),
-                    "parameter_location": usage.get("location", "query")
-                })
+                relationships["usage_details"].append(
+                    {
+                        "endpoint_id": usage["endpoint_id"],
+                        "context": SchemaUsageContext.PARAMETER.value,
+                        "parameter_name": usage.get("parameter_name", ""),
+                        "parameter_location": usage.get("location", "query"),
+                    }
+                )
 
             return relationships
 
@@ -268,25 +306,33 @@ class SchemaIndexManager:
             # Return empty relationships on error
             return relationships
 
-    async def _find_request_body_usage(self, schema_id: str) -> List[Dict[str, Any]]:
+    async def _find_request_body_usage(
+        self, schema_id: str
+    ) -> List[Dict[str, Any]]:
         """Find endpoints that use this schema in request bodies."""
         # This would query the database for request body usage
         # Implementation depends on how request body schemas are stored
         return []
 
-    async def _find_response_body_usage(self, schema_id: str) -> List[Dict[str, Any]]:
+    async def _find_response_body_usage(
+        self, schema_id: str
+    ) -> List[Dict[str, Any]]:
         """Find endpoints that use this schema in response bodies."""
         # This would query the database for response body usage
         # Implementation depends on how response schemas are stored
         return []
 
-    async def _find_parameter_usage(self, schema_id: str) -> List[Dict[str, Any]]:
+    async def _find_parameter_usage(
+        self, schema_id: str
+    ) -> List[Dict[str, Any]]:
         """Find endpoints that use this schema in parameters."""
         # This would query the database for parameter usage
         # Implementation depends on how parameter schemas are stored
         return []
 
-    async def _extract_composition_info(self, schema: Dict[str, Any]) -> Dict[str, Any]:
+    async def _extract_composition_info(
+        self, schema: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Extract schema composition and inheritance information.
 
         Args:
@@ -299,7 +345,7 @@ class SchemaIndexManager:
             "inherits_from": None,
             "extended_by": [],
             "composed_schemas": [],
-            "composition_type": None
+            "composition_type": None,
         }
 
         # Check for allOf, oneOf, anyOf composition
@@ -321,9 +367,7 @@ class SchemaIndexManager:
         return composition
 
     def _calculate_schema_complexity(
-        self,
-        schema: Dict[str, Any],
-        properties: Dict[str, Any]
+        self, schema: Dict[str, Any], properties: Dict[str, Any]
     ) -> str:
         """Calculate schema complexity level based on structure.
 
@@ -367,9 +411,7 @@ class SchemaIndexManager:
             return "simple"
 
     async def _create_schema_searchable_text(
-        self,
-        schema: Dict[str, Any],
-        properties: Dict[str, Any]
+        self, schema: Dict[str, Any], properties: Dict[str, Any]
     ) -> str:
         """Create comprehensive searchable text for schema.
 
@@ -407,9 +449,7 @@ class SchemaIndexManager:
         return " ".join(filter(None, text_parts))
 
     async def _extract_schema_keywords(
-        self,
-        schema: Dict[str, Any],
-        properties: Dict[str, Any]
+        self, schema: Dict[str, Any], properties: Dict[str, Any]
     ) -> List[str]:
         """Extract keywords for schema search optimization.
 

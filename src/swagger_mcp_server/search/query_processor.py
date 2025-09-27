@@ -10,26 +10,29 @@ This module provides sophisticated query processing capabilities including:
 Integrates with the existing Whoosh-based search infrastructure.
 """
 
-import re
 import asyncio
-from dataclasses import dataclass
-from typing import List, Dict, Optional, Union, Set, Tuple
-from difflib import SequenceMatcher
 import logging
+import re
+from dataclasses import dataclass
+from difflib import SequenceMatcher
+from typing import Dict, List, Optional, Set, Tuple, Union
 
 # NLP libraries for query processing
 try:
     import nltk
-    from nltk.stem import PorterStemmer
     from nltk.corpus import stopwords
+    from nltk.stem import PorterStemmer
     from nltk.tokenize import word_tokenize
+
     NLTK_AVAILABLE = True
 except ImportError:
     NLTK_AVAILABLE = False
-    logging.warning("NLTK not available. Advanced query processing will use basic processing.")
+    logging.warning(
+        "NLTK not available. Advanced query processing will use basic processing."
+    )
 
-from whoosh.query import Query, Term, And, Or, Not, Wildcard, FuzzyTerm
-from whoosh.qparser import QueryParser, MultifieldParser
+from whoosh.qparser import MultifieldParser, QueryParser
+from whoosh.query import And, FuzzyTerm, Not, Or, Query, Term, Wildcard
 
 from ..config.settings import SearchConfig
 
@@ -37,6 +40,7 @@ from ..config.settings import SearchConfig
 @dataclass
 class ProcessedQuery:
     """Processed search query with extracted components."""
+
     original_query: str
     normalized_terms: List[str]
     field_filters: Dict[str, str]  # field:value pairs
@@ -51,6 +55,7 @@ class ProcessedQuery:
 @dataclass
 class QuerySuggestion:
     """Query suggestion with relevance score."""
+
     query: str
     description: str
     score: float
@@ -73,9 +78,11 @@ class QueryProcessor:
         if NLTK_AVAILABLE:
             try:
                 self.stemmer = PorterStemmer()
-                self.stop_words = set(stopwords.words('english'))
+                self.stop_words = set(stopwords.words("english"))
             except Exception as e:
-                self.logger.warning(f"Failed to initialize NLTK components: {e}")
+                self.logger.warning(
+                    f"Failed to initialize NLTK components: {e}"
+                )
                 self.stemmer = None
                 self.stop_words = set()
         else:
@@ -88,22 +95,22 @@ class QueryProcessor:
 
         # Field-specific query patterns
         self.field_patterns = {
-            'path': r'path:([^\s]+)',
-            'method': r'method:([^\s]+)',
-            'auth': r'auth:([^\s]+)',
-            'param': r'param:([^\s]+)',
-            'response': r'response:([^\s]+)',
-            'status': r'status:([^\s]+)',
-            'tag': r'tag:([^\s]+)',
-            'type': r'type:([^\s]+)',
-            'format': r'format:([^\s]+)'
+            "path": r"path:([^\s]+)",
+            "method": r"method:([^\s]+)",
+            "auth": r"auth:([^\s]+)",
+            "param": r"param:([^\s]+)",
+            "response": r"response:([^\s]+)",
+            "status": r"status:([^\s]+)",
+            "tag": r"tag:([^\s]+)",
+            "type": r"type:([^\s]+)",
+            "format": r"format:([^\s]+)",
         }
 
         # Boolean operator patterns
         self.boolean_patterns = {
-            'and': r'\b(\w+)\s+AND\s+(\w+)\b',
-            'or': r'\b(\w+)\s+OR\s+(\w+)\b',
-            'not': r'\bNOT\s+(\w+)\b'
+            "and": r"\b(\w+)\s+AND\s+(\w+)\b",
+            "or": r"\b(\w+)\s+OR\s+(\w+)\b",
+            "not": r"\bNOT\s+(\w+)\b",
         }
 
     async def process_query(self, query: str) -> ProcessedQuery:
@@ -144,7 +151,7 @@ class QueryProcessor:
             enhanced_terms = self._enhance_query_terms(normalized_terms)
 
             # Step 6: Extract excluded terms
-            excluded_terms = boolean_ops.get('not', [])
+            excluded_terms = boolean_ops.get("not", [])
 
             # Step 7: Generate initial suggestions (refined based on results later)
             suggestions = self._generate_base_suggestions(original_query)
@@ -158,7 +165,7 @@ class QueryProcessor:
                 excluded_terms=excluded_terms,
                 query_type=query_type,
                 enhanced_terms=enhanced_terms,
-                suggestions=suggestions
+                suggestions=suggestions,
             )
 
         except Exception as e:
@@ -171,15 +178,13 @@ class QueryProcessor:
                 boolean_operators={},
                 fuzzy_terms=[],
                 excluded_terms=[],
-                query_type='simple',
+                query_type="simple",
                 enhanced_terms=[query.lower()],
-                suggestions=[]
+                suggestions=[],
             )
 
     def generate_whoosh_query(
-        self,
-        processed_query: ProcessedQuery,
-        schema_fields: List[str]
+        self, processed_query: ProcessedQuery, schema_fields: List[str]
     ) -> Query:
         """Generate Whoosh Query object from processed query.
 
@@ -225,10 +230,14 @@ class QueryProcessor:
             # Handle excluded terms
             if processed_query.excluded_terms:
                 for term in processed_query.excluded_terms:
-                    exclusion = Or([
-                        Term(field, term) for field in schema_fields
-                        if field in ['endpoint_path', 'summary', 'description']
-                    ])
+                    exclusion = Or(
+                        [
+                            Term(field, term)
+                            for field in schema_fields
+                            if field
+                            in ["endpoint_path", "summary", "description"]
+                        ]
+                    )
                     if exclusion:
                         queries.append(Not(exclusion))
 
@@ -239,18 +248,20 @@ class QueryProcessor:
                 return And(queries)
             else:
                 # Fallback to simple term search
-                return Term('description', processed_query.original_query.lower())
+                return Term(
+                    "description", processed_query.original_query.lower()
+                )
 
         except Exception as e:
             self.logger.error(f"Whoosh query generation failed: {e}")
             # Fallback to simple search
-            return Term('description', processed_query.original_query.lower())
+            return Term("description", processed_query.original_query.lower())
 
     async def generate_query_suggestions(
         self,
         query: str,
         result_count: int,
-        available_terms: Optional[Set[str]] = None
+        available_terms: Optional[Set[str]] = None,
     ) -> List[QuerySuggestion]:
         """Generate query suggestions based on search context.
 
@@ -267,9 +278,13 @@ class QueryProcessor:
         try:
             if result_count == 0:
                 # No results - suggest alternatives
-                suggestions.extend(self._suggest_typo_fixes(query, available_terms))
+                suggestions.extend(
+                    self._suggest_typo_fixes(query, available_terms)
+                )
                 suggestions.extend(self._suggest_broader_queries(query))
-                suggestions.extend(self._suggest_similar_terms(query, available_terms))
+                suggestions.extend(
+                    self._suggest_similar_terms(query, available_terms)
+                )
 
             elif result_count < 5:
                 # Few results - suggest refinements
@@ -306,21 +321,21 @@ class QueryProcessor:
 
     def _parse_boolean_query(self, query: str) -> Dict[str, List[str]]:
         """Parse boolean operators and extract associated terms."""
-        boolean_ops = {'and': [], 'or': [], 'not': []}
+        boolean_ops = {"and": [], "or": [], "not": []}
 
         # Handle NOT operations
-        not_matches = re.findall(r'\bNOT\s+(\w+)', query, re.IGNORECASE)
-        boolean_ops['not'] = not_matches
+        not_matches = re.findall(r"\bNOT\s+(\w+)", query, re.IGNORECASE)
+        boolean_ops["not"] = not_matches
 
         # Handle AND operations
-        and_matches = re.findall(r'(\w+)\s+AND\s+(\w+)', query, re.IGNORECASE)
+        and_matches = re.findall(r"(\w+)\s+AND\s+(\w+)", query, re.IGNORECASE)
         for match in and_matches:
-            boolean_ops['and'].extend(match)
+            boolean_ops["and"].extend(match)
 
         # Handle OR operations
-        or_matches = re.findall(r'(\w+)\s+OR\s+(\w+)', query, re.IGNORECASE)
+        or_matches = re.findall(r"(\w+)\s+OR\s+(\w+)", query, re.IGNORECASE)
         for match in or_matches:
-            boolean_ops['or'].extend(match)
+            boolean_ops["or"].extend(match)
 
         return boolean_ops
 
@@ -330,13 +345,15 @@ class QueryProcessor:
 
         # Remove field-specific syntax
         for pattern in self.field_patterns.values():
-            clean_query = re.sub(pattern, '', clean_query, flags=re.IGNORECASE)
+            clean_query = re.sub(pattern, "", clean_query, flags=re.IGNORECASE)
 
         # Remove boolean operators
-        clean_query = re.sub(r'\b(AND|OR|NOT)\b', ' ', clean_query, flags=re.IGNORECASE)
+        clean_query = re.sub(
+            r"\b(AND|OR|NOT)\b", " ", clean_query, flags=re.IGNORECASE
+        )
 
         # Clean up whitespace
-        clean_query = re.sub(r'\s+', ' ', clean_query).strip()
+        clean_query = re.sub(r"\s+", " ", clean_query).strip()
 
         return clean_query
 
@@ -346,7 +363,7 @@ class QueryProcessor:
             return []
 
         # Tokenize
-        if NLTK_AVAILABLE and hasattr(self, 'stemmer'):
+        if NLTK_AVAILABLE and hasattr(self, "stemmer"):
             try:
                 tokens = word_tokenize(query.lower())
             except:
@@ -377,17 +394,17 @@ class QueryProcessor:
         self,
         query: str,
         field_filters: Dict[str, str],
-        boolean_ops: Dict[str, List[str]]
+        boolean_ops: Dict[str, List[str]],
     ) -> str:
         """Determine the type of query for processing optimization."""
         if field_filters:
-            return 'field_specific'
+            return "field_specific"
         elif any(boolean_ops.values()):
-            return 'boolean'
+            return "boolean"
         elif len(query.split()) > 3:
-            return 'natural_language'
+            return "natural_language"
         else:
-            return 'simple'
+            return "simple"
 
     def _prepare_fuzzy_terms(self, terms: List[str]) -> List[str]:
         """Prepare terms for fuzzy matching."""
@@ -415,32 +432,69 @@ class QueryProcessor:
     def _load_api_terminology(self) -> Set[str]:
         """Load API-specific terminology and common patterns."""
         return {
-            'endpoint', 'api', 'rest', 'http', 'json', 'xml',
-            'authentication', 'authorization', 'bearer', 'oauth',
-            'get', 'post', 'put', 'delete', 'patch', 'head', 'options',
-            'user', 'customer', 'account', 'profile', 'session',
-            'create', 'read', 'update', 'delete', 'crud',
-            'list', 'fetch', 'retrieve', 'search', 'filter',
-            'pagination', 'limit', 'offset', 'page', 'size',
-            'error', 'exception', 'validation', 'response',
-            'request', 'header', 'parameter', 'body', 'payload'
+            "endpoint",
+            "api",
+            "rest",
+            "http",
+            "json",
+            "xml",
+            "authentication",
+            "authorization",
+            "bearer",
+            "oauth",
+            "get",
+            "post",
+            "put",
+            "delete",
+            "patch",
+            "head",
+            "options",
+            "user",
+            "customer",
+            "account",
+            "profile",
+            "session",
+            "create",
+            "read",
+            "update",
+            "delete",
+            "crud",
+            "list",
+            "fetch",
+            "retrieve",
+            "search",
+            "filter",
+            "pagination",
+            "limit",
+            "offset",
+            "page",
+            "size",
+            "error",
+            "exception",
+            "validation",
+            "response",
+            "request",
+            "header",
+            "parameter",
+            "body",
+            "payload",
         }
 
     def _load_synonym_map(self) -> Dict[str, List[str]]:
         """Load synonym mappings for API terminology."""
         return {
-            'user': ['customer', 'account', 'profile', 'member'],
-            'auth': ['authentication', 'authorization', 'login', 'signin'],
-            'get': ['retrieve', 'fetch', 'read', 'find'],
-            'post': ['create', 'add', 'insert', 'new'],
-            'put': ['update', 'modify', 'edit', 'change'],
-            'delete': ['remove', 'destroy', 'drop'],
-            'list': ['index', 'all', 'collection'],
-            'search': ['find', 'query', 'filter', 'lookup'],
-            'error': ['exception', 'failure', 'issue'],
-            'param': ['parameter', 'argument', 'field'],
-            'response': ['result', 'output', 'return'],
-            'request': ['input', 'call', 'invoke']
+            "user": ["customer", "account", "profile", "member"],
+            "auth": ["authentication", "authorization", "login", "signin"],
+            "get": ["retrieve", "fetch", "read", "find"],
+            "post": ["create", "add", "insert", "new"],
+            "put": ["update", "modify", "edit", "change"],
+            "delete": ["remove", "destroy", "drop"],
+            "list": ["index", "all", "collection"],
+            "search": ["find", "query", "filter", "lookup"],
+            "error": ["exception", "failure", "issue"],
+            "param": ["parameter", "argument", "field"],
+            "response": ["result", "output", "return"],
+            "request": ["input", "call", "invoke"],
         }
 
     def _get_api_variations(self, term: str) -> List[str]:
@@ -448,34 +502,33 @@ class QueryProcessor:
         variations = []
 
         # Handle plural/singular
-        if term.endswith('s') and len(term) > 3:
+        if term.endswith("s") and len(term) > 3:
             variations.append(term[:-1])  # Remove 's'
         else:
-            variations.append(term + 's')  # Add 's'
+            variations.append(term + "s")  # Add 's'
 
         # Handle common API suffixes
-        if term.endswith('_id'):
+        if term.endswith("_id"):
             variations.append(term[:-3])
-        elif not term.endswith('_id') and term in self.api_terms:
-            variations.append(term + '_id')
+        elif not term.endswith("_id") and term in self.api_terms:
+            variations.append(term + "_id")
 
         return variations
 
     def _build_boolean_query(
-        self,
-        boolean_ops: Dict[str, List[str]],
-        schema_fields: List[str]
+        self, boolean_ops: Dict[str, List[str]], schema_fields: List[str]
     ) -> Optional[Query]:
         """Build Whoosh boolean query from parsed operators."""
         queries = []
 
         # Handle AND operations (all terms must be present)
-        if boolean_ops.get('and'):
+        if boolean_ops.get("and"):
             and_queries = []
-            for term in boolean_ops['and']:
+            for term in boolean_ops["and"]:
                 term_queries = [
-                    Term(field, term) for field in schema_fields
-                    if field in ['endpoint_path', 'summary', 'description']
+                    Term(field, term)
+                    for field in schema_fields
+                    if field in ["endpoint_path", "summary", "description"]
                 ]
                 if term_queries:
                     and_queries.append(Or(term_queries))
@@ -483,23 +536,26 @@ class QueryProcessor:
                 queries.append(And(and_queries))
 
         # Handle OR operations (any term can be present)
-        if boolean_ops.get('or'):
+        if boolean_ops.get("or"):
             or_queries = []
-            for term in boolean_ops['or']:
+            for term in boolean_ops["or"]:
                 term_queries = [
-                    Term(field, term) for field in schema_fields
-                    if field in ['endpoint_path', 'summary', 'description']
+                    Term(field, term)
+                    for field in schema_fields
+                    if field in ["endpoint_path", "summary", "description"]
                 ]
                 or_queries.extend(term_queries)
             if or_queries:
                 queries.append(Or(or_queries))
 
-        return And(queries) if len(queries) > 1 else (queries[0] if queries else None)
+        return (
+            And(queries)
+            if len(queries) > 1
+            else (queries[0] if queries else None)
+        )
 
     def _build_main_query(
-        self,
-        terms: List[str],
-        schema_fields: List[str]
+        self, terms: List[str], schema_fields: List[str]
     ) -> Optional[Query]:
         """Build main content query from enhanced terms."""
         if not terms:
@@ -507,8 +563,16 @@ class QueryProcessor:
 
         # Create multifield search across main content fields
         content_fields = [
-            field for field in schema_fields
-            if field in ['endpoint_path', 'summary', 'description', 'parameters', 'tags']
+            field
+            for field in schema_fields
+            if field
+            in [
+                "endpoint_path",
+                "summary",
+                "description",
+                "parameters",
+                "tags",
+            ]
         ]
 
         term_queries = []
@@ -517,19 +581,21 @@ class QueryProcessor:
             if field_queries:
                 term_queries.append(Or(field_queries))
 
-        return And(term_queries) if len(term_queries) > 1 else (term_queries[0] if term_queries else None)
+        return (
+            And(term_queries)
+            if len(term_queries) > 1
+            else (term_queries[0] if term_queries else None)
+        )
 
     def _build_fuzzy_query(
-        self,
-        fuzzy_terms: List[str],
-        schema_fields: List[str]
+        self, fuzzy_terms: List[str], schema_fields: List[str]
     ) -> Optional[Query]:
         """Build fuzzy query for typo tolerance."""
         if not fuzzy_terms:
             return None
 
         fuzzy_queries = []
-        content_fields = ['endpoint_path', 'summary', 'description']
+        content_fields = ["endpoint_path", "summary", "description"]
 
         for term in fuzzy_terms:
             for field in content_fields:
@@ -545,12 +611,16 @@ class QueryProcessor:
 
         # Add common API patterns
         api_patterns = [
-            "path:users", "method:GET", "auth:bearer",
-            "param:id", "response:json", "status:200"
+            "path:users",
+            "method:GET",
+            "auth:bearer",
+            "param:id",
+            "response:json",
+            "status:200",
         ]
 
         for pattern in api_patterns:
-            if pattern.split(':')[1] in query.lower():
+            if pattern.split(":")[1] in query.lower():
                 suggestions.append(pattern)
 
         return suggestions[:3]
@@ -558,9 +628,7 @@ class QueryProcessor:
     # Suggestion generation methods
 
     def _suggest_typo_fixes(
-        self,
-        query: str,
-        available_terms: Optional[Set[str]]
+        self, query: str, available_terms: Optional[Set[str]]
     ) -> List[QuerySuggestion]:
         """Suggest typo fixes based on available terms."""
         suggestions = []
@@ -573,15 +641,19 @@ class QueryProcessor:
         for term in query_terms:
             if len(term) > 3:  # Only check longer terms
                 for available_term in available_terms:
-                    similarity = SequenceMatcher(None, term, available_term).ratio()
+                    similarity = SequenceMatcher(
+                        None, term, available_term
+                    ).ratio()
                     if 0.7 <= similarity < 1.0:  # Potential typo fix
                         fixed_query = query.replace(term, available_term)
-                        suggestions.append(QuerySuggestion(
-                            query=fixed_query,
-                            description=f"Did you mean '{available_term}'?",
-                            score=similarity,
-                            category='typo_fix'
-                        ))
+                        suggestions.append(
+                            QuerySuggestion(
+                                query=fixed_query,
+                                description=f"Did you mean '{available_term}'?",
+                                score=similarity,
+                                category="typo_fix",
+                            )
+                        )
 
         return suggestions[:2]
 
@@ -593,21 +665,21 @@ class QueryProcessor:
         terms = query.split()
         if len(terms) > 1:
             for i, term in enumerate(terms):
-                broader_terms = terms[:i] + terms[i+1:]
-                broader_query = ' '.join(broader_terms)
-                suggestions.append(QuerySuggestion(
-                    query=broader_query,
-                    description=f"Try searching for '{broader_query}'",
-                    score=0.6,
-                    category='expansion'
-                ))
+                broader_terms = terms[:i] + terms[i + 1 :]
+                broader_query = " ".join(broader_terms)
+                suggestions.append(
+                    QuerySuggestion(
+                        query=broader_query,
+                        description=f"Try searching for '{broader_query}'",
+                        score=0.6,
+                        category="expansion",
+                    )
+                )
 
         return suggestions[:2]
 
     def _suggest_similar_terms(
-        self,
-        query: str,
-        available_terms: Optional[Set[str]]
+        self, query: str, available_terms: Optional[Set[str]]
     ) -> List[QuerySuggestion]:
         """Suggest similar terms from the index."""
         suggestions = []
@@ -619,12 +691,14 @@ class QueryProcessor:
         query_lower = query.lower()
         for term in available_terms:
             if query_lower in term and query_lower != term:
-                suggestions.append(QuerySuggestion(
-                    query=term,
-                    description=f"Try '{term}'",
-                    score=0.5,
-                    category='alternative'
-                ))
+                suggestions.append(
+                    QuerySuggestion(
+                        query=term,
+                        description=f"Try '{term}'",
+                        score=0.5,
+                        category="alternative",
+                    )
+                )
 
         return suggestions[:2]
 
@@ -637,41 +711,49 @@ class QueryProcessor:
             ("method:GET", "Search only GET endpoints"),
             ("method:POST", "Search only POST endpoints"),
             ("auth:bearer", "Search only authenticated endpoints"),
-            ("response:json", "Search only JSON responses")
+            ("response:json", "Search only JSON responses"),
         ]
 
         for field_query, description in field_suggestions:
             combined_query = f"{query} {field_query}"
-            suggestions.append(QuerySuggestion(
-                query=combined_query,
-                description=description,
-                score=0.4,
-                category='refinement'
-            ))
+            suggestions.append(
+                QuerySuggestion(
+                    query=combined_query,
+                    description=description,
+                    score=0.4,
+                    category="refinement",
+                )
+            )
 
         return suggestions[:2]
 
-    def _suggest_field_specific_queries(self, query: str) -> List[QuerySuggestion]:
+    def _suggest_field_specific_queries(
+        self, query: str
+    ) -> List[QuerySuggestion]:
         """Suggest field-specific query alternatives."""
         suggestions = []
 
         # Check if query might be a path
-        if '/' in query or query.startswith('/'):
-            suggestions.append(QuerySuggestion(
-                query=f"path:{query}",
-                description="Search in endpoint paths specifically",
-                score=0.7,
-                category='refinement'
-            ))
+        if "/" in query or query.startswith("/"):
+            suggestions.append(
+                QuerySuggestion(
+                    query=f"path:{query}",
+                    description="Search in endpoint paths specifically",
+                    score=0.7,
+                    category="refinement",
+                )
+            )
 
         # Check if query might be an HTTP method
-        if query.upper() in ['GET', 'POST', 'PUT', 'DELETE', 'PATCH']:
-            suggestions.append(QuerySuggestion(
-                query=f"method:{query.upper()}",
-                description=f"Search only {query.upper()} endpoints",
-                score=0.8,
-                category='refinement'
-            ))
+        if query.upper() in ["GET", "POST", "PUT", "DELETE", "PATCH"]:
+            suggestions.append(
+                QuerySuggestion(
+                    query=f"method:{query.upper()}",
+                    description=f"Search only {query.upper()} endpoints",
+                    score=0.8,
+                    category="refinement",
+                )
+            )
 
         return suggestions
 
@@ -683,17 +765,19 @@ class QueryProcessor:
         narrowing_filters = [
             ("method:GET", "Show only GET endpoints"),
             ("auth:required", "Show only authenticated endpoints"),
-            ("deprecated:false", "Hide deprecated endpoints")
+            ("deprecated:false", "Hide deprecated endpoints"),
         ]
 
         for filter_query, description in narrowing_filters:
             combined_query = f"{query} {filter_query}"
-            suggestions.append(QuerySuggestion(
-                query=combined_query,
-                description=description,
-                score=0.5,
-                category='refinement'
-            ))
+            suggestions.append(
+                QuerySuggestion(
+                    query=combined_query,
+                    description=description,
+                    score=0.5,
+                    category="refinement",
+                )
+            )
 
         return suggestions[:2]
 
@@ -702,23 +786,27 @@ class QueryProcessor:
         suggestions = []
 
         patterns = {
-            'user': ['path:users', 'param:user_id', 'tag:user'],
-            'auth': ['auth:bearer', 'tag:authentication', 'path:auth'],
-            'list': ['method:GET', 'param:limit', 'param:offset'],
-            'create': ['method:POST', 'response:201'],
-            'update': ['method:PUT', 'method:PATCH'],
-            'delete': ['method:DELETE', 'response:204']
+            "user": ["path:users", "param:user_id", "tag:user"],
+            "auth": ["auth:bearer", "tag:authentication", "path:auth"],
+            "list": ["method:GET", "param:limit", "param:offset"],
+            "create": ["method:POST", "response:201"],
+            "update": ["method:PUT", "method:PATCH"],
+            "delete": ["method:DELETE", "response:204"],
         }
 
         query_lower = query.lower()
         for keyword, pattern_list in patterns.items():
             if keyword in query_lower:
-                for pattern in pattern_list[:1]:  # Only suggest one pattern per keyword
-                    suggestions.append(QuerySuggestion(
-                        query=f"{query} {pattern}",
-                        description=f"Refine search with {pattern}",
-                        score=0.3,
-                        category='refinement'
-                    ))
+                for pattern in pattern_list[
+                    :1
+                ]:  # Only suggest one pattern per keyword
+                    suggestions.append(
+                        QuerySuggestion(
+                            query=f"{query} {pattern}",
+                            description=f"Refine search with {pattern}",
+                            score=0.3,
+                            category="refinement",
+                        )
+                    )
 
         return suggestions[:1]

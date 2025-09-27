@@ -4,15 +4,18 @@ Tests the comprehensive endpoint indexing system from Story 3.2,
 ensuring accurate content extraction and document creation.
 """
 
-import pytest
+from typing import Any, Dict, List
 from unittest.mock import AsyncMock, Mock
-from typing import Dict, Any, List
+
+import pytest
 
 from swagger_mcp_server.search.endpoint_indexing import (
+    EndpointDocumentProcessor,
     EndpointSearchDocument,
-    EndpointDocumentProcessor
 )
-from swagger_mcp_server.search.index_schema import convert_endpoint_document_to_index_fields
+from swagger_mcp_server.search.index_schema import (
+    convert_endpoint_document_to_index_fields,
+)
 
 
 class TestEndpointSearchDocument:
@@ -23,7 +26,7 @@ class TestEndpointSearchDocument:
         doc = EndpointSearchDocument(
             endpoint_id="test-123",
             endpoint_path="/api/v1/users/{id}",
-            http_method="GET"
+            http_method="GET",
         )
 
         assert doc.endpoint_id == "test-123"
@@ -52,7 +55,7 @@ class TestEndpointSearchDocument:
             security_requirements=["bearerAuth"],
             tags=["users", "profile"],
             deprecated=False,
-            keywords=["user", "profile", "get", "detail"]
+            keywords=["user", "profile", "get", "detail"],
         )
 
         assert doc.operation_summary == "Get user details"
@@ -77,29 +80,41 @@ class TestEndpointDocumentProcessor:
         assert segments == ["users"]
 
         # Test path with parameters
-        segments = self.processor.extract_path_segments("/api/v1/users/{id}/posts")
+        segments = self.processor.extract_path_segments(
+            "/api/v1/users/{id}/posts"
+        )
         assert segments == ["users", "posts"]
 
         # Test path with colon parameters
-        segments = self.processor.extract_path_segments("/api/v1/users/:id/posts")
+        segments = self.processor.extract_path_segments(
+            "/api/v1/users/:id/posts"
+        )
         assert segments == ["users", "posts"]
 
         # Test path with multiple parameters
-        segments = self.processor.extract_path_segments("/api/v1/users/{userId}/orders/{orderId}")
+        segments = self.processor.extract_path_segments(
+            "/api/v1/users/{userId}/orders/{orderId}"
+        )
         assert segments == ["users", "orders"]
 
     def test_extract_path_parameters(self):
         """Test path parameter extraction."""
         # Test curly brace parameters
-        params = self.processor.extract_path_parameters("/users/{id}/posts/{postId}")
+        params = self.processor.extract_path_parameters(
+            "/users/{id}/posts/{postId}"
+        )
         assert params == ["id", "postId"]
 
         # Test colon parameters
-        params = self.processor.extract_path_parameters("/users/:id/posts/:postId")
+        params = self.processor.extract_path_parameters(
+            "/users/:id/posts/:postId"
+        )
         assert params == ["id", "postId"]
 
         # Test mixed parameters
-        params = self.processor.extract_path_parameters("/users/{id}/posts/:postId")
+        params = self.processor.extract_path_parameters(
+            "/users/{id}/posts/:postId"
+        )
         assert params == ["id", "postId"]
 
         # Test no parameters
@@ -115,22 +130,22 @@ class TestEndpointDocumentProcessor:
                 "in": "path",
                 "required": True,
                 "description": "User ID",
-                "schema": {"type": "integer"}
+                "schema": {"type": "integer"},
             },
             {
                 "name": "include",
                 "in": "query",
                 "required": False,
                 "description": "Include related data",
-                "schema": {"type": "string"}
+                "schema": {"type": "string"},
             },
             {
                 "name": "authorization",
                 "in": "header",
                 "required": True,
                 "description": "Bearer token",
-                "schema": {"type": "string"}
-            }
+                "schema": {"type": "string"},
+            },
         ]
 
         result = await self.processor.process_parameters(parameters)
@@ -153,22 +168,18 @@ class TestEndpointDocumentProcessor:
                 "description": "Successful response",
                 "content": {
                     "application/json": {
-                        "schema": {
-                            "$ref": "#/components/schemas/User"
-                        }
+                        "schema": {"$ref": "#/components/schemas/User"}
                     }
-                }
+                },
             },
             "404": {
                 "description": "User not found",
                 "content": {
                     "application/json": {
-                        "schema": {
-                            "$ref": "#/components/schemas/Error"
-                        }
+                        "schema": {"$ref": "#/components/schemas/Error"}
                     }
-                }
-            }
+                },
+            },
         }
 
         result = await self.processor.extract_response_info(responses)
@@ -186,7 +197,7 @@ class TestEndpointDocumentProcessor:
         security = [
             {"bearerAuth": []},
             {"apiKey": ["read:users"]},
-            {"oauth2": ["users:read", "users:write"]}
+            {"oauth2": ["users:read", "users:write"]},
         ]
 
         result = await self.processor.extract_security_info(security)
@@ -208,26 +219,60 @@ class TestEndpointDocumentProcessor:
         assert resource == "users"
 
         # Test nested resource
-        resource = self.processor.extract_resource_name("/api/v1/users/{id}/posts")
+        resource = self.processor.extract_resource_name(
+            "/api/v1/users/{id}/posts"
+        )
         assert resource == "users"
 
         # Test multiple segments
-        resource = self.processor.extract_resource_name("/organizations/{orgId}/projects/{projectId}")
+        resource = self.processor.extract_resource_name(
+            "/organizations/{orgId}/projects/{projectId}"
+        )
         assert resource == "organizations"
 
     def test_classify_operation_type(self):
         """Test operation type classification."""
         # Test based on method and path patterns
-        assert self.processor.classify_operation_type("GET", "/users/{id}", "") == "read"
-        assert self.processor.classify_operation_type("GET", "/users", "") == "list"
-        assert self.processor.classify_operation_type("POST", "/users", "") == "create"
-        assert self.processor.classify_operation_type("PUT", "/users/{id}", "") == "update"
-        assert self.processor.classify_operation_type("DELETE", "/users/{id}", "") == "delete"
+        assert (
+            self.processor.classify_operation_type("GET", "/users/{id}", "")
+            == "read"
+        )
+        assert (
+            self.processor.classify_operation_type("GET", "/users", "")
+            == "list"
+        )
+        assert (
+            self.processor.classify_operation_type("POST", "/users", "")
+            == "create"
+        )
+        assert (
+            self.processor.classify_operation_type("PUT", "/users/{id}", "")
+            == "update"
+        )
+        assert (
+            self.processor.classify_operation_type("DELETE", "/users/{id}", "")
+            == "delete"
+        )
 
         # Test based on summary content
-        assert self.processor.classify_operation_type("POST", "/users", "Create new user") == "create"
-        assert self.processor.classify_operation_type("GET", "/users/search", "Search users") == "search"
-        assert self.processor.classify_operation_type("PUT", "/users/{id}", "Update user profile") == "update"
+        assert (
+            self.processor.classify_operation_type(
+                "POST", "/users", "Create new user"
+            )
+            == "create"
+        )
+        assert (
+            self.processor.classify_operation_type(
+                "GET", "/users/search", "Search users"
+            )
+            == "search"
+        )
+        assert (
+            self.processor.classify_operation_type(
+                "PUT", "/users/{id}", "Update user profile"
+            )
+            == "update"
+        )
 
     def test_create_composite_text(self):
         """Test composite text generation."""
@@ -236,21 +281,19 @@ class TestEndpointDocumentProcessor:
             "description": "Retrieve user information",
             "tags": ["users", "profile"],
             "operation_id": "getUserById",
-            "path": "/users/{id}"
+            "path": "/users/{id}",
         }
 
         parameter_info = {
             "descriptions": "id: User identifier include: Include related data"
         }
 
-        response_info = {
-            "descriptions": "200: User found 404: User not found"
-        }
+        response_info = {"descriptions": "200: User found 404: User not found"}
 
         operation_info = {
             "summary": "Get user details",
             "description": "Retrieve user information",
-            "operation_id": "getUserById"
+            "operation_id": "getUserById",
         }
 
         text = self.processor.create_composite_text(
@@ -270,10 +313,12 @@ class TestEndpointDocumentProcessor:
             "method": "GET",
             "tags": ["users", "profile"],
             "operationId": "getUserProfile",
-            "path": "/users/{id}"
+            "path": "/users/{id}",
         }
 
-        keywords = self.processor.extract_keywords(searchable_text, endpoint_data)
+        keywords = self.processor.extract_keywords(
+            searchable_text, endpoint_data
+        )
 
         assert "get" in keywords
         assert "user" in keywords
@@ -287,26 +332,23 @@ class TestEndpointDocumentProcessor:
         """Test example detection."""
         # Test with parameter examples
         endpoint_with_param_examples = {
-            "parameters": [
-                {
-                    "name": "id",
-                    "example": "123"
-                }
-            ]
+            "parameters": [{"name": "id", "example": "123"}]
         }
-        assert self.processor.has_examples(endpoint_with_param_examples) is True
+        assert (
+            self.processor.has_examples(endpoint_with_param_examples) is True
+        )
 
         # Test with request body examples
         endpoint_with_request_examples = {
             "requestBody": {
                 "content": {
-                    "application/json": {
-                        "example": {"name": "John Doe"}
-                    }
+                    "application/json": {"example": {"name": "John Doe"}}
                 }
             }
         }
-        assert self.processor.has_examples(endpoint_with_request_examples) is True
+        assert (
+            self.processor.has_examples(endpoint_with_request_examples) is True
+        )
 
         # Test with response examples
         endpoint_with_response_examples = {
@@ -322,12 +364,15 @@ class TestEndpointDocumentProcessor:
                 }
             }
         }
-        assert self.processor.has_examples(endpoint_with_response_examples) is True
+        assert (
+            self.processor.has_examples(endpoint_with_response_examples)
+            is True
+        )
 
         # Test without examples
         endpoint_without_examples = {
             "parameters": [{"name": "id"}],
-            "responses": {"200": {"description": "OK"}}
+            "responses": {"200": {"description": "OK"}},
         }
         assert self.processor.has_examples(endpoint_without_examples) is False
 
@@ -349,15 +394,15 @@ class TestEndpointDocumentProcessor:
                     "in": "path",
                     "required": True,
                     "description": "User identifier",
-                    "schema": {"type": "integer"}
+                    "schema": {"type": "integer"},
                 },
                 {
                     "name": "include",
                     "in": "query",
                     "required": False,
                     "description": "Include related data",
-                    "schema": {"type": "string"}
-                }
+                    "schema": {"type": "string"},
+                },
             ],
             "responses": {
                 "200": {
@@ -366,15 +411,11 @@ class TestEndpointDocumentProcessor:
                         "application/json": {
                             "schema": {"$ref": "#/components/schemas/User"}
                         }
-                    }
+                    },
                 },
-                "404": {
-                    "description": "User not found"
-                }
+                "404": {"description": "User not found"},
             },
-            "security": [
-                {"bearerAuth": []}
-            ]
+            "security": [{"bearerAuth": []}],
         }
 
         document = await self.processor.create_endpoint_document(endpoint_data)
@@ -384,7 +425,10 @@ class TestEndpointDocumentProcessor:
         assert document.endpoint_path == "/api/v1/users/{id}"
         assert document.http_method == "GET"
         assert document.operation_summary == "Get user by ID"
-        assert document.operation_description == "Retrieve detailed information about a specific user"
+        assert (
+            document.operation_description
+            == "Retrieve detailed information about a specific user"
+        )
 
         # Verify path processing
         assert document.path_segments == ["users"]
@@ -419,21 +463,19 @@ class TestEndpointDocumentProcessor:
     async def test_create_endpoint_document_missing_required_fields(self):
         """Test error handling for missing required fields."""
         # Missing 'id' field
-        invalid_data = {
-            "path": "/users",
-            "method": "GET"
-        }
+        invalid_data = {"path": "/users", "method": "GET"}
 
-        with pytest.raises(ValueError, match="must include 'id' and 'path' fields"):
+        with pytest.raises(
+            ValueError, match="must include 'id' and 'path' fields"
+        ):
             await self.processor.create_endpoint_document(invalid_data)
 
         # Missing 'path' field
-        invalid_data = {
-            "id": "test",
-            "method": "GET"
-        }
+        invalid_data = {"id": "test", "method": "GET"}
 
-        with pytest.raises(ValueError, match="must include 'id' and 'path' fields"):
+        with pytest.raises(
+            ValueError, match="must include 'id' and 'path' fields"
+        ):
             await self.processor.create_endpoint_document(invalid_data)
 
 
@@ -467,7 +509,7 @@ class TestIndexSchemaIntegration:
             operation_type="read",
             content_types=["application/json"],
             has_request_body=False,
-            has_examples=True
+            has_examples=True,
         )
 
         index_fields = convert_endpoint_document_to_index_fields(doc)
@@ -491,7 +533,9 @@ class TestIndexSchemaIntegration:
 
     def test_convert_invalid_document_type(self):
         """Test error handling for invalid document type."""
-        with pytest.raises(ValueError, match="Expected EndpointSearchDocument instance"):
+        with pytest.raises(
+            ValueError, match="Expected EndpointSearchDocument instance"
+        ):
             convert_endpoint_document_to_index_fields("invalid")
 
 
@@ -514,7 +558,7 @@ class TestEndpointIndexingEdgeCases:
         parameters = [
             {"name": "test"},  # Missing other fields
             {"description": "test"},  # Missing name
-            {}  # Empty parameter
+            {},  # Empty parameter
         ]
         result = await self.processor.process_parameters(parameters)
         assert result["names"] == ["test"]
@@ -525,12 +569,8 @@ class TestEndpointIndexingEdgeCases:
         responses = {
             "invalid": "not a dict",
             "200": {
-                "content": {
-                    "application/json": {
-                        "schema": "invalid schema"
-                    }
-                }
-            }
+                "content": {"application/json": {"schema": "invalid schema"}}
+            },
         }
 
         result = await self.processor.extract_response_info(responses)
@@ -544,7 +584,7 @@ class TestEndpointIndexingEdgeCases:
         security = [
             "invalid",  # Not a dict
             {"validScheme": ["scope1", "scope2"]},
-            {"anotherScheme": "not a list"}  # Scopes not a list
+            {"anotherScheme": "not a list"},  # Scopes not a list
         ]
 
         result = await self.processor.extract_security_info(security)
@@ -568,33 +608,39 @@ class TestEndpointIndexingEdgeCases:
         assert segments == []
 
         # Path with special characters
-        segments = self.processor.extract_path_segments("/api/v1/user-profiles")
+        segments = self.processor.extract_path_segments(
+            "/api/v1/user-profiles"
+        )
         assert segments == ["user-profiles"]
 
     def test_keyword_extraction_edge_cases(self):
         """Test keyword extraction edge cases."""
         # Empty text
-        keywords = self.processor.extract_keywords("", {"method": "GET", "tags": []})
+        keywords = self.processor.extract_keywords(
+            "", {"method": "GET", "tags": []}
+        )
         assert "get" in keywords
 
         # Text with only stop words
-        keywords = self.processor.extract_keywords("the and for", {"method": "POST", "tags": []})
+        keywords = self.processor.extract_keywords(
+            "the and for", {"method": "POST", "tags": []}
+        )
         assert "post" in keywords
         assert "the" not in keywords
 
         # Text with special characters
-        keywords = self.processor.extract_keywords("user-profile & data", {"method": "GET", "tags": []})
+        keywords = self.processor.extract_keywords(
+            "user-profile & data", {"method": "GET", "tags": []}
+        )
         # Should extract meaningful words, special characters filtered out
-        assert any(word in keywords for word in ["user", "profile", "data", "get"])
+        assert any(
+            word in keywords for word in ["user", "profile", "data", "get"]
+        )
 
     @pytest.mark.asyncio
     async def test_minimal_endpoint_data(self):
         """Test document creation with minimal required data."""
-        minimal_data = {
-            "id": "minimal",
-            "path": "/test",
-            "method": "GET"
-        }
+        minimal_data = {"id": "minimal", "path": "/test", "method": "GET"}
 
         document = await self.processor.create_endpoint_document(minimal_data)
 

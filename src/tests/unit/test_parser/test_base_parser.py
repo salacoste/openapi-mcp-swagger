@@ -1,13 +1,21 @@
 """Tests for base parser interface and data structures."""
 
-import pytest
+from datetime import datetime
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
-from datetime import datetime
+
+import pytest
 
 from swagger_mcp_server.parser.base import (
-    BaseParser, ParserConfig, ParserFactory, ParserType, ParseStatus,
-    ParseResult, ParseMetrics, ParseError, SwaggerParseError
+    BaseParser,
+    ParseError,
+    ParseMetrics,
+    ParserConfig,
+    ParseResult,
+    ParserFactory,
+    ParserType,
+    ParseStatus,
+    SwaggerParseError,
 )
 
 
@@ -15,7 +23,7 @@ class MockParser(BaseParser):
     """Mock parser for testing base functionality."""
 
     def get_supported_extensions(self) -> list[str]:
-        return ['.json']
+        return [".json"]
 
     def get_parser_type(self) -> ParserType:
         return ParserType.OPENAPI_JSON
@@ -36,7 +44,7 @@ class TestParseError:
             column_number=5,
             context="test context",
             recoverable=True,
-            suggestion="Fix the test"
+            suggestion="Fix the test",
         )
 
         assert error.message == "Test error"
@@ -83,7 +91,10 @@ class TestParseMetrics:
         """Test success rate calculation with errors."""
         metrics = ParseMetrics()
         metrics.endpoints_found = 10
-        metrics.errors = [ParseError("error1", "Error"), ParseError("error2", "Error")]
+        metrics.errors = [
+            ParseError("error1", "Error"),
+            ParseError("error2", "Error"),
+        ]
         metrics.warnings = [ParseError("warning1", "Warning")]
 
         # Formula: 1.0 - (errors / (total_issues + endpoints))
@@ -97,7 +108,9 @@ class TestParseMetrics:
         metrics.parse_duration_ms = 1000  # 1 second
 
         expected_speed = 2.0  # 2MB/s
-        assert abs(metrics.processing_speed_mb_per_sec - expected_speed) < 0.001
+        assert (
+            abs(metrics.processing_speed_mb_per_sec - expected_speed) < 0.001
+        )
 
     def test_processing_speed_zero_duration(self):
         """Test processing speed with zero duration."""
@@ -116,7 +129,7 @@ class TestParseResult:
         result = ParseResult(
             status=ParseStatus.COMPLETED,
             data={"openapi": "3.0.0"},
-            file_path=Path("test.json")
+            file_path=Path("test.json"),
         )
 
         assert result.is_success is True
@@ -132,7 +145,7 @@ class TestParseResult:
         result = ParseResult(
             status=ParseStatus.COMPLETED,
             data={"openapi": "3.0.0"},
-            metrics=metrics
+            metrics=metrics,
         )
 
         assert result.has_errors is True
@@ -166,13 +179,14 @@ class TestParserConfig:
 
     def test_parser_config_custom(self):
         """Test custom parser configuration."""
+
         def dummy_callback(processed, total):
             pass
 
         config = ParserConfig(
             max_file_size_mb=5,
             strict_mode=True,
-            progress_callback=dummy_callback
+            progress_callback=dummy_callback,
         )
 
         assert config.max_file_size_mb == 5
@@ -192,7 +206,9 @@ class TestBaseParser:
     def temp_json_file(self, tmp_path):
         """Create temporary JSON file for testing."""
         json_file = tmp_path / "test.json"
-        json_file.write_text('{"openapi": "3.0.0", "info": {"title": "Test", "version": "1.0"}}')
+        json_file.write_text(
+            '{"openapi": "3.0.0", "info": {"title": "Test", "version": "1.0"}}'
+        )
         return json_file
 
     @pytest.fixture
@@ -200,7 +216,7 @@ class TestBaseParser:
         """Create large temporary file for testing size limits."""
         large_file = tmp_path / "large.json"
         # Create a file larger than default limit (10MB)
-        large_content = '{"data": "' + 'x' * (11 * 1024 * 1024) + '"}'
+        large_content = '{"data": "' + "x" * (11 * 1024 * 1024) + '"}'
         large_file.write_text(large_content)
         return large_file
 
@@ -226,7 +242,9 @@ class TestBaseParser:
         assert mock_parser.can_parse("test.yaml") is False
         assert mock_parser.can_parse("test.txt") is False
 
-    async def test_validate_file_constraints_success(self, mock_parser, temp_json_file):
+    async def test_validate_file_constraints_success(
+        self, mock_parser, temp_json_file
+    ):
         """Test successful file constraint validation."""
         # Should not raise exception
         await mock_parser.validate_file_constraints(temp_json_file)
@@ -234,12 +252,16 @@ class TestBaseParser:
     async def test_validate_file_constraints_not_found(self, mock_parser):
         """Test file constraint validation with missing file."""
         with pytest.raises(SwaggerParseError) as exc_info:
-            await mock_parser.validate_file_constraints(Path("nonexistent.json"))
+            await mock_parser.validate_file_constraints(
+                Path("nonexistent.json")
+            )
 
         assert "File not found" in str(exc_info.value)
         assert exc_info.value.error_type == "FileNotFound"
 
-    async def test_validate_file_constraints_too_large(self, mock_parser, large_temp_file):
+    async def test_validate_file_constraints_too_large(
+        self, mock_parser, large_temp_file
+    ):
         """Test file constraint validation with oversized file."""
         with pytest.raises(SwaggerParseError) as exc_info:
             await mock_parser.validate_file_constraints(large_temp_file)
@@ -260,7 +282,7 @@ class TestSwaggerParseError:
             column_number=10,
             context="test context",
             suggestion="fix suggestion",
-            recoverable=True
+            recoverable=True,
         )
 
         assert str(error) == "Test parsing error"
@@ -274,9 +296,7 @@ class TestSwaggerParseError:
     def test_swagger_parse_error_to_parse_error(self):
         """Test converting SwaggerParseError to ParseError."""
         error = SwaggerParseError(
-            message="Test error",
-            error_type="TestError",
-            recoverable=True
+            message="Test error", error_type="TestError", recoverable=True
         )
 
         parse_error = error.to_parse_error()
@@ -368,5 +388,5 @@ class TestParserFactory:
 
         extensions = factory.get_supported_extensions()
 
-        assert '.json' in extensions
+        assert ".json" in extensions
         assert isinstance(extensions, list)

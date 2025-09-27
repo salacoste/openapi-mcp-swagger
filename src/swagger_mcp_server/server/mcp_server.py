@@ -7,22 +7,21 @@ and query Swagger/OpenAPI documentation efficiently.
 
 import asyncio
 import sys
-from typing import Any, Dict, List, Optional, Sequence
 from contextlib import asynccontextmanager
+from typing import Any, Dict, List, Optional, Sequence
 
+from mcp import types
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
-from mcp import types
 
-from swagger_mcp_server.config.settings import Settings
 from swagger_mcp_server.config.logging import get_logger
-from swagger_mcp_server.storage.database import DatabaseManager, DatabaseConfig
+from swagger_mcp_server.config.settings import Settings
+from swagger_mcp_server.storage.database import DatabaseConfig, DatabaseManager
 from swagger_mcp_server.storage.repositories import (
     EndpointRepository,
+    MetadataRepository,
     SchemaRepository,
-    MetadataRepository
 )
-
 
 logger = get_logger(__name__)
 
@@ -43,7 +42,7 @@ class SwaggerMcpServer:
         db_config = DatabaseConfig(
             database_path=str(settings.get_database_path()),
             max_connections=settings.database.pool_size,
-            connection_timeout=settings.database.timeout
+            connection_timeout=settings.database.timeout,
         )
         self.db_manager = DatabaseManager(db_config)
 
@@ -62,7 +61,7 @@ class SwaggerMcpServer:
             "MCP server initialized",
             name=settings.server.name,
             version=settings.server.version,
-            database_path=str(settings.get_database_path())
+            database_path=str(settings.get_database_path()),
         )
 
     async def initialize(self) -> None:
@@ -78,13 +77,12 @@ class SwaggerMcpServer:
             self.schema_repo = SchemaRepository(self.db_manager)
             self.metadata_repo = MetadataRepository(self.db_manager)
 
-            self.logger.info("MCP server initialization completed successfully")
+            self.logger.info(
+                "MCP server initialization completed successfully"
+            )
 
         except Exception as e:
-            self.logger.error(
-                "Failed to initialize MCP server",
-                error=str(e)
-            )
+            self.logger.error("Failed to initialize MCP server", error=str(e))
             raise
 
     def _register_handlers(self) -> None:
@@ -103,23 +101,31 @@ class SwaggerMcpServer:
                         "properties": {
                             "query": {
                                 "type": "string",
-                                "description": "Search query (keywords, endpoint path, description)"
+                                "description": "Search query (keywords, endpoint path, description)",
                             },
                             "method": {
                                 "type": "string",
                                 "description": "HTTP method filter (GET, POST, PUT, DELETE, etc.)",
-                                "enum": ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"]
+                                "enum": [
+                                    "GET",
+                                    "POST",
+                                    "PUT",
+                                    "DELETE",
+                                    "PATCH",
+                                    "HEAD",
+                                    "OPTIONS",
+                                ],
                             },
                             "limit": {
                                 "type": "integer",
                                 "description": "Maximum number of results to return",
                                 "default": 10,
                                 "minimum": 1,
-                                "maximum": 100
-                            }
+                                "maximum": 100,
+                            },
                         },
-                        "required": ["query"]
-                    }
+                        "required": ["query"],
+                    },
                 ),
                 Tool(
                     name="getSchema",
@@ -129,21 +135,21 @@ class SwaggerMcpServer:
                         "properties": {
                             "schema_name": {
                                 "type": "string",
-                                "description": "Name of the schema/component to retrieve"
+                                "description": "Name of the schema/component to retrieve",
                             },
                             "include_examples": {
                                 "type": "boolean",
                                 "description": "Include example values in the schema",
-                                "default": True
+                                "default": True,
                             },
                             "resolve_refs": {
                                 "type": "boolean",
                                 "description": "Resolve $ref references to full schemas",
-                                "default": True
-                            }
+                                "default": True,
+                            },
                         },
-                        "required": ["schema_name"]
-                    }
+                        "required": ["schema_name"],
+                    },
                 ),
                 Tool(
                     name="getExample",
@@ -153,27 +159,34 @@ class SwaggerMcpServer:
                         "properties": {
                             "endpoint_id": {
                                 "type": "string",
-                                "description": "Unique identifier of the endpoint"
+                                "description": "Unique identifier of the endpoint",
                             },
                             "language": {
                                 "type": "string",
                                 "description": "Programming language for the example",
-                                "enum": ["curl", "javascript", "python", "typescript"],
-                                "default": "curl"
+                                "enum": [
+                                    "curl",
+                                    "javascript",
+                                    "python",
+                                    "typescript",
+                                ],
+                                "default": "curl",
                             },
                             "include_auth": {
                                 "type": "boolean",
                                 "description": "Include authentication in the example",
-                                "default": True
-                            }
+                                "default": True,
+                            },
                         },
-                        "required": ["endpoint_id"]
-                    }
-                )
+                        "required": ["endpoint_id"],
+                    },
+                ),
             ]
 
         @self.server.call_tool()
-        async def call_tool(name: str, arguments: Dict[str, Any]) -> Sequence[Any]:
+        async def call_tool(
+            name: str, arguments: Dict[str, Any]
+        ) -> Sequence[Any]:
             """Handle tool calls from AI agents."""
             try:
                 if name == "searchEndpoints":
@@ -190,7 +203,7 @@ class SwaggerMcpServer:
                     "Tool call failed",
                     tool_name=name,
                     arguments=arguments,
-                    error=str(e)
+                    error=str(e),
                 )
                 raise ServerError(f"Tool execution failed: {str(e)}")
 
@@ -202,13 +215,13 @@ class SwaggerMcpServer:
                 Resource(
                     uri="swagger://api-info",
                     name="API Information",
-                    description="General information about the loaded API"
+                    description="General information about the loaded API",
                 ),
                 Resource(
                     uri="swagger://health",
                     name="Server Health",
-                    description="Server and database health status"
-                )
+                    description="Server and database health status",
+                ),
             ]
 
         @self.server.read_resource()
@@ -224,17 +237,12 @@ class SwaggerMcpServer:
 
             except Exception as e:
                 self.logger.error(
-                    "Resource read failed",
-                    uri=uri,
-                    error=str(e)
+                    "Resource read failed", uri=uri, error=str(e)
                 )
                 raise ServerError(f"Resource read failed: {str(e)}")
 
     async def _search_endpoints(
-        self,
-        query: str,
-        method: Optional[str] = None,
-        limit: int = 10
+        self, query: str, method: Optional[str] = None, limit: int = 10
     ) -> List[Dict[str, Any]]:
         """Search for API endpoints based on query and filters."""
         if not self.endpoint_repo:
@@ -242,17 +250,12 @@ class SwaggerMcpServer:
 
         try:
             self.logger.info(
-                "Searching endpoints",
-                query=query,
-                method=method,
-                limit=limit
+                "Searching endpoints", query=query, method=method, limit=limit
             )
 
             # Use repository to search endpoints
             endpoints = await self.endpoint_repo.search_endpoints(
-                query=query,
-                http_method=method,
-                limit=limit
+                query=query, http_method=method, limit=limit
             )
 
             # Format results for MCP response
@@ -266,24 +269,26 @@ class SwaggerMcpServer:
                     "description": endpoint.description,
                     "operationId": endpoint.operation_id,
                     "tags": endpoint.tags,
-                    "parameters": len(endpoint.parameters) if endpoint.parameters else 0,
-                    "responses": len(endpoint.responses) if endpoint.responses else 0
+                    "parameters": len(endpoint.parameters)
+                    if endpoint.parameters
+                    else 0,
+                    "responses": len(endpoint.responses)
+                    if endpoint.responses
+                    else 0,
                 }
                 results.append(result)
 
             self.logger.info(
                 "Endpoint search completed",
                 query=query,
-                results_count=len(results)
+                results_count=len(results),
             )
 
             return results
 
         except Exception as e:
             self.logger.error(
-                "Endpoint search failed",
-                query=query,
-                error=str(e)
+                "Endpoint search failed", query=query, error=str(e)
             )
             raise
 
@@ -291,7 +296,7 @@ class SwaggerMcpServer:
         self,
         schema_name: str,
         include_examples: bool = True,
-        resolve_refs: bool = True
+        resolve_refs: bool = True,
     ) -> Dict[str, Any]:
         """Get detailed schema definition."""
         if not self.schema_repo:
@@ -302,7 +307,7 @@ class SwaggerMcpServer:
                 "Retrieving schema",
                 schema_name=schema_name,
                 include_examples=include_examples,
-                resolve_refs=resolve_refs
+                resolve_refs=resolve_refs,
             )
 
             # Get schema from repository
@@ -318,15 +323,18 @@ class SwaggerMcpServer:
                 "definition": schema.definition,
                 "description": schema.description,
                 "required_fields": schema.required_fields,
-                "properties_count": len(schema.definition.get("properties", {})) if isinstance(schema.definition, dict) else 0
+                "properties_count": len(
+                    schema.definition.get("properties", {})
+                )
+                if isinstance(schema.definition, dict)
+                else 0,
             }
 
             if include_examples and schema.examples:
                 result["examples"] = schema.examples
 
             self.logger.info(
-                "Schema retrieval completed",
-                schema_name=schema_name
+                "Schema retrieval completed", schema_name=schema_name
             )
 
             return result
@@ -337,7 +345,7 @@ class SwaggerMcpServer:
             self.logger.error(
                 "Schema retrieval failed",
                 schema_name=schema_name,
-                error=str(e)
+                error=str(e),
             )
             raise
 
@@ -345,7 +353,7 @@ class SwaggerMcpServer:
         self,
         endpoint_id: str,
         language: str = "curl",
-        include_auth: bool = True
+        include_auth: bool = True,
     ) -> Dict[str, Any]:
         """Generate code example for an endpoint."""
         if not self.endpoint_repo:
@@ -356,7 +364,7 @@ class SwaggerMcpServer:
                 "Generating code example",
                 endpoint_id=endpoint_id,
                 language=language,
-                include_auth=include_auth
+                include_auth=include_auth,
             )
 
             # Get endpoint details
@@ -373,13 +381,13 @@ class SwaggerMcpServer:
                 "method": endpoint.http_method,
                 "path": endpoint.path,
                 "example": f"# {language.upper()} example for {endpoint.http_method} {endpoint.path}\n# TODO: Implement code generation",
-                "description": f"Code example for {endpoint.summary or endpoint.path}"
+                "description": f"Code example for {endpoint.summary or endpoint.path}",
             }
 
             self.logger.info(
                 "Code example generation completed",
                 endpoint_id=endpoint_id,
-                language=language
+                language=language,
             )
 
             return result
@@ -390,7 +398,7 @@ class SwaggerMcpServer:
             self.logger.error(
                 "Code example generation failed",
                 endpoint_id=endpoint_id,
-                error=str(e)
+                error=str(e),
             )
             raise
 
@@ -418,10 +426,7 @@ class SwaggerMcpServer:
             return "\n".join(info_parts)
 
         except Exception as e:
-            self.logger.error(
-                "Failed to get API info",
-                error=str(e)
-            )
+            self.logger.error("Failed to get API info", error=str(e))
             return f"Error retrieving API information: {str(e)}"
 
     async def _get_health_status(self) -> str:
@@ -434,21 +439,18 @@ class SwaggerMcpServer:
                 f"Server Status: {self.settings.server.name} v{self.settings.server.version}",
                 f"Database Status: {db_health.get('status', 'unknown')}",
                 f"Database Path: {db_health.get('database_path', 'unknown')}",
-                f"Database Size: {db_health.get('file_size_bytes', 0)} bytes"
+                f"Database Size: {db_health.get('file_size_bytes', 0)} bytes",
             ]
 
-            if 'table_counts' in db_health:
+            if "table_counts" in db_health:
                 health_info.append("Table Counts:")
-                for table, count in db_health['table_counts'].items():
+                for table, count in db_health["table_counts"].items():
                     health_info.append(f"  {table}: {count}")
 
             return "\n".join(health_info)
 
         except Exception as e:
-            self.logger.error(
-                "Failed to get health status",
-                error=str(e)
-            )
+            self.logger.error("Failed to get health status", error=str(e))
             return f"Error retrieving health status: {str(e)}"
 
     async def run_stdio(self) -> None:
@@ -466,10 +468,7 @@ class SwaggerMcpServer:
             await self.server.run(transport)
 
         except Exception as e:
-            self.logger.error(
-                "Failed to run MCP server",
-                error=str(e)
-            )
+            self.logger.error("Failed to run MCP server", error=str(e))
             raise
         finally:
             await self.cleanup()
@@ -478,9 +477,7 @@ class SwaggerMcpServer:
         """Run the server with SSE transport."""
         try:
             self.logger.info(
-                "Starting MCP server with SSE transport",
-                host=host,
-                port=port
+                "Starting MCP server with SSE transport", host=host, port=port
             )
 
             # Initialize server components
@@ -493,10 +490,7 @@ class SwaggerMcpServer:
             await self.server.run(transport)
 
         except Exception as e:
-            self.logger.error(
-                "Failed to run MCP server",
-                error=str(e)
-            )
+            self.logger.error("Failed to run MCP server", error=str(e))
             raise
         finally:
             await self.cleanup()
@@ -510,10 +504,7 @@ class SwaggerMcpServer:
                 await self.db_manager.close()
 
         except Exception as e:
-            self.logger.error(
-                "Error during cleanup",
-                error=str(e)
-            )
+            self.logger.error("Error during cleanup", error=str(e))
 
     @asynccontextmanager
     async def lifespan(self):
@@ -549,23 +540,21 @@ async def main() -> None:
         "--transport",
         choices=["stdio", "sse"],
         default="stdio",
-        help="Transport type (default: stdio)"
+        help="Transport type (default: stdio)",
     )
     parser.add_argument(
         "--host",
         default="localhost",
-        help="Host for SSE transport (default: localhost)"
+        help="Host for SSE transport (default: localhost)",
     )
     parser.add_argument(
         "--port",
         type=int,
         default=8080,
-        help="Port for SSE transport (default: 8080)"
+        help="Port for SSE transport (default: 8080)",
     )
     parser.add_argument(
-        "--debug",
-        action="store_true",
-        help="Enable debug logging"
+        "--debug", action="store_true", help="Enable debug logging"
     )
 
     args = parser.parse_args()

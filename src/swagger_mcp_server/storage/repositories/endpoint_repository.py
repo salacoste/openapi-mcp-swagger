@@ -1,12 +1,16 @@
 """Repository for endpoint data access operations."""
 
 from typing import Any, Dict, List, Optional, Tuple
-from sqlalchemy import select, text, func, and_, or_
+
+from sqlalchemy import and_, func, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from swagger_mcp_server.storage.models import Endpoint, APIMetadata
-from swagger_mcp_server.storage.repositories.base import BaseRepository, RepositoryError
 from swagger_mcp_server.config.logging import get_logger
+from swagger_mcp_server.storage.models import APIMetadata, Endpoint
+from swagger_mcp_server.storage.repositories.base import (
+    BaseRepository,
+    RepositoryError,
+)
 
 logger = get_logger(__name__)
 
@@ -25,7 +29,7 @@ class EndpointRepository(BaseRepository[Endpoint]):
         tags: Optional[List[str]] = None,
         deprecated: Optional[bool] = None,
         limit: int = 50,
-        offset: int = 0
+        offset: int = 0,
     ) -> List[Endpoint]:
         """Search endpoints using full-text search and filters."""
         try:
@@ -37,7 +41,7 @@ class EndpointRepository(BaseRepository[Endpoint]):
                     tags=tags,
                     deprecated=deprecated,
                     limit=limit,
-                    offset=offset
+                    offset=offset,
                 )
 
             # Use FTS5 for full-text search
@@ -57,15 +61,19 @@ class EndpointRepository(BaseRepository[Endpoint]):
                 params.append(api_id)
 
             if methods:
-                method_placeholders = ','.join(['?' for _ in methods])
-                conditions.append(f"endpoints.method IN ({method_placeholders})")
+                method_placeholders = ",".join(["?" for _ in methods])
+                conditions.append(
+                    f"endpoints.method IN ({method_placeholders})"
+                )
                 params.extend(methods)
 
             if tags:
                 # Search in tags JSON array
                 tag_conditions = []
                 for tag in tags:
-                    tag_conditions.append("JSON_EXTRACT(endpoints.tags, '$') LIKE ?")
+                    tag_conditions.append(
+                        "JSON_EXTRACT(endpoints.tags, '$') LIKE ?"
+                    )
                     params.append(f'%"{tag}"%')
                 if tag_conditions:
                     conditions.append(f"({' OR '.join(tag_conditions)})")
@@ -95,7 +103,7 @@ class EndpointRepository(BaseRepository[Endpoint]):
             self.logger.debug(
                 "Endpoints searched with FTS",
                 query=query,
-                found=len(endpoints)
+                found=len(endpoints),
             )
 
             return endpoints
@@ -104,7 +112,7 @@ class EndpointRepository(BaseRepository[Endpoint]):
             self.logger.warning(
                 "FTS search failed, falling back to LIKE search",
                 query=query,
-                error=str(e)
+                error=str(e),
             )
             # Fallback to LIKE search if FTS fails
             return await self._like_search_endpoints(
@@ -119,7 +127,7 @@ class EndpointRepository(BaseRepository[Endpoint]):
         tags: Optional[List[str]] = None,
         deprecated: Optional[bool] = None,
         limit: int = 50,
-        offset: int = 0
+        offset: int = 0,
     ) -> List[Endpoint]:
         """Fallback search using LIKE operations."""
         stmt = select(Endpoint)
@@ -135,7 +143,7 @@ class EndpointRepository(BaseRepository[Endpoint]):
                 Endpoint.operation_id.ilike(term_pattern),
                 Endpoint.summary.ilike(term_pattern),
                 Endpoint.description.ilike(term_pattern),
-                Endpoint.searchable_text.ilike(term_pattern)
+                Endpoint.searchable_text.ilike(term_pattern),
             )
             text_conditions.append(term_conditions)
 
@@ -174,16 +182,16 @@ class EndpointRepository(BaseRepository[Endpoint]):
         tags: Optional[List[str]] = None,
         deprecated: Optional[bool] = None,
         limit: int = 50,
-        offset: int = 0
+        offset: int = 0,
     ) -> List[Endpoint]:
         """Filter endpoints without text search."""
         filters = {}
 
         if api_id:
-            filters['api_id'] = api_id
+            filters["api_id"] = api_id
 
         if deprecated is not None:
-            filters['deprecated'] = deprecated
+            filters["deprecated"] = deprecated
 
         # For methods and tags, we need custom filtering
         stmt = select(Endpoint)
@@ -211,18 +219,12 @@ class EndpointRepository(BaseRepository[Endpoint]):
         return list(endpoints)
 
     async def get_by_path_method(
-        self,
-        path: str,
-        method: str,
-        api_id: Optional[int] = None
+        self, path: str, method: str, api_id: Optional[int] = None
     ) -> Optional[Endpoint]:
         """Get endpoint by path and method."""
         try:
             stmt = select(Endpoint).where(
-                and_(
-                    Endpoint.path == path,
-                    Endpoint.method == method.lower()
-                )
+                and_(Endpoint.path == path, Endpoint.method == method.lower())
             )
 
             if api_id:
@@ -239,18 +241,18 @@ class EndpointRepository(BaseRepository[Endpoint]):
                 path=path,
                 method=method,
                 api_id=api_id,
-                error=str(e)
+                error=str(e),
             )
             raise RepositoryError(f"Failed to get endpoint: {str(e)}")
 
     async def get_by_operation_id(
-        self,
-        operation_id: str,
-        api_id: Optional[int] = None
+        self, operation_id: str, api_id: Optional[int] = None
     ) -> Optional[Endpoint]:
         """Get endpoint by operation ID."""
         try:
-            stmt = select(Endpoint).where(Endpoint.operation_id == operation_id)
+            stmt = select(Endpoint).where(
+                Endpoint.operation_id == operation_id
+            )
 
             if api_id:
                 stmt = stmt.where(Endpoint.api_id == api_id)
@@ -265,15 +267,17 @@ class EndpointRepository(BaseRepository[Endpoint]):
                 "Failed to get endpoint by operation ID",
                 operation_id=operation_id,
                 api_id=api_id,
-                error=str(e)
+                error=str(e),
             )
-            raise RepositoryError(f"Failed to get endpoint by operation ID: {str(e)}")
+            raise RepositoryError(
+                f"Failed to get endpoint by operation ID: {str(e)}"
+            )
 
     async def get_by_tags(
         self,
         tags: List[str],
         api_id: Optional[int] = None,
-        match_all: bool = False
+        match_all: bool = False,
     ) -> List[Endpoint]:
         """Get endpoints by tags."""
         try:
@@ -303,14 +307,12 @@ class EndpointRepository(BaseRepository[Endpoint]):
                 "Failed to get endpoints by tags",
                 tags=tags,
                 api_id=api_id,
-                error=str(e)
+                error=str(e),
             )
             raise RepositoryError(f"Failed to get endpoints by tags: {str(e)}")
 
     async def get_by_api_id(
-        self,
-        api_id: int,
-        include_deprecated: bool = True
+        self, api_id: int, include_deprecated: bool = True
     ) -> List[Endpoint]:
         """Get all endpoints for a specific API."""
         try:
@@ -330,14 +332,14 @@ class EndpointRepository(BaseRepository[Endpoint]):
             self.logger.error(
                 "Failed to get endpoints by API ID",
                 api_id=api_id,
-                error=str(e)
+                error=str(e),
             )
-            raise RepositoryError(f"Failed to get endpoints by API ID: {str(e)}")
+            raise RepositoryError(
+                f"Failed to get endpoints by API ID: {str(e)}"
+            )
 
     async def get_methods_for_path(
-        self,
-        path: str,
-        api_id: Optional[int] = None
+        self, path: str, api_id: Optional[int] = None
     ) -> List[str]:
         """Get all HTTP methods available for a path."""
         try:
@@ -356,7 +358,7 @@ class EndpointRepository(BaseRepository[Endpoint]):
                 "Failed to get methods for path",
                 path=path,
                 api_id=api_id,
-                error=str(e)
+                error=str(e),
             )
             raise RepositoryError(f"Failed to get methods for path: {str(e)}")
 
@@ -385,13 +387,13 @@ class EndpointRepository(BaseRepository[Endpoint]):
 
         except Exception as e:
             self.logger.error(
-                "Failed to get all tags",
-                api_id=api_id,
-                error=str(e)
+                "Failed to get all tags", api_id=api_id, error=str(e)
             )
             raise RepositoryError(f"Failed to get all tags: {str(e)}")
 
-    async def get_statistics(self, api_id: Optional[int] = None) -> Dict[str, Any]:
+    async def get_statistics(
+        self, api_id: Optional[int] = None
+    ) -> Dict[str, Any]:
         """Get endpoint statistics."""
         try:
             base_query = select(Endpoint)
@@ -407,20 +409,25 @@ class EndpointRepository(BaseRepository[Endpoint]):
 
             # Method distribution
             method_query = select(
-                Endpoint.method,
-                func.count(Endpoint.method).label('count')
+                Endpoint.method, func.count(Endpoint.method).label("count")
             )
             if api_id:
                 method_query = method_query.where(Endpoint.api_id == api_id)
 
             method_query = method_query.group_by(Endpoint.method)
             method_result = await self.session.execute(method_query)
-            methods = {row.method: row.count for row in method_result.fetchall()}
+            methods = {
+                row.method: row.count for row in method_result.fetchall()
+            }
 
             # Deprecated count
-            deprecated_query = select(func.count()).where(Endpoint.deprecated == True)
+            deprecated_query = select(func.count()).where(
+                Endpoint.deprecated == True
+            )
             if api_id:
-                deprecated_query = deprecated_query.where(Endpoint.api_id == api_id)
+                deprecated_query = deprecated_query.where(
+                    Endpoint.api_id == api_id
+                )
 
             deprecated_result = await self.session.execute(deprecated_query)
             deprecated_count = deprecated_result.scalar() or 0
@@ -429,53 +436,62 @@ class EndpointRepository(BaseRepository[Endpoint]):
             operation_id_query = select(func.count()).where(
                 and_(
                     Endpoint.operation_id.isnot(None),
-                    Endpoint.operation_id != ''
+                    Endpoint.operation_id != "",
                 )
             )
             if api_id:
-                operation_id_query = operation_id_query.where(Endpoint.api_id == api_id)
+                operation_id_query = operation_id_query.where(
+                    Endpoint.api_id == api_id
+                )
 
-            operation_id_result = await self.session.execute(operation_id_query)
+            operation_id_result = await self.session.execute(
+                operation_id_query
+            )
             with_operation_id = operation_id_result.scalar() or 0
 
             return {
-                'total_endpoints': total_endpoints,
-                'methods': methods,
-                'deprecated_count': deprecated_count,
-                'with_operation_id': with_operation_id,
-                'documentation_coverage': (
+                "total_endpoints": total_endpoints,
+                "methods": methods,
+                "deprecated_count": deprecated_count,
+                "with_operation_id": with_operation_id,
+                "documentation_coverage": (
                     (with_operation_id / total_endpoints * 100)
-                    if total_endpoints > 0 else 0
-                )
+                    if total_endpoints > 0
+                    else 0
+                ),
             }
 
         except Exception as e:
             self.logger.error(
                 "Failed to get endpoint statistics",
                 api_id=api_id,
-                error=str(e)
+                error=str(e),
             )
-            raise RepositoryError(f"Failed to get endpoint statistics: {str(e)}")
+            raise RepositoryError(
+                f"Failed to get endpoint statistics: {str(e)}"
+            )
 
     async def find_similar_endpoints(
         self,
         path: str,
         method: str,
         api_id: Optional[int] = None,
-        limit: int = 5
+        limit: int = 5,
     ) -> List[Endpoint]:
         """Find endpoints similar to the given path and method."""
         try:
             # Simple similarity based on path segments
-            path_segments = [seg for seg in path.split('/') if seg]
+            path_segments = [seg for seg in path.split("/") if seg]
             if not path_segments:
                 return []
 
             # Build LIKE conditions for path segments
             like_conditions = []
             for segment in path_segments:
-                if not segment.startswith('{'):  # Skip path parameters
-                    like_conditions.append(Endpoint.path.like(f'%/{segment}/%'))
+                if not segment.startswith("{"):  # Skip path parameters
+                    like_conditions.append(
+                        Endpoint.path.like(f"%/{segment}/%")
+                    )
 
             if not like_conditions:
                 return []
@@ -493,7 +509,12 @@ class EndpointRepository(BaseRepository[Endpoint]):
 
             # Exclude exact match
             stmt = stmt.where(
-                not_(and_(Endpoint.path == path, Endpoint.method == method.lower()))
+                not_(
+                    and_(
+                        Endpoint.path == path,
+                        Endpoint.method == method.lower(),
+                    )
+                )
             )
 
             stmt = stmt.limit(limit)
@@ -508,6 +529,8 @@ class EndpointRepository(BaseRepository[Endpoint]):
                 "Failed to find similar endpoints",
                 path=path,
                 method=method,
-                error=str(e)
+                error=str(e),
             )
-            raise RepositoryError(f"Failed to find similar endpoints: {str(e)}")
+            raise RepositoryError(
+                f"Failed to find similar endpoints: {str(e)}"
+            )

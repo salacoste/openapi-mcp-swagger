@@ -1,8 +1,8 @@
 """Installation and setup management package."""
 
-from .manager import InstallationManager, InstallationError
 from .compatibility import SystemCompatibilityChecker
-from .uninstaller import UninstallationManager, UninstallationError
+from .manager import InstallationError, InstallationManager
+from .uninstaller import UninstallationError, UninstallationManager
 
 __all__ = [
     "InstallationManager",

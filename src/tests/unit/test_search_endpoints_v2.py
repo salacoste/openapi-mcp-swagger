@@ -1,11 +1,12 @@
 """Comprehensive tests for enhanced searchEndpoints method (Story 2.2)."""
 
-import pytest
+from typing import Any, Dict, List
 from unittest.mock import AsyncMock, MagicMock
-from typing import Dict, Any, List
 
-from swagger_mcp_server.server.mcp_server_v2 import SwaggerMcpServer
+import pytest
+
 from swagger_mcp_server.config.settings import Settings
+from swagger_mcp_server.server.mcp_server_v2 import SwaggerMcpServer
 
 
 class TestEnhancedSearchEndpoints:
@@ -31,12 +32,19 @@ class TestEnhancedSearchEndpoints:
         user_endpoint.path = "/api/v1/users/{id}"
         user_endpoint.method = "GET"
         user_endpoint.summary = "Get user by ID"
-        user_endpoint.description = "Retrieve detailed user information including profile data"
+        user_endpoint.description = (
+            "Retrieve detailed user information including profile data"
+        )
         user_endpoint.operation_id = "getUserById"
         user_endpoint.tags = ["users", "profile"]
         user_endpoint.parameters = [
             {"name": "id", "in": "path", "required": True, "type": "string"},
-            {"name": "include_profile", "in": "query", "required": False, "type": "boolean"}
+            {
+                "name": "include_profile",
+                "in": "query",
+                "required": False,
+                "type": "boolean",
+            },
         ]
         user_endpoint.security = [{"bearerAuth": []}]
         user_endpoint.deprecated = False
@@ -48,11 +56,18 @@ class TestEnhancedSearchEndpoints:
         order_endpoint.path = "/api/v1/orders"
         order_endpoint.method = "POST"
         order_endpoint.summary = "Create new order"
-        order_endpoint.description = "Submit a new order with items and shipping information"
+        order_endpoint.description = (
+            "Submit a new order with items and shipping information"
+        )
         order_endpoint.operation_id = "createOrder"
         order_endpoint.tags = ["orders", "commerce"]
         order_endpoint.parameters = [
-            {"name": "X-API-Key", "in": "header", "required": True, "type": "string"}
+            {
+                "name": "X-API-Key",
+                "in": "header",
+                "required": True,
+                "type": "string",
+            }
         ]
         order_endpoint.security = [{"apiKey": []}]
         order_endpoint.deprecated = False
@@ -64,13 +79,30 @@ class TestEnhancedSearchEndpoints:
         product_endpoint.path = "/api/v1/products/search"
         product_endpoint.method = "GET"
         product_endpoint.summary = "Search products"
-        product_endpoint.description = "Search and filter products by various criteria"
+        product_endpoint.description = (
+            "Search and filter products by various criteria"
+        )
         product_endpoint.operation_id = "searchProducts"
         product_endpoint.tags = ["products", "search"]
         product_endpoint.parameters = [
-            {"name": "query", "in": "query", "required": True, "type": "string"},
-            {"name": "category", "in": "query", "required": False, "type": "string"},
-            {"name": "price_min", "in": "query", "required": False, "type": "number"}
+            {
+                "name": "query",
+                "in": "query",
+                "required": True,
+                "type": "string",
+            },
+            {
+                "name": "category",
+                "in": "query",
+                "required": False,
+                "type": "string",
+            },
+            {
+                "name": "price_min",
+                "in": "query",
+                "required": False,
+                "type": "number",
+            },
         ]
         product_endpoint.security = None
         product_endpoint.deprecated = False
@@ -91,17 +123,19 @@ class TestEnhancedSearchEndpoints:
             if query:
                 query_lower = query.lower()
                 filtered_endpoints = [
-                    ep for ep in mock_endpoints
-                    if (query_lower in ep.path.lower() or
-                        query_lower in (ep.summary or "").lower() or
-                        query_lower in (ep.description or "").lower())
+                    ep
+                    for ep in mock_endpoints
+                    if (
+                        query_lower in ep.path.lower()
+                        or query_lower in (ep.summary or "").lower()
+                        or query_lower in (ep.description or "").lower()
+                    )
                 ]
 
             # Method filtering
             if methods:
                 filtered_endpoints = [
-                    ep for ep in filtered_endpoints
-                    if ep.method in methods
+                    ep for ep in filtered_endpoints if ep.method in methods
                 ]
 
             return filtered_endpoints[:limit]
@@ -145,15 +179,13 @@ class TestEnhancedSearchEndpoints:
         """Test HTTP methods parameter validation."""
         # Valid methods
         result = await server._search_endpoints(
-            keywords="user",
-            httpMethods=["GET", "POST"]
+            keywords="user", httpMethods=["GET", "POST"]
         )
         assert "error" not in result
 
         # Invalid method
         result = await server._search_endpoints(
-            keywords="user",
-            httpMethods=["GET", "INVALID"]
+            keywords="user", httpMethods=["GET", "INVALID"]
         )
         assert "error" in result
         assert "Invalid HTTP methods" in result["error"]
@@ -200,8 +232,7 @@ class TestEnhancedSearchEndpoints:
         """Test HTTP method filtering functionality."""
         # Filter by single method
         result = await server._search_endpoints(
-            keywords="api",
-            httpMethods=["GET"]
+            keywords="api", httpMethods=["GET"]
         )
         assert "error" not in result
         for endpoint in result["results"]:
@@ -209,8 +240,7 @@ class TestEnhancedSearchEndpoints:
 
         # Filter by multiple methods
         result = await server._search_endpoints(
-            keywords="api",
-            httpMethods=["GET", "POST"]
+            keywords="api", httpMethods=["GET", "POST"]
         )
         assert "error" not in result
         for endpoint in result["results"]:
@@ -221,9 +251,7 @@ class TestEnhancedSearchEndpoints:
         """Test pagination functionality."""
         # Test first page
         result = await server._search_endpoints(
-            keywords="api",
-            page=1,
-            perPage=2
+            keywords="api", page=1, perPage=2
         )
         assert "error" not in result
         assert "pagination" in result
@@ -245,8 +273,12 @@ class TestEnhancedSearchEndpoints:
         # Check pagination metadata
         pagination = result["pagination"]
         required_pagination_fields = [
-            "total", "page", "per_page", "total_pages",
-            "has_more", "has_previous"
+            "total",
+            "page",
+            "per_page",
+            "total_pages",
+            "has_more",
+            "has_previous",
         ]
         for field in required_pagination_fields:
             assert field in pagination
@@ -254,7 +286,9 @@ class TestEnhancedSearchEndpoints:
         # Check search metadata
         metadata = result["search_metadata"]
         required_metadata_fields = [
-            "keywords", "http_methods_filter", "result_count"
+            "keywords",
+            "http_methods_filter",
+            "result_count",
         ]
         for field in required_metadata_fields:
             assert field in metadata
@@ -263,16 +297,29 @@ class TestEnhancedSearchEndpoints:
         if result["results"]:
             endpoint = result["results"][0]
             required_endpoint_fields = [
-                "endpoint_id", "path", "method", "summary",
-                "description", "operationId", "tags", "parameters",
-                "authentication", "deprecated"
+                "endpoint_id",
+                "path",
+                "method",
+                "summary",
+                "description",
+                "operationId",
+                "tags",
+                "parameters",
+                "authentication",
+                "deprecated",
             ]
             for field in required_endpoint_fields:
                 assert field in endpoint
 
             # Check parameters structure
             params = endpoint["parameters"]
-            required_param_fields = ["path", "query", "header", "body", "required"]
+            required_param_fields = [
+                "path",
+                "query",
+                "header",
+                "body",
+                "required",
+            ]
             for field in required_param_fields:
                 assert field in params
 
@@ -301,11 +348,14 @@ class TestEnhancedSearchEndpoints:
         if result["results"]:
             # Check that authentication info is extracted when present
             endpoints_with_auth = [
-                ep for ep in result["results"]
+                ep
+                for ep in result["results"]
                 if ep["authentication"] is not None
             ]
             # Should have at least one endpoint with auth info
-            assert len(endpoints_with_auth) >= 0  # May be 0 if no auth configured
+            assert (
+                len(endpoints_with_auth) >= 0
+            )  # May be 0 if no auth configured
 
     @pytest.mark.asyncio
     async def test_edge_cases(self, server):

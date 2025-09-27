@@ -12,7 +12,7 @@ from swagger_mcp_server.config.logging import (
     configure_logging,
     get_logger,
     log_performance,
-    sanitize_log_data
+    sanitize_log_data,
 )
 
 
@@ -61,10 +61,7 @@ def test_sanitize_log_data():
         "password": "secret123",
         "api_key": "abc123",
         "normal_field": "normal_value",
-        "nested": {
-            "token": "secret_token",
-            "safe_field": "safe_value"
-        }
+        "nested": {"token": "secret_token", "safe_field": "safe_value"},
     }
 
     sanitized = sanitize_log_data(data)
@@ -84,16 +81,14 @@ def test_json_logging_format():
 
     try:
         logger = configure_logging(
-            level="INFO",
-            log_file=temp_file,
-            json_logs=True
+            level="INFO", log_file=temp_file, json_logs=True
         )
         logger.info("Test JSON message", test_key="test_value", number=42)
 
         # Read and parse JSON log
         log_path = Path(temp_file)
         content = log_path.read_text().strip()
-        log_entry = json.loads(content.split('\n')[-1])  # Get last log line
+        log_entry = json.loads(content.split("\n")[-1])  # Get last log line
 
         assert "Test JSON message" in log_entry["event"]
         assert log_entry["test_key"] == "test_value"

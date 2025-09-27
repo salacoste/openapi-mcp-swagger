@@ -1,31 +1,35 @@
 """Base repository class with common CRUD operations."""
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Type, TypeVar, Generic, Union
-from sqlalchemy import select, update, delete, func, text
+from typing import Any, Dict, Generic, List, Optional, Type, TypeVar, Union
+
+from sqlalchemy import delete, func, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from swagger_mcp_server.storage.models import Base
 from swagger_mcp_server.config.logging import get_logger
+from swagger_mcp_server.storage.models import Base
 
 logger = get_logger(__name__)
 
-T = TypeVar('T', bound=Base)
+T = TypeVar("T", bound=Base)
 
 
 class RepositoryError(Exception):
     """Base exception for repository operations."""
+
     pass
 
 
 class NotFoundError(RepositoryError):
     """Raised when a requested entity is not found."""
+
     pass
 
 
 class ConflictError(RepositoryError):
     """Raised when an operation conflicts with existing data."""
+
     pass
 
 
@@ -47,7 +51,7 @@ class BaseRepository(ABC, Generic[T]):
             self.logger.debug(
                 "Entity created",
                 entity_type=self.model_class.__name__,
-                entity_id=getattr(entity, 'id', None)
+                entity_id=getattr(entity, "id", None),
             )
 
             return entity
@@ -57,9 +61,11 @@ class BaseRepository(ABC, Generic[T]):
             self.logger.error(
                 "Failed to create entity",
                 entity_type=self.model_class.__name__,
-                error=str(e)
+                error=str(e),
             )
-            raise RepositoryError(f"Failed to create {self.model_class.__name__}: {str(e)}")
+            raise RepositoryError(
+                f"Failed to create {self.model_class.__name__}: {str(e)}"
+            )
 
     async def create_many(self, entities: List[T]) -> List[T]:
         """Create multiple entities in batch."""
@@ -74,7 +80,7 @@ class BaseRepository(ABC, Generic[T]):
             self.logger.debug(
                 "Entities created in batch",
                 entity_type=self.model_class.__name__,
-                count=len(entities)
+                count=len(entities),
             )
 
             return entities
@@ -85,14 +91,18 @@ class BaseRepository(ABC, Generic[T]):
                 "Failed to create entities in batch",
                 entity_type=self.model_class.__name__,
                 count=len(entities),
-                error=str(e)
+                error=str(e),
             )
-            raise RepositoryError(f"Failed to create {self.model_class.__name__} entities: {str(e)}")
+            raise RepositoryError(
+                f"Failed to create {self.model_class.__name__} entities: {str(e)}"
+            )
 
     async def get_by_id(self, entity_id: int) -> Optional[T]:
         """Get entity by ID."""
         try:
-            stmt = select(self.model_class).where(self.model_class.id == entity_id)
+            stmt = select(self.model_class).where(
+                self.model_class.id == entity_id
+            )
             result = await self.session.execute(stmt)
             entity = result.scalar_one_or_none()
 
@@ -100,7 +110,7 @@ class BaseRepository(ABC, Generic[T]):
                 self.logger.debug(
                     "Entity retrieved by ID",
                     entity_type=self.model_class.__name__,
-                    entity_id=entity_id
+                    entity_id=entity_id,
                 )
 
             return entity
@@ -110,15 +120,19 @@ class BaseRepository(ABC, Generic[T]):
                 "Failed to get entity by ID",
                 entity_type=self.model_class.__name__,
                 entity_id=entity_id,
-                error=str(e)
+                error=str(e),
             )
-            raise RepositoryError(f"Failed to get {self.model_class.__name__} by ID: {str(e)}")
+            raise RepositoryError(
+                f"Failed to get {self.model_class.__name__} by ID: {str(e)}"
+            )
 
     async def get_by_id_or_raise(self, entity_id: int) -> T:
         """Get entity by ID or raise NotFoundError."""
         entity = await self.get_by_id(entity_id)
         if entity is None:
-            raise NotFoundError(f"{self.model_class.__name__} with ID {entity_id} not found")
+            raise NotFoundError(
+                f"{self.model_class.__name__} with ID {entity_id} not found"
+            )
         return entity
 
     async def update(self, entity: T) -> T:
@@ -131,7 +145,7 @@ class BaseRepository(ABC, Generic[T]):
             self.logger.debug(
                 "Entity updated",
                 entity_type=self.model_class.__name__,
-                entity_id=getattr(entity, 'id', None)
+                entity_id=getattr(entity, "id", None),
             )
 
             return entity
@@ -141,12 +155,16 @@ class BaseRepository(ABC, Generic[T]):
             self.logger.error(
                 "Failed to update entity",
                 entity_type=self.model_class.__name__,
-                entity_id=getattr(entity, 'id', None),
-                error=str(e)
+                entity_id=getattr(entity, "id", None),
+                error=str(e),
             )
-            raise RepositoryError(f"Failed to update {self.model_class.__name__}: {str(e)}")
+            raise RepositoryError(
+                f"Failed to update {self.model_class.__name__}: {str(e)}"
+            )
 
-    async def update_by_id(self, entity_id: int, updates: Dict[str, Any]) -> Optional[T]:
+    async def update_by_id(
+        self, entity_id: int, updates: Dict[str, Any]
+    ) -> Optional[T]:
         """Update entity by ID with given field updates."""
         try:
             # First check if entity exists
@@ -166,7 +184,7 @@ class BaseRepository(ABC, Generic[T]):
                 "Entity updated by ID",
                 entity_type=self.model_class.__name__,
                 entity_id=entity_id,
-                updated_fields=list(updates.keys())
+                updated_fields=list(updates.keys()),
             )
 
             return entity
@@ -177,9 +195,11 @@ class BaseRepository(ABC, Generic[T]):
                 "Failed to update entity by ID",
                 entity_type=self.model_class.__name__,
                 entity_id=entity_id,
-                error=str(e)
+                error=str(e),
             )
-            raise RepositoryError(f"Failed to update {self.model_class.__name__} by ID: {str(e)}")
+            raise RepositoryError(
+                f"Failed to update {self.model_class.__name__} by ID: {str(e)}"
+            )
 
     async def delete(self, entity: T) -> bool:
         """Delete an entity."""
@@ -190,7 +210,7 @@ class BaseRepository(ABC, Generic[T]):
             self.logger.debug(
                 "Entity deleted",
                 entity_type=self.model_class.__name__,
-                entity_id=getattr(entity, 'id', None)
+                entity_id=getattr(entity, "id", None),
             )
 
             return True
@@ -200,15 +220,19 @@ class BaseRepository(ABC, Generic[T]):
             self.logger.error(
                 "Failed to delete entity",
                 entity_type=self.model_class.__name__,
-                entity_id=getattr(entity, 'id', None),
-                error=str(e)
+                entity_id=getattr(entity, "id", None),
+                error=str(e),
             )
-            raise RepositoryError(f"Failed to delete {self.model_class.__name__}: {str(e)}")
+            raise RepositoryError(
+                f"Failed to delete {self.model_class.__name__}: {str(e)}"
+            )
 
     async def delete_by_id(self, entity_id: int) -> bool:
         """Delete entity by ID."""
         try:
-            stmt = delete(self.model_class).where(self.model_class.id == entity_id)
+            stmt = delete(self.model_class).where(
+                self.model_class.id == entity_id
+            )
             result = await self.session.execute(stmt)
 
             deleted = result.rowcount > 0
@@ -217,7 +241,7 @@ class BaseRepository(ABC, Generic[T]):
                 self.logger.debug(
                     "Entity deleted by ID",
                     entity_type=self.model_class.__name__,
-                    entity_id=entity_id
+                    entity_id=entity_id,
                 )
 
             return deleted
@@ -228,16 +252,18 @@ class BaseRepository(ABC, Generic[T]):
                 "Failed to delete entity by ID",
                 entity_type=self.model_class.__name__,
                 entity_id=entity_id,
-                error=str(e)
+                error=str(e),
             )
-            raise RepositoryError(f"Failed to delete {self.model_class.__name__} by ID: {str(e)}")
+            raise RepositoryError(
+                f"Failed to delete {self.model_class.__name__} by ID: {str(e)}"
+            )
 
     async def list(
         self,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         order_by: Optional[str] = None,
-        filters: Optional[Dict[str, Any]] = None
+        filters: Optional[Dict[str, Any]] = None,
     ) -> List[T]:
         """List entities with optional pagination, ordering, and filtering."""
         try:
@@ -273,7 +299,7 @@ class BaseRepository(ABC, Generic[T]):
                 entity_type=self.model_class.__name__,
                 count=len(entities),
                 limit=limit,
-                offset=offset
+                offset=offset,
             )
 
             return list(entities)
@@ -284,9 +310,11 @@ class BaseRepository(ABC, Generic[T]):
                 entity_type=self.model_class.__name__,
                 limit=limit,
                 offset=offset,
-                error=str(e)
+                error=str(e),
             )
-            raise RepositoryError(f"Failed to list {self.model_class.__name__} entities: {str(e)}")
+            raise RepositoryError(
+                f"Failed to list {self.model_class.__name__} entities: {str(e)}"
+            )
 
     async def count(self, filters: Optional[Dict[str, Any]] = None) -> int:
         """Count entities with optional filtering."""
@@ -309,7 +337,7 @@ class BaseRepository(ABC, Generic[T]):
             self.logger.debug(
                 "Entities counted",
                 entity_type=self.model_class.__name__,
-                count=count
+                count=count,
             )
 
             return count or 0
@@ -318,9 +346,11 @@ class BaseRepository(ABC, Generic[T]):
             self.logger.error(
                 "Failed to count entities",
                 entity_type=self.model_class.__name__,
-                error=str(e)
+                error=str(e),
             )
-            raise RepositoryError(f"Failed to count {self.model_class.__name__} entities: {str(e)}")
+            raise RepositoryError(
+                f"Failed to count {self.model_class.__name__} entities: {str(e)}"
+            )
 
     async def exists(self, filters: Dict[str, Any]) -> bool:
         """Check if entities exist with given filters."""
@@ -345,11 +375,15 @@ class BaseRepository(ABC, Generic[T]):
                 "Failed to check entity existence",
                 entity_type=self.model_class.__name__,
                 filters=filters,
-                error=str(e)
+                error=str(e),
             )
-            raise RepositoryError(f"Failed to check {self.model_class.__name__} existence: {str(e)}")
+            raise RepositoryError(
+                f"Failed to check {self.model_class.__name__} existence: {str(e)}"
+            )
 
-    async def execute_raw_query(self, query: str, params: Optional[Dict[str, Any]] = None) -> Any:
+    async def execute_raw_query(
+        self, query: str, params: Optional[Dict[str, Any]] = None
+    ) -> Any:
         """Execute raw SQL query."""
         try:
             stmt = text(query)
@@ -364,7 +398,7 @@ class BaseRepository(ABC, Generic[T]):
             self.logger.error(
                 "Failed to execute raw query",
                 query=query[:100],  # Log first 100 chars
-                error=str(e)
+                error=str(e),
             )
             raise RepositoryError(f"Failed to execute raw query: {str(e)}")
 
@@ -379,7 +413,7 @@ class BaseRepository(ABC, Generic[T]):
             self.logger.debug(
                 "Bulk insert completed",
                 entity_type=self.model_class.__name__,
-                count=len(data)
+                count=len(data),
             )
 
         except Exception as e:
@@ -388,14 +422,14 @@ class BaseRepository(ABC, Generic[T]):
                 "Failed to bulk insert",
                 entity_type=self.model_class.__name__,
                 count=len(data),
-                error=str(e)
+                error=str(e),
             )
-            raise RepositoryError(f"Failed to bulk insert {self.model_class.__name__}: {str(e)}")
+            raise RepositoryError(
+                f"Failed to bulk insert {self.model_class.__name__}: {str(e)}"
+            )
 
     async def bulk_update_dicts(
-        self,
-        updates: List[Dict[str, Any]],
-        match_field: str = 'id'
+        self, updates: List[Dict[str, Any]], match_field: str = "id"
     ) -> int:
         """Bulk update entities using dictionaries."""
         try:
@@ -408,7 +442,9 @@ class BaseRepository(ABC, Generic[T]):
                 match_value = update_data.pop(match_field)
                 stmt = (
                     update(self.model_class)
-                    .where(getattr(self.model_class, match_field) == match_value)
+                    .where(
+                        getattr(self.model_class, match_field) == match_value
+                    )
                     .values(**update_data)
                 )
 
@@ -420,7 +456,7 @@ class BaseRepository(ABC, Generic[T]):
             self.logger.debug(
                 "Bulk update completed",
                 entity_type=self.model_class.__name__,
-                updated_count=update_count
+                updated_count=update_count,
             )
 
             return update_count
@@ -430,16 +466,18 @@ class BaseRepository(ABC, Generic[T]):
             self.logger.error(
                 "Failed to bulk update",
                 entity_type=self.model_class.__name__,
-                error=str(e)
+                error=str(e),
             )
-            raise RepositoryError(f"Failed to bulk update {self.model_class.__name__}: {str(e)}")
+            raise RepositoryError(
+                f"Failed to bulk update {self.model_class.__name__}: {str(e)}"
+            )
 
     async def get_page(
         self,
         page: int = 1,
         per_page: int = 20,
         order_by: Optional[str] = None,
-        filters: Optional[Dict[str, Any]] = None
+        filters: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Get paginated results with metadata."""
         try:
@@ -454,7 +492,7 @@ class BaseRepository(ABC, Generic[T]):
                 limit=per_page,
                 offset=offset,
                 order_by=order_by,
-                filters=filters
+                filters=filters,
             )
 
             # Calculate pagination metadata
@@ -463,15 +501,15 @@ class BaseRepository(ABC, Generic[T]):
             has_next = page < total_pages
 
             return {
-                'entities': entities,
-                'pagination': {
-                    'page': page,
-                    'per_page': per_page,
-                    'total_count': total_count,
-                    'total_pages': total_pages,
-                    'has_prev': has_prev,
-                    'has_next': has_next,
-                }
+                "entities": entities,
+                "pagination": {
+                    "page": page,
+                    "per_page": per_page,
+                    "total_count": total_count,
+                    "total_pages": total_pages,
+                    "has_prev": has_prev,
+                    "has_next": has_next,
+                },
             }
 
         except Exception as e:
@@ -480,6 +518,8 @@ class BaseRepository(ABC, Generic[T]):
                 entity_type=self.model_class.__name__,
                 page=page,
                 per_page=per_page,
-                error=str(e)
+                error=str(e),
             )
-            raise RepositoryError(f"Failed to get paginated {self.model_class.__name__}: {str(e)}")
+            raise RepositoryError(
+                f"Failed to get paginated {self.model_class.__name__}: {str(e)}"
+            )

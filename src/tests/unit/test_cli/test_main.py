@@ -1,14 +1,15 @@
 """Tests for the main CLI module."""
 
-import pytest
+import json
 import os
 import tempfile
-import json
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
+import pytest
 from click.testing import CliRunner
 
-from swagger_mcp_server.main import cli, CLIError, CLIContext
+from swagger_mcp_server.main import CLIContext, CLIError, cli
 
 
 class TestCLI:
@@ -57,7 +58,7 @@ class TestCLI:
             swagger_data = {
                 "swagger": "2.0",
                 "info": {"title": "Test API", "version": "1.0"},
-                "paths": {}
+                "paths": {},
             }
             json.dump(swagger_data, f)
             f.flush()
@@ -76,19 +77,26 @@ class TestCLI:
             swagger_data = {
                 "openapi": "3.0.0",
                 "info": {"title": "Test API", "version": "1.0"},
-                "paths": {}
+                "paths": {},
             }
             json.dump(swagger_data, f)
             f.flush()
 
             try:
-                result = self.runner.invoke(cli, [
-                    "convert", f.name,
-                    "--output", "/tmp/test-server",
-                    "--port", "9000",
-                    "--name", "TestServer",
-                    "--force"
-                ])
+                result = self.runner.invoke(
+                    cli,
+                    [
+                        "convert",
+                        f.name,
+                        "--output",
+                        "/tmp/test-server",
+                        "--port",
+                        "9000",
+                        "--name",
+                        "TestServer",
+                        "--force",
+                    ],
+                )
                 assert result.exit_code == 0
                 assert "Converting Swagger file" in result.output
                 assert "/tmp/test-server" in result.output
@@ -121,12 +129,9 @@ class TestCLI:
 
     def test_serve_command_with_options(self):
         """Test serve command with options."""
-        result = self.runner.invoke(cli, [
-            "serve",
-            "--port", "9000",
-            "--host", "0.0.0.0",
-            "--daemon"
-        ])
+        result = self.runner.invoke(
+            cli, ["serve", "--port", "9000", "--host", "0.0.0.0", "--daemon"]
+        )
         assert result.exit_code == 0
         assert "0.0.0.0:9000" in result.output
         assert "Daemon mode" in result.output
@@ -143,16 +148,16 @@ class TestCLI:
         """Test status command basic functionality."""
         result = self.runner.invoke(cli, ["status"])
         assert result.exit_code == 0
-        assert "Status command implementation coming in Story 4.3" in result.output
+        assert (
+            "Status command implementation coming in Story 4.3"
+            in result.output
+        )
 
     def test_status_command_with_options(self):
         """Test status command with options."""
-        result = self.runner.invoke(cli, [
-            "status",
-            "--all",
-            "--port", "9000",
-            "--format", "json"
-        ])
+        result = self.runner.invoke(
+            cli, ["status", "--all", "--port", "9000", "--format", "json"]
+        )
         assert result.exit_code == 0
         assert "Showing all MCP servers" in result.output
         assert "9000" in result.output
@@ -171,11 +176,16 @@ class TestCLI:
         """Test config command show action."""
         result = self.runner.invoke(cli, ["config", "show"])
         assert result.exit_code == 0
-        assert "Config command implementation coming in Story 4.4" in result.output
+        assert (
+            "Config command implementation coming in Story 4.4"
+            in result.output
+        )
 
     def test_config_command_set(self):
         """Test config command set action."""
-        result = self.runner.invoke(cli, ["config", "set", "server.port", "9000"])
+        result = self.runner.invoke(
+            cli, ["config", "set", "server.port", "9000"]
+        )
         assert result.exit_code == 0
         assert "set" in result.output
         assert "server.port" in result.output
@@ -183,9 +193,9 @@ class TestCLI:
 
     def test_config_command_with_global_flag(self):
         """Test config command with global flag."""
-        result = self.runner.invoke(cli, [
-            "config", "set", "server.port", "9000", "--global"
-        ])
+        result = self.runner.invoke(
+            cli, ["config", "set", "server.port", "9000", "--global"]
+        )
         assert result.exit_code == 0
         assert "Global configuration" in result.output
 
@@ -238,7 +248,9 @@ class TestCLIContext:
 
     def test_cli_context_config_loading(self):
         """Test CLI context configuration loading."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".yaml", delete=False
+        ) as f:
             f.write("server:\n  port: 9000\n")
             f.flush()
 
@@ -252,7 +264,7 @@ class TestCLIContext:
 
     def test_cli_context_env_config(self):
         """Test CLI context environment variable loading."""
-        with patch.dict(os.environ, {'SWAGGER_MCP_PORT': '9000'}):
+        with patch.dict(os.environ, {"SWAGGER_MCP_PORT": "9000"}):
             context = CLIContext()
             # Environment config should be loaded
             assert isinstance(context.config, dict)
@@ -284,7 +296,7 @@ class TestCLIIntegration:
             swagger_data = {
                 "openapi": "3.0.0",
                 "info": {"title": "Test API", "version": "1.0"},
-                "paths": {"/test": {"get": {"summary": "Test endpoint"}}}
+                "paths": {"/test": {"get": {"summary": "Test endpoint"}}},
             }
             json.dump(swagger_data, f)
             f.flush()
@@ -317,11 +329,7 @@ class TestCLIIntegration:
 
     def test_global_options_with_commands(self):
         """Test global options work with all commands."""
-        commands = [
-            ["status"],
-            ["config", "show"],
-            ["help"]
-        ]
+        commands = [["status"], ["config", "show"], ["help"]]
 
         for command in commands:
             # Test with verbose
@@ -331,7 +339,9 @@ class TestCLIIntegration:
             # Test with quiet (skip help as it doesn't respect quiet)
             if command != ["help"]:
                 result = self.runner.invoke(cli, ["--quiet"] + command)
-                assert result.exit_code == 0, f"Quiet mode failed for {command}"
+                assert (
+                    result.exit_code == 0
+                ), f"Quiet mode failed for {command}"
 
 
 @pytest.mark.performance
@@ -359,7 +369,13 @@ class TestCLIPerformance:
         """Test help command response time."""
         import time
 
-        commands = ["--help", "convert --help", "serve --help", "status --help", "config --help"]
+        commands = [
+            "--help",
+            "convert --help",
+            "serve --help",
+            "status --help",
+            "config --help",
+        ]
 
         for command in commands:
             start_time = time.time()
@@ -369,7 +385,9 @@ class TestCLIPerformance:
             assert result.exit_code == 0
             response_time = end_time - start_time
             # Help should respond in less than 0.5 seconds
-            assert response_time < 0.5, f"Help for '{command}' took {response_time:.2f}s"
+            assert (
+                response_time < 0.5
+            ), f"Help for '{command}' took {response_time:.2f}s"
 
 
 class TestCLICrossPlatform:
@@ -382,7 +400,10 @@ class TestCLICrossPlatform:
     def test_path_handling(self):
         """Test cross-platform path handling."""
         with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
-            swagger_data = {"openapi": "3.0.0", "info": {"title": "Test", "version": "1.0"}}
+            swagger_data = {
+                "openapi": "3.0.0",
+                "info": {"title": "Test", "version": "1.0"},
+            }
             json.dump(swagger_data, f)
             f.flush()
 

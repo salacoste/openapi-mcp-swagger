@@ -1,11 +1,12 @@
 """Server registry for tracking and managing MCP server instances."""
 
+import asyncio
 import json
 import time
-import asyncio
+from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Any
-from dataclasses import dataclass, asdict
+from typing import Any, Dict, List, Optional
+
 import structlog
 
 logger = structlog.get_logger(__name__)
@@ -56,7 +57,9 @@ class ServerRegistry:
         Args:
             registry_dir: Directory for registry files (default: ~/.swagger-mcp-server)
         """
-        self.registry_dir = registry_dir or (Path.home() / ".swagger-mcp-server")
+        self.registry_dir = registry_dir or (
+            Path.home() / ".swagger-mcp-server"
+        )
         self.registry_file = self.registry_dir / "servers.json"
         self.lock_file = self.registry_dir / "registry.lock"
 
@@ -67,7 +70,9 @@ class ServerRegistry:
         if not self.registry_file.exists():
             self._save_registry({})
 
-    async def register_server(self, server_info: Dict[str, Any]) -> ServerInstance:
+    async def register_server(
+        self, server_info: Dict[str, Any]
+    ) -> ServerInstance:
         """Register a new server instance.
 
         Args:
@@ -81,7 +86,9 @@ class ServerRegistry:
 
             # Generate unique server ID
             timestamp = int(time.time())
-            server_id = f"{server_info['name']}-{server_info['port']}-{timestamp}"
+            server_id = (
+                f"{server_info['name']}-{server_info['port']}-{timestamp}"
+            )
 
             # Create server instance
             instance = ServerInstance(
@@ -95,7 +102,7 @@ class ServerRegistry:
                 working_directory=server_info.get("working_directory"),
                 api_title=server_info.get("api_title"),
                 swagger_file=server_info.get("swagger_file"),
-                status="starting"
+                status="starting",
             )
 
             # Add to registry
@@ -104,7 +111,11 @@ class ServerRegistry:
             # Save registry
             await self._save_registry(servers)
 
-            logger.info("Server registered", server_id=server_id, port=server_info["port"])
+            logger.info(
+                "Server registered",
+                server_id=server_id,
+                port=server_info["port"],
+            )
             return instance
 
     async def unregister_server(self, server_id: str) -> bool:
@@ -197,7 +208,9 @@ class ServerRegistry:
             if server_id in servers:
                 servers[server_id]["status"] = status
                 await self._save_registry(servers)
-                logger.debug("Server status updated", server_id=server_id, status=status)
+                logger.debug(
+                    "Server status updated", server_id=server_id, status=status
+                )
                 return True
 
             return False
@@ -218,14 +231,20 @@ class ServerRegistry:
                     active_servers[server_id] = server_data
                 else:
                     removed_server_ids.append(server_id)
-                    logger.info("Removing dead server", server_id=server_id, pid=server_data["pid"])
+                    logger.info(
+                        "Removing dead server",
+                        server_id=server_id,
+                        pid=server_data["pid"],
+                    )
 
             if removed_server_ids:
                 await self._save_registry(active_servers)
 
             return removed_server_ids
 
-    async def is_port_available(self, port: int, exclude_server_id: Optional[str] = None) -> bool:
+    async def is_port_available(
+        self, port: int, exclude_server_id: Optional[str] = None
+    ) -> bool:
         """Check if port is available for new server.
 
         Args:
@@ -245,9 +264,10 @@ class ServerRegistry:
 
         # Also check system port availability
         import socket
+
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-                sock.bind(('localhost', port))
+                sock.bind(("localhost", port))
                 return True
         except OSError:
             return False
@@ -256,7 +276,7 @@ class ServerRegistry:
         """Load registry from disk."""
         try:
             if self.registry_file.exists():
-                with open(self.registry_file, 'r') as f:
+                with open(self.registry_file, "r") as f:
                     return json.load(f)
         except Exception as e:
             logger.warning("Failed to load registry", error=str(e))
@@ -266,7 +286,7 @@ class ServerRegistry:
     async def _save_registry(self, servers: Dict[str, Any]):
         """Save registry to disk."""
         try:
-            with open(self.registry_file, 'w') as f:
+            with open(self.registry_file, "w") as f:
                 json.dump(servers, f, indent=2)
         except Exception as e:
             logger.error("Failed to save registry", error=str(e))
@@ -276,6 +296,7 @@ class ServerRegistry:
         """Check if process is still alive."""
         try:
             import psutil
+
             process = psutil.Process(pid)
             return process.is_running()
         except (psutil.NoSuchProcess, ImportError):

@@ -3,17 +3,18 @@
 Implements Story 2.6 performance monitoring requirements.
 """
 
-import time
-import psutil
 import asyncio
-import threading
-from typing import Dict, List, Any, Optional, Callable
-from functools import wraps
-from collections import defaultdict, deque
-from dataclasses import dataclass, asdict
-from datetime import datetime, timedelta
-import statistics
 import logging
+import statistics
+import threading
+import time
+from collections import defaultdict, deque
+from dataclasses import asdict, dataclass
+from datetime import datetime, timedelta
+from functools import wraps
+from typing import Any, Callable, Dict, List, Optional
+
+import psutil
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +22,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class PerformanceThresholds:
     """Performance thresholds for monitoring and alerting."""
+
     searchEndpoints_max_ms: float = 200.0
     getSchema_max_ms: float = 500.0
     getExample_max_ms: float = 2000.0
@@ -33,6 +35,7 @@ class PerformanceThresholds:
 @dataclass
 class MethodMetrics:
     """Performance metrics for a single MCP method."""
+
     method_name: str
     total_requests: int = 0
     total_errors: int = 0
@@ -50,7 +53,11 @@ class MethodMetrics:
     @property
     def avg_response_time(self) -> float:
         """Get average response time in milliseconds."""
-        return (self.total_response_time / self.total_requests * 1000) if self.total_requests > 0 else 0.0
+        return (
+            (self.total_response_time / self.total_requests * 1000)
+            if self.total_requests > 0
+            else 0.0
+        )
 
     @property
     def p95_response_time(self) -> float:
@@ -64,7 +71,11 @@ class MethodMetrics:
     @property
     def error_rate(self) -> float:
         """Get error rate as percentage."""
-        return (self.total_errors / self.total_requests) if self.total_requests > 0 else 0.0
+        return (
+            (self.total_errors / self.total_requests)
+            if self.total_requests > 0
+            else 0.0
+        )
 
     @property
     def requests_per_minute(self) -> float:
@@ -75,10 +86,16 @@ class MethodMetrics:
         # Calculate based on last minute of activity
         current_time = time.time()
         minute_ago = current_time - 60
-        recent_requests = sum(1 for rt in self.response_times if hasattr(rt, 'timestamp') and rt.timestamp > minute_ago)
+        recent_requests = sum(
+            1
+            for rt in self.response_times
+            if hasattr(rt, "timestamp") and rt.timestamp > minute_ago
+        )
         return recent_requests
 
-    def record_request(self, response_time: float, error: Optional[str] = None):
+    def record_request(
+        self, response_time: float, error: Optional[str] = None
+    ):
         """Record a request with its performance metrics."""
         self.total_requests += 1
         self.total_response_time += response_time
@@ -98,13 +115,14 @@ class MethodMetrics:
             "error_rate": round(self.error_rate, 4),
             "total_requests": self.total_requests,
             "total_errors": self.total_errors,
-            "error_types": dict(self.error_types)
+            "error_types": dict(self.error_types),
         }
 
 
 @dataclass
 class SystemMetrics:
     """System-level performance metrics."""
+
     concurrent_connections: int = 0
     database_pool_utilization: float = 0.0
     memory_usage_mb: float = 0.0
@@ -132,10 +150,12 @@ class SystemMetrics:
         self.update_system_metrics()
         return {
             "concurrent_connections": self.concurrent_connections,
-            "database_pool_utilization": round(self.database_pool_utilization, 3),
+            "database_pool_utilization": round(
+                self.database_pool_utilization, 3
+            ),
             "memory_usage_mb": round(self.memory_usage_mb, 2),
             "cpu_utilization": round(self.cpu_utilization, 3),
-            "uptime_seconds": round(self.uptime_seconds, 1)
+            "uptime_seconds": round(self.uptime_seconds, 1),
         }
 
 
@@ -164,7 +184,7 @@ class PerformanceMonitor:
         method_name: str,
         response_time: float,
         error: Optional[str] = None,
-        request_id: Optional[str] = None
+        request_id: Optional[str] = None,
     ):
         """Record a request and its performance metrics.
 
@@ -185,14 +205,16 @@ class PerformanceMonitor:
             metrics.record_request(response_time, error)
 
             # Check for threshold violations
-            self._check_performance_thresholds(method_name, response_time, error, request_id)
+            self._check_performance_thresholds(
+                method_name, response_time, error, request_id
+            )
 
     def _check_performance_thresholds(
         self,
         method_name: str,
         response_time: float,
         error: Optional[str],
-        request_id: Optional[str]
+        request_id: Optional[str],
     ):
         """Check if performance thresholds are violated."""
         response_time_ms = response_time * 1000
@@ -202,7 +224,7 @@ class PerformanceMonitor:
         threshold_map = {
             "searchEndpoints": self.thresholds.searchEndpoints_max_ms,
             "getSchema": self.thresholds.getSchema_max_ms,
-            "getExample": self.thresholds.getExample_max_ms
+            "getExample": self.thresholds.getExample_max_ms,
         }
 
         if method_name in threshold_map:
@@ -215,8 +237,8 @@ class PerformanceMonitor:
                         "method": method_name,
                         "response_time_ms": response_time_ms,
                         "threshold_ms": max_time,
-                        "request_id": request_id
-                    }
+                        "request_id": request_id,
+                    },
                 )
 
         # Check error rate thresholds
@@ -230,17 +252,19 @@ class PerformanceMonitor:
                         "error_rate": metrics.error_rate,
                         "threshold": self.thresholds.error_rate_max,
                         "total_requests": metrics.total_requests,
-                        "total_errors": metrics.total_errors
-                    }
+                        "total_errors": metrics.total_errors,
+                    },
                 )
 
-    def _create_alert(self, alert_type: str, message: str, context: Dict[str, Any]):
+    def _create_alert(
+        self, alert_type: str, message: str, context: Dict[str, Any]
+    ):
         """Create a performance alert."""
         alert = {
             "timestamp": time.time(),
             "type": alert_type,
             "message": message,
-            "context": context
+            "context": context,
         }
         self.alerts.append(alert)
 
@@ -271,28 +295,41 @@ class PerformanceMonitor:
                 "system_health": self.system_metrics.get_metrics_dict(),
                 "alerts": self.alerts[-10:],  # Last 10 alerts
                 "monitoring_enabled": self.monitoring_enabled,
-                "thresholds": asdict(self.thresholds)
+                "thresholds": asdict(self.thresholds),
             }
 
     def get_health_summary(self) -> Dict[str, Any]:
         """Get health summary for health check endpoint."""
         with self._lock:
             # Determine overall health based on recent alerts and metrics
-            recent_alerts = [a for a in self.alerts if time.time() - a["timestamp"] < 300]  # Last 5 minutes
-            critical_alerts = [a for a in recent_alerts if a["type"] in ["error_rate_exceeded", "response_time_exceeded"]]
+            recent_alerts = [
+                a for a in self.alerts if time.time() - a["timestamp"] < 300
+            ]  # Last 5 minutes
+            critical_alerts = [
+                a
+                for a in recent_alerts
+                if a["type"]
+                in ["error_rate_exceeded", "response_time_exceeded"]
+            ]
 
             if critical_alerts:
-                status = "degraded" if len(critical_alerts) < 3 else "unhealthy"
+                status = (
+                    "degraded" if len(critical_alerts) < 3 else "unhealthy"
+                )
             else:
                 status = "healthy"
 
             return {
                 "status": status,
                 "uptime_seconds": self.system_metrics.uptime_seconds,
-                "total_requests": sum(m.total_requests for m in self.method_metrics.values()),
-                "total_errors": sum(m.total_errors for m in self.method_metrics.values()),
+                "total_requests": sum(
+                    m.total_requests for m in self.method_metrics.values()
+                ),
+                "total_errors": sum(
+                    m.total_errors for m in self.method_metrics.values()
+                ),
                 "recent_alerts": len(recent_alerts),
-                "critical_alerts": len(critical_alerts)
+                "critical_alerts": len(critical_alerts),
             }
 
     def reset_metrics(self):
@@ -310,7 +347,9 @@ class PerformanceMonitor:
     def set_monitoring_enabled(self, enabled: bool):
         """Enable or disable monitoring."""
         self.monitoring_enabled = enabled
-        logger.info(f"Performance monitoring {'enabled' if enabled else 'disabled'}")
+        logger.info(
+            f"Performance monitoring {'enabled' if enabled else 'disabled'}"
+        )
 
 
 def monitor_performance(method_name: str, monitor: PerformanceMonitor):
@@ -320,6 +359,7 @@ def monitor_performance(method_name: str, monitor: PerformanceMonitor):
         method_name: Name of the method being monitored
         monitor: PerformanceMonitor instance
     """
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         async def async_wrapper(*args, **kwargs):
@@ -328,7 +368,7 @@ def monitor_performance(method_name: str, monitor: PerformanceMonitor):
 
             start_time = time.time()
             error_msg = None
-            request_id = kwargs.get('request_id', 'unknown')
+            request_id = kwargs.get("request_id", "unknown")
 
             try:
                 result = await func(*args, **kwargs)
@@ -338,7 +378,9 @@ def monitor_performance(method_name: str, monitor: PerformanceMonitor):
                 raise
             finally:
                 response_time = time.time() - start_time
-                monitor.record_request(method_name, response_time, error_msg, request_id)
+                monitor.record_request(
+                    method_name, response_time, error_msg, request_id
+                )
 
         @wraps(func)
         def sync_wrapper(*args, **kwargs):
@@ -347,7 +389,7 @@ def monitor_performance(method_name: str, monitor: PerformanceMonitor):
 
             start_time = time.time()
             error_msg = None
-            request_id = kwargs.get('request_id', 'unknown')
+            request_id = kwargs.get("request_id", "unknown")
 
             try:
                 result = func(*args, **kwargs)
@@ -357,10 +399,16 @@ def monitor_performance(method_name: str, monitor: PerformanceMonitor):
                 raise
             finally:
                 response_time = time.time() - start_time
-                monitor.record_request(method_name, response_time, error_msg, request_id)
+                monitor.record_request(
+                    method_name, response_time, error_msg, request_id
+                )
 
         # Return appropriate wrapper based on function type
-        return async_wrapper if asyncio.iscoroutinefunction(func) else sync_wrapper
+        return (
+            async_wrapper
+            if asyncio.iscoroutinefunction(func)
+            else sync_wrapper
+        )
 
     return decorator
 
@@ -368,7 +416,9 @@ def monitor_performance(method_name: str, monitor: PerformanceMonitor):
 class MetricsCollector:
     """Periodic metrics collection for system monitoring."""
 
-    def __init__(self, monitor: PerformanceMonitor, collection_interval: float = 30.0):
+    def __init__(
+        self, monitor: PerformanceMonitor, collection_interval: float = 30.0
+    ):
         """Initialize metrics collector.
 
         Args:
@@ -387,7 +437,9 @@ class MetricsCollector:
 
         self.running = True
         self._task = asyncio.create_task(self._collection_loop())
-        logger.info(f"Started metrics collection with {self.collection_interval}s interval")
+        logger.info(
+            f"Started metrics collection with {self.collection_interval}s interval"
+        )
 
     async def stop(self):
         """Stop periodic metrics collection."""
@@ -413,8 +465,8 @@ class MetricsCollector:
                     "Performance summary",
                     extra={
                         "performance_metrics": metrics["performance_metrics"],
-                        "system_health": metrics["system_health"]
-                    }
+                        "system_health": metrics["system_health"],
+                    },
                 )
 
                 await asyncio.sleep(self.collection_interval)

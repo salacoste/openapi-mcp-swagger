@@ -1,18 +1,19 @@
 """Schema definition processing and reference resolution for OpenAPI documents."""
 
 import json
-from typing import Any, Dict, List, Optional, Set, Tuple
 from collections import defaultdict, deque
 from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 try:
     import jsonref
+
     JSONREF_AVAILABLE = True
 except ImportError:
     JSONREF_AVAILABLE = False
 
-from swagger_mcp_server.parser.models import NormalizedSchema
 from swagger_mcp_server.config.logging import get_logger
+from swagger_mcp_server.parser.models import NormalizedSchema
 
 logger = get_logger(__name__)
 
@@ -40,7 +41,7 @@ class SchemaProcessor:
     def process_schemas(
         self,
         components_data: Dict[str, Any],
-        full_document: Optional[Dict[str, Any]] = None
+        full_document: Optional[Dict[str, Any]] = None,
     ) -> Tuple[Dict[str, NormalizedSchema], List[str], List[str]]:
         """Process all schema components with reference resolution.
 
@@ -53,7 +54,7 @@ class SchemaProcessor:
         """
         errors = []
         warnings = []
-        schemas_data = components_data.get('schemas', {})
+        schemas_data = components_data.get("schemas", {})
 
         if not isinstance(schemas_data, dict):
             errors.append("Components.schemas must be a dictionary")
@@ -62,7 +63,7 @@ class SchemaProcessor:
         self.logger.info(
             "Starting schema processing",
             schemas_count=len(schemas_data),
-            jsonref_available=JSONREF_AVAILABLE
+            jsonref_available=JSONREF_AVAILABLE,
         )
 
         # Clear previous state
@@ -74,23 +75,27 @@ class SchemaProcessor:
         # First pass: Create basic schema objects
         for schema_name, schema_def in schemas_data.items():
             if not isinstance(schema_def, dict):
-                errors.append(f"Schema definition must be object: {schema_name}")
+                errors.append(
+                    f"Schema definition must be object: {schema_name}"
+                )
                 continue
 
             try:
-                normalized_schema = self._create_basic_schema(schema_name, schema_def)
+                normalized_schema = self._create_basic_schema(
+                    schema_name, schema_def
+                )
                 self.processed_schemas[schema_name] = normalized_schema
             except Exception as e:
-                errors.append(f"Failed to create basic schema {schema_name}: {str(e)}")
+                errors.append(
+                    f"Failed to create basic schema {schema_name}: {str(e)}"
+                )
 
         # Second pass: Resolve references and build dependency graph
         if full_document:
             for schema_name in list(self.processed_schemas.keys()):
                 try:
                     self._resolve_schema_references(
-                        schema_name,
-                        schemas_data[schema_name],
-                        full_document
+                        schema_name, schemas_data[schema_name], full_document
                     )
                 except Exception as e:
                     error_msg = f"Failed to resolve references for schema {schema_name}: {str(e)}"
@@ -98,7 +103,7 @@ class SchemaProcessor:
                     self.logger.error(
                         "Schema reference resolution failed",
                         schema=schema_name,
-                        error=str(e)
+                        error=str(e),
                     )
 
         # Third pass: Update usage relationships
@@ -107,10 +112,12 @@ class SchemaProcessor:
         # Detect and report circular references
         circular_refs = self._detect_circular_references()
         if circular_refs:
-            warnings.extend([
-                f"Circular reference detected: {' -> '.join(cycle)}"
-                for cycle in circular_refs
-            ])
+            warnings.extend(
+                [
+                    f"Circular reference detected: {' -> '.join(cycle)}"
+                    for cycle in circular_refs
+                ]
+            )
 
         # Validate schema consistency
         validation_errors = self._validate_schema_consistency()
@@ -121,12 +128,14 @@ class SchemaProcessor:
             schemas_processed=len(self.processed_schemas),
             circular_references=len(circular_refs),
             errors=len(errors),
-            warnings=len(warnings)
+            warnings=len(warnings),
         )
 
         return self.processed_schemas.copy(), errors, warnings
 
-    def _create_basic_schema(self, name: str, schema_def: Dict[str, Any]) -> NormalizedSchema:
+    def _create_basic_schema(
+        self, name: str, schema_def: Dict[str, Any]
+    ) -> NormalizedSchema:
         """Create basic normalized schema from definition.
 
         Args:
@@ -137,61 +146,61 @@ class SchemaProcessor:
             Basic normalized schema
         """
         # Extract basic properties
-        schema_type = schema_def.get('type')
-        format_type = schema_def.get('format')
-        title = schema_def.get('title')
-        description = schema_def.get('description')
-        default = schema_def.get('default')
-        example = schema_def.get('example')
-        examples = schema_def.get('examples')
+        schema_type = schema_def.get("type")
+        format_type = schema_def.get("format")
+        title = schema_def.get("title")
+        description = schema_def.get("description")
+        default = schema_def.get("default")
+        example = schema_def.get("example")
+        examples = schema_def.get("examples")
 
         # Object properties
-        properties = schema_def.get('properties', {})
-        required = schema_def.get('required', [])
-        additional_properties = schema_def.get('additionalProperties')
+        properties = schema_def.get("properties", {})
+        required = schema_def.get("required", [])
+        additional_properties = schema_def.get("additionalProperties")
 
         # Array properties
-        items = schema_def.get('items')
-        min_items = schema_def.get('minItems')
-        max_items = schema_def.get('maxItems')
-        unique_items = schema_def.get('uniqueItems')
+        items = schema_def.get("items")
+        min_items = schema_def.get("minItems")
+        max_items = schema_def.get("maxItems")
+        unique_items = schema_def.get("uniqueItems")
 
         # String properties
-        min_length = schema_def.get('minLength')
-        max_length = schema_def.get('maxLength')
-        pattern = schema_def.get('pattern')
+        min_length = schema_def.get("minLength")
+        max_length = schema_def.get("maxLength")
+        pattern = schema_def.get("pattern")
 
         # Numeric properties
-        minimum = schema_def.get('minimum')
-        maximum = schema_def.get('maximum')
-        exclusive_minimum = schema_def.get('exclusiveMinimum')
-        exclusive_maximum = schema_def.get('exclusiveMaximum')
-        multiple_of = schema_def.get('multipleOf')
+        minimum = schema_def.get("minimum")
+        maximum = schema_def.get("maximum")
+        exclusive_minimum = schema_def.get("exclusiveMinimum")
+        exclusive_maximum = schema_def.get("exclusiveMaximum")
+        multiple_of = schema_def.get("multipleOf")
 
         # Enumeration
-        enum = schema_def.get('enum')
-        const = schema_def.get('const')
+        enum = schema_def.get("enum")
+        const = schema_def.get("const")
 
         # Composition
-        all_of = schema_def.get('allOf')
-        one_of = schema_def.get('oneOf')
-        any_of = schema_def.get('anyOf')
-        not_schema = schema_def.get('not')
+        all_of = schema_def.get("allOf")
+        one_of = schema_def.get("oneOf")
+        any_of = schema_def.get("anyOf")
+        not_schema = schema_def.get("not")
 
         # Conditional
-        if_schema = schema_def.get('if')
-        then_schema = schema_def.get('then')
-        else_schema = schema_def.get('else')
+        if_schema = schema_def.get("if")
+        then_schema = schema_def.get("then")
+        else_schema = schema_def.get("else")
 
         # Metadata
-        read_only = schema_def.get('readOnly')
-        write_only = schema_def.get('writeOnly')
-        deprecated = schema_def.get('deprecated', False)
+        read_only = schema_def.get("readOnly")
+        write_only = schema_def.get("writeOnly")
+        deprecated = schema_def.get("deprecated", False)
 
         # OpenAPI specific
-        discriminator = schema_def.get('discriminator')
-        xml = schema_def.get('xml')
-        external_docs = schema_def.get('externalDocs')
+        discriminator = schema_def.get("discriminator")
+        xml = schema_def.get("xml")
+        external_docs = schema_def.get("externalDocs")
 
         # Extract extensions
         extensions = self._extract_extensions(schema_def)
@@ -235,14 +244,14 @@ class SchemaProcessor:
             discriminator=discriminator,
             xml=xml,
             external_docs=external_docs,
-            extensions=extensions
+            extensions=extensions,
         )
 
     def _resolve_schema_references(
         self,
         schema_name: str,
         schema_def: Dict[str, Any],
-        full_document: Dict[str, Any]
+        full_document: Dict[str, Any],
     ) -> None:
         """Resolve references and build dependency graph for a schema.
 
@@ -268,19 +277,21 @@ class SchemaProcessor:
                 self.dependency_graph[schema_name].add(resolution.target)
 
                 # Add to schema dependencies
-                if resolution.target.startswith('schemas/'):
-                    target_schema = resolution.target.replace('schemas/', '')
+                if resolution.target.startswith("schemas/"):
+                    target_schema = resolution.target.replace("schemas/", "")
                     schema.dependencies.add(target_schema)
 
             elif resolution.circular:
-                self.circular_references.add(f"{schema_name} -> {resolution.target}")
+                self.circular_references.add(
+                    f"{schema_name} -> {resolution.target}"
+                )
 
             if resolution.error:
                 self.logger.warning(
                     "Reference resolution warning",
                     schema=schema_name,
                     reference=ref_path,
-                    error=resolution.error
+                    error=resolution.error,
                 )
 
     def _find_all_references(self, obj: Any, path: str = "") -> Set[str]:
@@ -297,14 +308,16 @@ class SchemaProcessor:
 
         if isinstance(obj, dict):
             # Direct reference
-            if '$ref' in obj:
-                references.add(obj['$ref'])
+            if "$ref" in obj:
+                references.add(obj["$ref"])
 
             # Recurse into all values
             for key, value in obj.items():
-                if key != '$ref':  # Avoid infinite recursion
+                if key != "$ref":  # Avoid infinite recursion
                     sub_path = f"{path}.{key}" if path else key
-                    references.update(self._find_all_references(value, sub_path))
+                    references.update(
+                        self._find_all_references(value, sub_path)
+                    )
 
         elif isinstance(obj, list):
             # Recurse into all items
@@ -315,9 +328,7 @@ class SchemaProcessor:
         return references
 
     def _resolve_reference(
-        self,
-        ref_path: str,
-        document: Dict[str, Any]
+        self, ref_path: str, document: Dict[str, Any]
     ) -> ReferenceResolution:
         """Resolve a single JSON reference.
 
@@ -334,16 +345,16 @@ class SchemaProcessor:
 
         try:
             # Handle local references only (starting with #/)
-            if not ref_path.startswith('#/'):
+            if not ref_path.startswith("#/"):
                 result = ReferenceResolution(
                     resolved=False,
-                    error=f"External references not supported: {ref_path}"
+                    error=f"External references not supported: {ref_path}",
                 )
                 self.reference_cache[ref_path] = result
                 return result
 
             # Parse the reference path
-            path_parts = ref_path[2:].split('/')  # Remove '#/' prefix
+            path_parts = ref_path[2:].split("/")  # Remove '#/' prefix
 
             # Navigate to the referenced object
             current = document
@@ -353,7 +364,7 @@ class SchemaProcessor:
                 if not isinstance(current, dict) or part not in current:
                     result = ReferenceResolution(
                         resolved=False,
-                        error=f"Reference not found: {ref_path}"
+                        error=f"Reference not found: {ref_path}",
                     )
                     self.reference_cache[ref_path] = result
                     return result
@@ -362,39 +373,33 @@ class SchemaProcessor:
                 target_path.append(part)
 
             # Determine target type
-            target = '/'.join(target_path)
+            target = "/".join(target_path)
 
             # Check for circular references if this is a schema reference
-            if 'schemas' in path_parts:
+            if "schemas" in path_parts:
                 schema_name = path_parts[-1]
-                if self._would_create_circular_reference(schema_name, target_path):
+                if self._would_create_circular_reference(
+                    schema_name, target_path
+                ):
                     result = ReferenceResolution(
-                        resolved=True,
-                        target=target,
-                        circular=True
+                        resolved=True, target=target, circular=True
                     )
                     self.reference_cache[ref_path] = result
                     return result
 
-            result = ReferenceResolution(
-                resolved=True,
-                target=target
-            )
+            result = ReferenceResolution(resolved=True, target=target)
             self.reference_cache[ref_path] = result
             return result
 
         except Exception as e:
             result = ReferenceResolution(
-                resolved=False,
-                error=f"Reference resolution failed: {str(e)}"
+                resolved=False, error=f"Reference resolution failed: {str(e)}"
             )
             self.reference_cache[ref_path] = result
             return result
 
     def _would_create_circular_reference(
-        self,
-        schema_name: str,
-        target_path: List[str]
+        self, schema_name: str, target_path: List[str]
     ) -> bool:
         """Check if adding a dependency would create a circular reference.
 
@@ -405,7 +410,11 @@ class SchemaProcessor:
         Returns:
             True if circular reference would be created
         """
-        if len(target_path) < 2 or target_path[0] != 'components' or target_path[1] != 'schemas':
+        if (
+            len(target_path) < 2
+            or target_path[0] != "components"
+            or target_path[1] != "schemas"
+        ):
             return False
 
         target_schema = target_path[2]
@@ -433,8 +442,8 @@ class SchemaProcessor:
             # Add dependencies to queue
             if current in self.dependency_graph:
                 for dep in self.dependency_graph[current]:
-                    if dep.startswith('schemas/'):
-                        dep_schema = dep.replace('schemas/', '')
+                    if dep.startswith("schemas/"):
+                        dep_schema = dep.replace("schemas/", "")
                         if dep_schema not in visited:
                             queue.append(dep_schema)
 
@@ -449,10 +458,12 @@ class SchemaProcessor:
         # Build reverse relationships
         for schema_name, dependencies in self.dependency_graph.items():
             for dep in dependencies:
-                if dep.startswith('schemas/'):
-                    dep_schema = dep.replace('schemas/', '')
+                if dep.startswith("schemas/"):
+                    dep_schema = dep.replace("schemas/", "")
                     if dep_schema in self.processed_schemas:
-                        self.processed_schemas[dep_schema].used_by.add(schema_name)
+                        self.processed_schemas[dep_schema].used_by.add(
+                            schema_name
+                        )
 
     def _detect_circular_references(self) -> List[List[str]]:
         """Detect circular reference cycles in the dependency graph.
@@ -480,8 +491,8 @@ class SchemaProcessor:
 
             # Follow schema dependencies only
             for dep in self.dependency_graph.get(node, []):
-                if dep.startswith('schemas/'):
-                    dep_schema = dep.replace('schemas/', '')
+                if dep.startswith("schemas/"):
+                    dep_schema = dep.replace("schemas/", "")
                     if dep_schema in self.processed_schemas:
                         dfs(dep_schema, path + [node])
 
@@ -504,7 +515,7 @@ class SchemaProcessor:
 
         for schema_name, schema in self.processed_schemas.items():
             # Check required properties exist in properties
-            if schema.type == 'object' and schema.required:
+            if schema.type == "object" and schema.required:
                 missing_properties = []
                 for required_prop in schema.required:
                     if required_prop not in schema.properties:
@@ -516,13 +527,18 @@ class SchemaProcessor:
                     )
 
             # Check array items are defined
-            if schema.type == 'array' and not schema.items:
-                errors.append(f"Schema {schema_name}: Array type missing items definition")
+            if schema.type == "array" and not schema.items:
+                errors.append(
+                    f"Schema {schema_name}: Array type missing items definition"
+                )
 
             # Check discriminator properties
             if schema.discriminator:
-                discriminator_prop = schema.discriminator.get('propertyName')
-                if discriminator_prop and discriminator_prop not in schema.properties:
+                discriminator_prop = schema.discriminator.get("propertyName")
+                if (
+                    discriminator_prop
+                    and discriminator_prop not in schema.properties
+                ):
                     errors.append(
                         f"Schema {schema_name}: Discriminator property '{discriminator_prop}' not defined"
                     )
@@ -530,7 +546,9 @@ class SchemaProcessor:
             # Validate dependencies exist
             for dep in schema.dependencies:
                 if dep not in self.processed_schemas:
-                    errors.append(f"Schema {schema_name}: Dependency '{dep}' not found")
+                    errors.append(
+                        f"Schema {schema_name}: Dependency '{dep}' not found"
+                    )
 
         return errors
 
@@ -546,12 +564,14 @@ class SchemaProcessor:
         extensions = {}
 
         for key, value in obj.items():
-            if isinstance(key, str) and key.startswith('x-'):
+            if isinstance(key, str) and key.startswith("x-"):
                 extensions[key] = value
 
         return extensions
 
-    def resolve_schema_reference(self, ref_path: str) -> Optional[NormalizedSchema]:
+    def resolve_schema_reference(
+        self, ref_path: str
+    ) -> Optional[NormalizedSchema]:
         """Resolve a schema reference to its normalized schema.
 
         Args:
@@ -560,10 +580,10 @@ class SchemaProcessor:
         Returns:
             Resolved schema or None if not found
         """
-        if not ref_path.startswith('#/components/schemas/'):
+        if not ref_path.startswith("#/components/schemas/"):
             return None
 
-        schema_name = ref_path.split('/')[-1]
+        schema_name = ref_path.split("/")[-1]
         return self.processed_schemas.get(schema_name)
 
     def get_schema_statistics(self) -> Dict[str, Any]:
@@ -576,17 +596,17 @@ class SchemaProcessor:
             return {}
 
         stats = {
-            'total_schemas': len(self.processed_schemas),
-            'types': defaultdict(int),
-            'with_properties': 0,
-            'with_required': 0,
-            'with_examples': 0,
-            'deprecated_count': 0,
-            'circular_references': len(self.circular_references),
-            'total_dependencies': 0,
-            'orphaned_schemas': 0,
-            'most_referenced': None,
-            'largest_schema': None,
+            "total_schemas": len(self.processed_schemas),
+            "types": defaultdict(int),
+            "with_properties": 0,
+            "with_required": 0,
+            "with_examples": 0,
+            "deprecated_count": 0,
+            "circular_references": len(self.circular_references),
+            "total_dependencies": 0,
+            "orphaned_schemas": 0,
+            "most_referenced": None,
+            "largest_schema": None,
         }
 
         dependency_counts = defaultdict(int)
@@ -596,27 +616,27 @@ class SchemaProcessor:
         for schema_name, schema in self.processed_schemas.items():
             # Type distribution
             if schema.type:
-                stats['types'][schema.type] += 1
+                stats["types"][schema.type] += 1
             else:
-                stats['types']['untyped'] += 1
+                stats["types"]["untyped"] += 1
 
             # Feature usage
             if schema.properties:
-                stats['with_properties'] += 1
+                stats["with_properties"] += 1
                 property_counts[schema_name] = len(schema.properties)
 
             if schema.required:
-                stats['with_required'] += 1
+                stats["with_required"] += 1
 
             if schema.example or schema.examples:
-                stats['with_examples'] += 1
+                stats["with_examples"] += 1
 
             if schema.deprecated:
-                stats['deprecated_count'] += 1
+                stats["deprecated_count"] += 1
 
             # Dependencies
             dep_count = len(schema.dependencies)
-            stats['total_dependencies'] += dep_count
+            stats["total_dependencies"] += dep_count
             dependency_counts[schema_name] = dep_count
 
             # Usage tracking
@@ -624,30 +644,32 @@ class SchemaProcessor:
             usage_counts[schema_name] = usage_count
 
             if usage_count == 0:
-                stats['orphaned_schemas'] += 1
+                stats["orphaned_schemas"] += 1
 
         # Convert defaultdict to regular dict
-        stats['types'] = dict(stats['types'])
+        stats["types"] = dict(stats["types"])
 
         # Find most referenced schema
         if usage_counts:
             most_referenced = max(usage_counts.items(), key=lambda x: x[1])
-            stats['most_referenced'] = {
-                'name': most_referenced[0],
-                'usage_count': most_referenced[1]
+            stats["most_referenced"] = {
+                "name": most_referenced[0],
+                "usage_count": most_referenced[1],
             }
 
         # Find largest schema by property count
         if property_counts:
             largest = max(property_counts.items(), key=lambda x: x[1])
-            stats['largest_schema'] = {
-                'name': largest[0],
-                'property_count': largest[1]
+            stats["largest_schema"] = {
+                "name": largest[0],
+                "property_count": largest[1],
             }
 
         # Average dependencies per schema
         if self.processed_schemas:
-            stats['avg_dependencies'] = stats['total_dependencies'] / len(self.processed_schemas)
+            stats["avg_dependencies"] = stats["total_dependencies"] / len(
+                self.processed_schemas
+            )
 
         return stats
 
@@ -662,8 +684,8 @@ class SchemaProcessor:
         for schema_name in self.processed_schemas.keys():
             dependencies = []
             for dep in self.dependency_graph.get(schema_name, []):
-                if dep.startswith('schemas/'):
-                    dependencies.append(dep.replace('schemas/', ''))
+                if dep.startswith("schemas/"):
+                    dependencies.append(dep.replace("schemas/", ""))
             graph[schema_name] = dependencies
 
         return graph

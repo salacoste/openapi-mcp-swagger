@@ -1,19 +1,20 @@
 """Tests for configuration management system."""
 
-import pytest
-import tempfile
 import asyncio
-from pathlib import Path
-from unittest.mock import patch, MagicMock
-import yaml
 import os
+import tempfile
+from pathlib import Path
+from unittest.mock import MagicMock, patch
+
+import pytest
+import yaml
 
 from swagger_mcp_server.config import (
-    ConfigurationManager,
     ConfigurationError,
+    ConfigurationManager,
     ConfigurationSchema,
     ConfigurationTemplateManager,
-    EnvironmentConfigExtractor
+    EnvironmentConfigExtractor,
 )
 
 
@@ -40,22 +41,14 @@ class TestConfigurationManager:
                 "port": 8080,
                 "max_connections": 100,
                 "timeout": 30,
-                "ssl": {
-                    "enabled": False,
-                    "cert_file": None,
-                    "key_file": None
-                }
+                "ssl": {"enabled": False, "cert_file": None, "key_file": None},
             },
-            "database": {
-                "path": "./test.db",
-                "pool_size": 5,
-                "timeout": 10
-            },
+            "database": {"path": "./test.db", "pool_size": 5, "timeout": 10},
             "logging": {
                 "level": "INFO",
                 "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-                "file": None
-            }
+                "file": None,
+            },
         }
 
     @pytest.mark.asyncio
@@ -76,13 +69,15 @@ class TestConfigurationManager:
         assert config["logging"]["level"] == "INFO"
 
     @pytest.mark.asyncio
-    async def test_load_configuration_from_file(self, config_manager, sample_config):
+    async def test_load_configuration_from_file(
+        self, config_manager, sample_config
+    ):
         """Test loading configuration from file."""
         # Save sample config to file
         config_file = config_manager.config_file
         config_file.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(config_file, 'w') as f:
+        with open(config_file, "w") as f:
             yaml.dump(sample_config, f)
 
         # Load configuration
@@ -95,10 +90,13 @@ class TestConfigurationManager:
     @pytest.mark.asyncio
     async def test_load_configuration_with_env_overrides(self, config_manager):
         """Test configuration loading with environment variable overrides."""
-        with patch.dict(os.environ, {
-            'SWAGGER_MCP_SERVER_PORT': '9000',
-            'SWAGGER_MCP_LOGGING_LEVEL': 'DEBUG'
-        }):
+        with patch.dict(
+            os.environ,
+            {
+                "SWAGGER_MCP_SERVER_PORT": "9000",
+                "SWAGGER_MCP_LOGGING_LEVEL": "DEBUG",
+            },
+        ):
             config = await config_manager.load_configuration()
 
             assert config["server"]["port"] == 9000
@@ -113,7 +111,7 @@ class TestConfigurationManager:
         assert config_manager.config_file.exists()
 
         # Load and verify content
-        with open(config_manager.config_file, 'r') as f:
+        with open(config_manager.config_file, "r") as f:
             loaded_config = yaml.safe_load(f)
 
         assert loaded_config["server"]["port"] == 8080
@@ -172,21 +170,29 @@ class TestConfigurationManager:
         assert config["features"]["rate_limiting"]["enabled"] is True
 
     @pytest.mark.asyncio
-    async def test_initialize_configuration_with_overwrite_protection(self, config_manager):
+    async def test_initialize_configuration_with_overwrite_protection(
+        self, config_manager
+    ):
         """Test initialization with overwrite protection."""
         # Create existing config file
         await config_manager.save_configuration({"test": "value"})
 
         # Try to initialize without force - should fail
         with pytest.raises(ConfigurationError) as exc_info:
-            await config_manager.initialize_configuration("development", overwrite=False)
+            await config_manager.initialize_configuration(
+                "development", overwrite=False
+            )
 
         assert "already exists" in str(exc_info.value)
 
     @pytest.mark.asyncio
     async def test_validate_configuration_success(self, config_manager):
         """Test successful configuration validation."""
-        is_valid, errors, warnings = await config_manager.validate_configuration()
+        (
+            is_valid,
+            errors,
+            warnings,
+        ) = await config_manager.validate_configuration()
 
         assert is_valid is True
         assert len(errors) == 0
@@ -195,10 +201,18 @@ class TestConfigurationManager:
     async def test_validate_configuration_with_errors(self, config_manager):
         """Test configuration validation with errors."""
         # Set invalid values
-        await config_manager.set_configuration_value("server.port", 99)  # Too low
-        await config_manager.set_configuration_value("logging.level", "INVALID")
+        await config_manager.set_configuration_value(
+            "server.port", 99
+        )  # Too low
+        await config_manager.set_configuration_value(
+            "logging.level", "INVALID"
+        )
 
-        is_valid, errors, warnings = await config_manager.validate_configuration()
+        (
+            is_valid,
+            errors,
+            warnings,
+        ) = await config_manager.validate_configuration()
 
         assert is_valid is False
         assert len(errors) > 0
@@ -209,9 +223,15 @@ class TestConfigurationManager:
     async def test_validate_ssl_configuration(self, config_manager):
         """Test SSL configuration validation."""
         # Enable SSL without certificates
-        await config_manager.set_configuration_value("server.ssl.enabled", True)
+        await config_manager.set_configuration_value(
+            "server.ssl.enabled", True
+        )
 
-        is_valid, errors, warnings = await config_manager.validate_configuration()
+        (
+            is_valid,
+            errors,
+            warnings,
+        ) = await config_manager.validate_configuration()
 
         assert is_valid is False
         assert any("certificate" in error.lower() for error in errors)
@@ -248,7 +268,9 @@ class TestConfigurationManager:
         assert len(backup_files) >= 1
 
     @pytest.mark.asyncio
-    async def test_configuration_file_formats(self, config_manager, sample_config):
+    async def test_configuration_file_formats(
+        self, config_manager, sample_config
+    ):
         """Test JSON and YAML configuration file formats."""
         # Test YAML format
         yaml_file = config_manager.config_dir / "config.yaml"
@@ -266,12 +288,18 @@ class TestConfigurationManager:
     async def test_nested_configuration_access(self, config_manager):
         """Test accessing nested configuration values."""
         # Test deep nesting
-        ssl_enabled = await config_manager.get_configuration_value("server.ssl.enabled")
+        ssl_enabled = await config_manager.get_configuration_value(
+            "server.ssl.enabled"
+        )
         assert ssl_enabled is False
 
         # Test setting deep nested values
-        await config_manager.set_configuration_value("features.metrics.enabled", True)
-        metrics_enabled = await config_manager.get_configuration_value("features.metrics.enabled")
+        await config_manager.set_configuration_value(
+            "features.metrics.enabled", True
+        )
+        metrics_enabled = await config_manager.get_configuration_value(
+            "features.metrics.enabled"
+        )
         assert metrics_enabled is True
 
     @pytest.mark.asyncio
@@ -282,7 +310,7 @@ class TestConfigurationManager:
         await config_manager.save_configuration(base_config)
 
         # Override with environment variables
-        with patch.dict(os.environ, {'SWAGGER_MCP_SERVER_PORT': '9000'}):
+        with patch.dict(os.environ, {"SWAGGER_MCP_SERVER_PORT": "9000"}):
             config = await config_manager.load_configuration()
 
             # Environment should override file
@@ -296,7 +324,7 @@ class TestConfigurationManager:
         # Create invalid YAML file
         invalid_file = config_manager.config_dir / "invalid.yaml"
         invalid_file.parent.mkdir(parents=True, exist_ok=True)
-        with open(invalid_file, 'w') as f:
+        with open(invalid_file, "w") as f:
             f.write("invalid: yaml: content: [")
 
         with pytest.raises(ConfigurationError):
@@ -306,10 +334,18 @@ class TestConfigurationManager:
     async def test_configuration_warnings(self, config_manager):
         """Test configuration warning generation."""
         # Set values that should generate warnings
-        await config_manager.set_configuration_value("search.performance.cache_size_mb", 16)  # Small cache
-        await config_manager.set_configuration_value("logging.level", "DEBUG")  # Debug logging
+        await config_manager.set_configuration_value(
+            "search.performance.cache_size_mb", 16
+        )  # Small cache
+        await config_manager.set_configuration_value(
+            "logging.level", "DEBUG"
+        )  # Debug logging
 
-        is_valid, errors, warnings = await config_manager.validate_configuration()
+        (
+            is_valid,
+            errors,
+            warnings,
+        ) = await config_manager.validate_configuration()
 
         assert is_valid is True  # Should be valid but with warnings
         assert len(warnings) > 0
@@ -361,9 +397,13 @@ async def test_configuration_integration():
         config = await manager.load_configuration()
         assert config["server"]["port"] == 9000
         assert config["logging"]["level"] == "DEBUG"
-        assert config["server"]["host"] == "0.0.0.0"  # Production template value
+        assert (
+            config["server"]["host"] == "0.0.0.0"
+        )  # Production template value
 
         # Test environment override
-        with patch.dict(os.environ, {'SWAGGER_MCP_SERVER_HOST': 'test.example.com'}):
+        with patch.dict(
+            os.environ, {"SWAGGER_MCP_SERVER_HOST": "test.example.com"}
+        ):
             config_with_env = await manager.load_configuration()
             assert config_with_env["server"]["host"] == "test.example.com"

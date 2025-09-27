@@ -4,16 +4,23 @@ Tests the complete result processing pipeline with realistic scenarios
 and integration with the search engine.
 """
 
-import pytest
 import asyncio
 import time
+from typing import Any, Dict, List
 from unittest.mock import Mock, patch
-from typing import Dict, Any, List
 
-from swagger_mcp_server.search.search_engine import SearchEngine
+import pytest
+
+from swagger_mcp_server.config.settings import (
+    SearchConfig,
+    SearchPerformanceConfig,
+)
 from swagger_mcp_server.search.index_manager import SearchIndexManager
-from swagger_mcp_server.search.result_processor import ResultProcessor, ComplexityLevel
-from swagger_mcp_server.config.settings import SearchConfig, SearchPerformanceConfig
+from swagger_mcp_server.search.result_processor import (
+    ComplexityLevel,
+    ResultProcessor,
+)
+from swagger_mcp_server.search.search_engine import SearchEngine
 
 
 @pytest.fixture
@@ -25,7 +32,7 @@ def search_config():
             search_timeout=5.0,
             index_batch_size=100,
             cache_size=500,
-            cache_ttl=300
+            cache_ttl=300,
         )
     )
 
@@ -46,7 +53,7 @@ def extended_sample_endpoints():
             "operation_id": "listUsers",
             "deprecated": False,
             "responses": {"200": {"content": {"application/json": {}}}},
-            "security": {"bearer": []}
+            "security": {"bearer": []},
         },
         {
             "endpoint_id": "create_user",
@@ -60,7 +67,7 @@ def extended_sample_endpoints():
             "operation_id": "createUser",
             "deprecated": False,
             "responses": {"201": {"content": {"application/json": {}}}},
-            "security": {"bearer": []}
+            "security": {"bearer": []},
         },
         {
             "endpoint_id": "get_user",
@@ -74,7 +81,7 @@ def extended_sample_endpoints():
             "operation_id": "getUserById",
             "deprecated": False,
             "responses": {"200": {"content": {"application/json": {}}}},
-            "security": {"bearer": []}
+            "security": {"bearer": []},
         },
         {
             "endpoint_id": "update_user",
@@ -88,7 +95,7 @@ def extended_sample_endpoints():
             "operation_id": "updateUser",
             "deprecated": False,
             "responses": {"200": {"content": {"application/json": {}}}},
-            "security": {"bearer": []}
+            "security": {"bearer": []},
         },
         {
             "endpoint_id": "delete_user",
@@ -102,7 +109,7 @@ def extended_sample_endpoints():
             "operation_id": "deleteUser",
             "deprecated": False,
             "responses": {"204": {"content": {}}},
-            "security": {"bearer": ["admin"]}
+            "security": {"bearer": ["admin"]},
         },
         {
             "endpoint_id": "authenticate",
@@ -116,7 +123,7 @@ def extended_sample_endpoints():
             "operation_id": "authenticateUser",
             "deprecated": False,
             "responses": {"200": {"content": {"application/json": {}}}},
-            "security": {}
+            "security": {},
         },
         {
             "endpoint_id": "refresh_token",
@@ -130,7 +137,7 @@ def extended_sample_endpoints():
             "operation_id": "refreshAccessToken",
             "deprecated": False,
             "responses": {"200": {"content": {"application/json": {}}}},
-            "security": {"refresh": []}
+            "security": {"refresh": []},
         },
         {
             "endpoint_id": "oauth_authorize",
@@ -144,7 +151,7 @@ def extended_sample_endpoints():
             "operation_id": "oauthAuthorize",
             "deprecated": True,
             "responses": {"302": {"content": {}}},
-            "security": {"oauth2": ["read", "write"]}
+            "security": {"oauth2": ["read", "write"]},
         },
         {
             "endpoint_id": "upload_avatar",
@@ -158,7 +165,7 @@ def extended_sample_endpoints():
             "operation_id": "uploadUserAvatar",
             "deprecated": False,
             "responses": {"200": {"content": {"multipart/form-data": {}}}},
-            "security": {"bearer": []}
+            "security": {"bearer": []},
         },
         {
             "endpoint_id": "search_users",
@@ -172,7 +179,7 @@ def extended_sample_endpoints():
             "operation_id": "searchUsers",
             "deprecated": False,
             "responses": {"200": {"content": {"application/json": {}}}},
-            "security": {"bearer": []}
+            "security": {"bearer": []},
         },
         {
             "endpoint_id": "get_user_permissions",
@@ -186,7 +193,7 @@ def extended_sample_endpoints():
             "operation_id": "getUserPermissions",
             "deprecated": False,
             "responses": {"200": {"content": {"application/json": {}}}},
-            "security": {"bearer": ["admin"]}
+            "security": {"bearer": ["admin"]},
         },
         {
             "endpoint_id": "bulk_update_users",
@@ -200,8 +207,8 @@ def extended_sample_endpoints():
             "operation_id": "bulkUpdateUsers",
             "deprecated": False,
             "responses": {"200": {"content": {"application/json": {}}}},
-            "security": {"bearer": ["admin"]}
-        }
+            "security": {"bearer": ["admin"]},
+        },
     ]
 
 
@@ -212,9 +219,18 @@ async def mock_search_engine(search_config, extended_sample_endpoints):
     mock_index_manager = Mock(spec=SearchIndexManager)
     mock_index = Mock()
     mock_index.schema.names.return_value = [
-        "endpoint_id", "endpoint_path", "http_method", "summary",
-        "description", "parameters", "tags", "auth_type", "operation_id",
-        "deprecated", "responses", "security"
+        "endpoint_id",
+        "endpoint_path",
+        "http_method",
+        "summary",
+        "description",
+        "parameters",
+        "tags",
+        "auth_type",
+        "operation_id",
+        "deprecated",
+        "responses",
+        "security",
     ]
     mock_index_manager.index = mock_index
 
@@ -222,7 +238,9 @@ async def mock_search_engine(search_config, extended_sample_endpoints):
     search_engine = SearchEngine(mock_index_manager, search_config)
 
     # Mock search execution to return sample data
-    async def mock_execute_search(query, page=1, per_page=20, sort_by=None, include_highlights=True):
+    async def mock_execute_search(
+        query, page=1, per_page=20, sort_by=None, include_highlights=True
+    ):
         # Advanced mock search logic with relevance scoring
         query_str = str(query).lower()
         matches = []
@@ -234,7 +252,7 @@ async def mock_search_engine(search_config, extended_sample_endpoints):
                 endpoint["summary"],
                 endpoint["description"],
                 endpoint["parameters"],
-                endpoint["tags"]
+                endpoint["tags"],
             ]
             full_text = " ".join(text_fields).lower()
 
@@ -268,7 +286,9 @@ async def mock_search_engine(search_config, extended_sample_endpoints):
         # Normalize scores
         if matches:
             max_score = matches[0][1]
-            matches = [(endpoint, score/max_score) for endpoint, score in matches]
+            matches = [
+                (endpoint, score / max_score) for endpoint, score in matches
+            ]
 
         # Paginate
         start = (page - 1) * per_page
@@ -277,6 +297,7 @@ async def mock_search_engine(search_config, extended_sample_endpoints):
 
         # Convert to search results
         from swagger_mcp_server.search.search_engine import SearchResult
+
         hits = []
         for endpoint, score in page_matches:
             result = SearchResult(
@@ -293,8 +314,8 @@ async def mock_search_engine(search_config, extended_sample_endpoints):
                     "deprecated": endpoint["deprecated"],
                     "parameters": endpoint["parameters"],
                     "security": endpoint["security"],
-                    "responses": endpoint["responses"]
-                }
+                    "responses": endpoint["responses"],
+                },
             )
             hits.append(result)
 
@@ -302,7 +323,7 @@ async def mock_search_engine(search_config, extended_sample_endpoints):
             "hits": hits,
             "total": len(matches),
             "page": page,
-            "per_page": per_page
+            "per_page": per_page,
         }
 
     search_engine._execute_search = mock_execute_search
@@ -316,7 +337,7 @@ async def mock_search_engine(search_config, extended_sample_endpoints):
                 endpoint["summary"],
                 endpoint["description"],
                 endpoint["parameters"],
-                endpoint["tags"]
+                endpoint["tags"],
             ]
             for field in text_fields:
                 terms.update(field.lower().split())
@@ -335,10 +356,7 @@ class TestAdvancedFiltering:
         """Test filtering by HTTP methods."""
         # Test GET methods only
         response = await mock_search_engine.search_advanced(
-            "users",
-            filters={"methods": ["GET"]},
-            page=1,
-            per_page=10
+            "users", filters={"methods": ["GET"]}, page=1, per_page=10
         )
 
         assert response["summary"]["filtered_results"] > 0
@@ -353,7 +371,7 @@ class TestAdvancedFiltering:
             "users",
             filters={"authentication": {"required": True}},
             page=1,
-            per_page=10
+            per_page=10,
         )
 
         assert response["summary"]["filtered_results"] > 0
@@ -367,7 +385,7 @@ class TestAdvancedFiltering:
             "users",
             filters={"complexity": ["simple", "moderate"]},
             page=1,
-            per_page=10
+            per_page=10,
         )
 
         assert response["summary"]["filtered_results"] >= 0
@@ -381,22 +399,21 @@ class TestAdvancedFiltering:
             "authentication",
             filters={"tags": ["authentication"]},
             page=1,
-            per_page=10
+            per_page=10,
         )
 
         assert response["summary"]["filtered_results"] > 0
         for result in response["results"]:
-            assert any("authentication" in tag for tag in result.get("tags", []))
+            assert any(
+                "authentication" in tag for tag in result.get("tags", [])
+            )
 
     @pytest.mark.asyncio
     async def test_deprecated_filtering(self, mock_search_engine):
         """Test filtering deprecated endpoints."""
         # Exclude deprecated endpoints
         response = await mock_search_engine.search_advanced(
-            "auth",
-            filters={"include_deprecated": False},
-            page=1,
-            per_page=10
+            "auth", filters={"include_deprecated": False}, page=1, per_page=10
         )
 
         for result in response["results"]:
@@ -409,14 +426,11 @@ class TestAdvancedFiltering:
             "methods": ["GET", "POST"],
             "authentication": {"required": True},
             "tags": ["users"],
-            "include_deprecated": False
+            "include_deprecated": False,
         }
 
         response = await mock_search_engine.search_advanced(
-            "users",
-            filters=filters,
-            page=1,
-            per_page=10
+            "users", filters=filters, page=1, per_page=10
         )
 
         assert response["filters_applied"] == filters
@@ -435,9 +449,7 @@ class TestResultOrganization:
     async def test_organization_by_tags(self, mock_search_engine):
         """Test result organization by tags."""
         response = await mock_search_engine.search_advanced(
-            "users",
-            page=1,
-            per_page=20
+            "users", page=1, per_page=20
         )
 
         organization = response["organization"]
@@ -453,9 +465,7 @@ class TestResultOrganization:
     async def test_organization_by_resource(self, mock_search_engine):
         """Test result organization by resource groups."""
         response = await mock_search_engine.search_advanced(
-            "api",
-            page=1,
-            per_page=20
+            "api", page=1, per_page=20
         )
 
         organization = response["organization"]
@@ -469,9 +479,7 @@ class TestResultOrganization:
     async def test_organization_by_complexity(self, mock_search_engine):
         """Test result organization by complexity level."""
         response = await mock_search_engine.search_advanced(
-            "users",
-            page=1,
-            per_page=20
+            "users", page=1, per_page=20
         )
 
         organization = response["organization"]
@@ -482,16 +490,16 @@ class TestResultOrganization:
 
         # Should have different complexity levels
         complexity_levels = ["simple", "moderate", "complex"]
-        found_levels = [level for level in complexity_levels if level in by_complexity]
+        found_levels = [
+            level for level in complexity_levels if level in by_complexity
+        ]
         assert len(found_levels) > 0
 
     @pytest.mark.asyncio
     async def test_organization_by_method(self, mock_search_engine):
         """Test result organization by HTTP method."""
         response = await mock_search_engine.search_advanced(
-            "users",
-            page=1,
-            per_page=20
+            "users", page=1, per_page=20
         )
 
         organization = response["organization"]
@@ -502,16 +510,16 @@ class TestResultOrganization:
 
         # Should have HTTP methods
         expected_methods = ["GET", "POST", "PUT", "DELETE", "PATCH"]
-        found_methods = [method for method in expected_methods if method in by_method]
+        found_methods = [
+            method for method in expected_methods if method in by_method
+        ]
         assert len(found_methods) > 0
 
     @pytest.mark.asyncio
     async def test_organization_by_operation_type(self, mock_search_engine):
         """Test result organization by operation type."""
         response = await mock_search_engine.search_advanced(
-            "users",
-            page=1,
-            per_page=20
+            "users", page=1, per_page=20
         )
 
         organization = response["organization"]
@@ -522,7 +530,9 @@ class TestResultOrganization:
 
         # Should have CRUD operations
         expected_operations = ["create", "read", "update", "delete", "list"]
-        found_operations = [op for op in expected_operations if op in by_operation]
+        found_operations = [
+            op for op in expected_operations if op in by_operation
+        ]
         assert len(found_operations) > 0
 
 
@@ -533,9 +543,7 @@ class TestMetadataEnhancement:
     async def test_parameter_summary_accuracy(self, mock_search_engine):
         """Test parameter summary generation accuracy."""
         response = await mock_search_engine.search_advanced(
-            "bulk update",
-            page=1,
-            per_page=5
+            "bulk update", page=1, per_page=5
         )
 
         for result in response["results"]:
@@ -554,15 +562,17 @@ class TestMetadataEnhancement:
             assert param_summary["total_count"] >= 0
             assert param_summary["required_count"] >= 0
             assert param_summary["optional_count"] >= 0
-            assert param_summary["total_count"] == param_summary["required_count"] + param_summary["optional_count"]
+            assert (
+                param_summary["total_count"]
+                == param_summary["required_count"]
+                + param_summary["optional_count"]
+            )
 
     @pytest.mark.asyncio
     async def test_authentication_info_accuracy(self, mock_search_engine):
         """Test authentication information accuracy."""
         response = await mock_search_engine.search_advanced(
-            "authentication",
-            page=1,
-            per_page=10
+            "authentication", page=1, per_page=10
         )
 
         for result in response["results"]:
@@ -584,9 +594,7 @@ class TestMetadataEnhancement:
     async def test_response_info_accuracy(self, mock_search_engine):
         """Test response information accuracy."""
         response = await mock_search_engine.search_advanced(
-            "users",
-            page=1,
-            per_page=10
+            "users", page=1, per_page=10
         )
 
         for result in response["results"]:
@@ -609,9 +617,7 @@ class TestMetadataEnhancement:
     async def test_complexity_level_determination(self, mock_search_engine):
         """Test complexity level determination accuracy."""
         response = await mock_search_engine.search_advanced(
-            "users",
-            page=1,
-            per_page=20
+            "users", page=1, per_page=20
         )
 
         complexity_counts = {"simple": 0, "moderate": 0, "complex": 0}
@@ -628,20 +634,22 @@ class TestMetadataEnhancement:
     async def test_operation_type_accuracy(self, mock_search_engine):
         """Test operation type determination accuracy."""
         response = await mock_search_engine.search_advanced(
-            "users",
-            page=1,
-            per_page=20
+            "users", page=1, per_page=20
         )
 
         operation_counts = {}
 
         for result in response["results"]:
             operation_type = result["operation_type"]
-            operation_counts[operation_type] = operation_counts.get(operation_type, 0) + 1
+            operation_counts[operation_type] = (
+                operation_counts.get(operation_type, 0) + 1
+            )
 
         # Should have various operation types
         expected_operations = ["create", "read", "update", "delete", "list"]
-        found_operations = [op for op in expected_operations if op in operation_counts]
+        found_operations = [
+            op for op in expected_operations if op in operation_counts
+        ]
         assert len(found_operations) > 0
 
 
@@ -653,16 +661,12 @@ class TestPaginationAndLimiting:
         """Test basic pagination functionality."""
         # Get first page
         response1 = await mock_search_engine.search_advanced(
-            "users",
-            page=1,
-            per_page=3
+            "users", page=1, per_page=3
         )
 
         # Get second page
         response2 = await mock_search_engine.search_advanced(
-            "users",
-            page=2,
-            per_page=3
+            "users", page=2, per_page=3
         )
 
         # Verify pagination metadata
@@ -673,17 +677,19 @@ class TestPaginationAndLimiting:
 
         # Verify results are different (assuming enough results)
         if len(response1["results"]) == 3 and len(response2["results"]) > 0:
-            result_ids_1 = {result["endpoint_id"] for result in response1["results"]}
-            result_ids_2 = {result["endpoint_id"] for result in response2["results"]}
+            result_ids_1 = {
+                result["endpoint_id"] for result in response1["results"]
+            }
+            result_ids_2 = {
+                result["endpoint_id"] for result in response2["results"]
+            }
             assert result_ids_1 != result_ids_2
 
     @pytest.mark.asyncio
     async def test_pagination_metadata(self, mock_search_engine):
         """Test pagination metadata accuracy."""
         response = await mock_search_engine.search_advanced(
-            "users",
-            page=2,
-            per_page=5
+            "users", page=2, per_page=5
         )
 
         pagination = response["pagination"]
@@ -710,9 +716,7 @@ class TestPaginationAndLimiting:
         # Try to request more than max allowed
         with pytest.raises(ValueError, match="per_page must be between"):
             await mock_search_engine.search_advanced(
-                "users",
-                page=1,
-                per_page=200  # Exceeds max_search_results
+                "users", page=1, per_page=200  # Exceeds max_search_results
             )
 
     @pytest.mark.asyncio
@@ -720,9 +724,7 @@ class TestPaginationAndLimiting:
         """Test invalid page number handling."""
         with pytest.raises(ValueError, match="Page number must be"):
             await mock_search_engine.search_advanced(
-                "users",
-                page=0,
-                per_page=10
+                "users", page=0, per_page=10
             )
 
 
@@ -738,12 +740,16 @@ class TestCachingPerformance:
 
         # First call (cache miss)
         start_time = time.time()
-        response1 = await mock_search_engine.search_advanced(query, filters, **pagination)
+        response1 = await mock_search_engine.search_advanced(
+            query, filters, **pagination
+        )
         first_call_time = time.time() - start_time
 
         # Second call (cache hit)
         start_time = time.time()
-        response2 = await mock_search_engine.search_advanced(query, filters, **pagination)
+        response2 = await mock_search_engine.search_advanced(
+            query, filters, **pagination
+        )
         second_call_time = time.time() - start_time
 
         # Cache hit should be faster (though with mocking, difference may be minimal)
@@ -781,8 +787,12 @@ class TestCachingPerformance:
 
         # Results should be different
         if response1["results"] and response2["results"]:
-            result_methods_1 = {result["method"] for result in response1["results"]}
-            result_methods_2 = {result["method"] for result in response2["results"]}
+            result_methods_1 = {
+                result["method"] for result in response1["results"]
+            }
+            result_methods_2 = {
+                result["method"] for result in response2["results"]
+            }
             assert result_methods_1 != result_methods_2
 
 
@@ -800,10 +810,10 @@ class TestPerformanceRequirements:
                 "methods": ["GET", "POST"],
                 "authentication": {"required": True},
                 "tags": ["users"],
-                "include_deprecated": False
+                "include_deprecated": False,
             },
             page=1,
-            per_page=20
+            per_page=20,
         )
 
         end_time = time.time()
@@ -819,9 +829,9 @@ class TestPerformanceRequirements:
         start_time = time.time()
 
         response = await mock_search_engine.search_advanced(
-            "api",  # Broad query likely to return many results
+            "api",
             page=1,
-            per_page=50
+            per_page=50,  # Broad query likely to return many results
         )
 
         end_time = time.time()
@@ -842,7 +852,7 @@ class TestPerformanceRequirements:
             "oauth token",
             "permissions admin",
             "bulk operations",
-            "search filters"
+            "search filters",
         ]
 
         start_time = time.time()
@@ -854,7 +864,7 @@ class TestPerformanceRequirements:
                 query,
                 filters={"include_deprecated": False},
                 page=1,
-                per_page=10
+                per_page=10,
             )
             tasks.append(task)
 
@@ -885,18 +895,22 @@ class TestRealWorldScenarios:
 
         # 2. Narrow down to creation endpoints
         response = await mock_search_engine.search_advanced(
-            "users",
-            filters={"methods": ["POST"]}
+            "users", filters={"methods": ["POST"]}
         )
-        creation_endpoints = [r for r in response["results"] if r["method"] == "POST"]
+        creation_endpoints = [
+            r for r in response["results"] if r["method"] == "POST"
+        ]
         assert len(creation_endpoints) > 0
 
         # 3. Look for authentication requirements
         response = await mock_search_engine.search_advanced(
-            "users",
-            filters={"authentication": {"required": True}}
+            "users", filters={"authentication": {"required": True}}
         )
-        auth_required = [r for r in response["results"] if r["authentication_info"]["required"]]
+        auth_required = [
+            r
+            for r in response["results"]
+            if r["authentication_info"]["required"]
+        ]
         assert len(auth_required) > 0
 
     @pytest.mark.asyncio
@@ -904,20 +918,21 @@ class TestRealWorldScenarios:
         """Test security audit scenario."""
         # Find all endpoints without authentication
         response = await mock_search_engine.search_advanced(
-            "api",
-            filters={"authentication": {"required": False}}
+            "api", filters={"authentication": {"required": False}}
         )
 
-        public_endpoints = [r for r in response["results"]
-                          if not r["authentication_info"]["required"]]
+        public_endpoints = [
+            r
+            for r in response["results"]
+            if not r["authentication_info"]["required"]
+        ]
 
         # Should find at least the login endpoint
         assert len(public_endpoints) > 0
 
         # Find deprecated security endpoints
         response = await mock_search_engine.search_advanced(
-            "auth",
-            filters={"include_deprecated": True}
+            "auth", filters={"include_deprecated": True}
         )
 
         deprecated_auth = [r for r in response["results"] if r["deprecated"]]
@@ -933,26 +948,26 @@ class TestRealWorldScenarios:
 
         for method in ["GET", "POST", "PUT", "DELETE"]:
             response = await mock_search_engine.search_advanced(
-                "users",
-                filters={"methods": [method]}
+                "users", filters={"methods": [method]}
             )
             user_operations[method] = response["results"]
 
         # Should have operations for each CRUD method
-        assert len(user_operations["GET"]) > 0    # Read operations
-        assert len(user_operations["POST"]) > 0   # Create operations
-        assert len(user_operations["PUT"]) > 0    # Update operations
-        assert len(user_operations["DELETE"]) > 0 # Delete operations
+        assert len(user_operations["GET"]) > 0  # Read operations
+        assert len(user_operations["POST"]) > 0  # Create operations
+        assert len(user_operations["PUT"]) > 0  # Update operations
+        assert len(user_operations["DELETE"]) > 0  # Delete operations
 
         # Check for file upload capabilities
         response = await mock_search_engine.search_advanced(
-            "upload",
-            page=1,
-            per_page=10
+            "upload", page=1, per_page=10
         )
 
-        upload_endpoints = [r for r in response["results"]
-                          if r["parameter_summary"]["has_file_upload"]]
+        upload_endpoints = [
+            r
+            for r in response["results"]
+            if r["parameter_summary"]["has_file_upload"]
+        ]
         assert len(upload_endpoints) >= 0  # May or may not have file upload
 
     @pytest.mark.asyncio
@@ -960,9 +975,7 @@ class TestRealWorldScenarios:
         """Test developer exploration scenario."""
         # Explore API structure through organization
         response = await mock_search_engine.search_advanced(
-            "api",
-            page=1,
-            per_page=50
+            "api", page=1, per_page=50
         )
 
         organization = response["organization"]

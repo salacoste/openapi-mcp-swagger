@@ -2,12 +2,12 @@
 
 import json
 import re
-from typing import Any, Dict, List, Optional, Tuple
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
 
-from swagger_mcp_server.parser.base import ParseError, SwaggerParseError
 from swagger_mcp_server.config.logging import get_logger
+from swagger_mcp_server.parser.base import ParseError, SwaggerParseError
 
 logger = get_logger(__name__)
 
@@ -16,19 +16,19 @@ class ErrorSeverity(Enum):
     """Error severity levels."""
 
     CRITICAL = "critical"  # Prevents parsing entirely
-    ERROR = "error"       # Major issue but may be recoverable
-    WARNING = "warning"   # Minor issue, parsing can continue
-    INFO = "info"         # Informational message
+    ERROR = "error"  # Major issue but may be recoverable
+    WARNING = "warning"  # Minor issue, parsing can continue
+    INFO = "info"  # Informational message
 
 
 class RecoveryStrategy(Enum):
     """Error recovery strategies."""
 
-    FAIL_FAST = "fail_fast"           # Stop on first error
-    SKIP_SECTION = "skip_section"     # Skip problematic section
-    USE_DEFAULT = "use_default"       # Use default value
-    PARTIAL_PARSE = "partial_parse"   # Parse what's possible
-    RETRY = "retry"                   # Retry with different approach
+    FAIL_FAST = "fail_fast"  # Stop on first error
+    SKIP_SECTION = "skip_section"  # Skip problematic section
+    USE_DEFAULT = "use_default"  # Use default value
+    PARTIAL_PARSE = "partial_parse"  # Parse what's possible
+    RETRY = "retry"  # Retry with different approach
 
 
 @dataclass
@@ -71,9 +71,7 @@ class ErrorHandler:
         self.logger = get_logger(__name__)
 
     def handle_json_decode_error(
-        self,
-        error: json.JSONDecodeError,
-        context: ErrorContext
+        self, error: json.JSONDecodeError, context: ErrorContext
     ) -> Tuple[RecoveryAction, ParseError]:
         """Handle JSON decode errors with recovery suggestions.
 
@@ -86,9 +84,9 @@ class ErrorHandler:
         """
         # Analyze the error type and suggest recovery
         error_msg = error.msg
-        line_no = getattr(error, 'lineno', None)
-        col_no = getattr(error, 'colno', None)
-        pos = getattr(error, 'pos', None)
+        line_no = getattr(error, "lineno", None)
+        col_no = getattr(error, "colno", None)
+        pos = getattr(error, "pos", None)
 
         parse_error = ParseError(
             message=f"JSON parsing failed: {error_msg}",
@@ -97,7 +95,7 @@ class ErrorHandler:
             column_number=col_no,
             context=self._build_error_context(error_msg, context),
             recoverable=self._is_recoverable_json_error(error_msg),
-            suggestion=self._get_json_error_suggestion(error_msg)
+            suggestion=self._get_json_error_suggestion(error_msg),
         )
 
         # Determine recovery strategy
@@ -115,17 +113,19 @@ class ErrorHandler:
             recovery = RecoveryAction(
                 strategy=RecoveryStrategy.USE_DEFAULT,
                 description="Use empty object for malformed property",
-                default_value={}
+                default_value={},
             )
         elif "Unterminated string" in error_msg:
             recovery = RecoveryAction(
                 strategy=RecoveryStrategy.RETRY,
                 description="Attempt to fix unterminated string",
-                max_retries=1
+                max_retries=1,
             )
         else:
             recovery = RecoveryAction(
-                strategy=RecoveryStrategy.FAIL_FAST if self.strict_mode else RecoveryStrategy.PARTIAL_PARSE,
+                strategy=RecoveryStrategy.FAIL_FAST
+                if self.strict_mode
+                else RecoveryStrategy.PARTIAL_PARSE,
                 description="Generic JSON error recovery",
             )
 
@@ -136,7 +136,7 @@ class ErrorHandler:
         section_path: str,
         expected_type: str,
         actual_value: Any,
-        context: ErrorContext
+        context: ErrorContext,
     ) -> Tuple[RecoveryAction, ParseError]:
         """Handle OpenAPI structure validation errors.
 
@@ -156,7 +156,9 @@ class ErrorHandler:
             error_type="StructureValidationError",
             context=f"Section: {section_path}, Value: {str(actual_value)[:100]}...",
             recoverable=True,
-            suggestion=self._get_structure_error_suggestion(section_path, expected_type, actual_type)
+            suggestion=self._get_structure_error_suggestion(
+                section_path, expected_type, actual_type
+            ),
         )
 
         # Recovery strategies based on section and type mismatch
@@ -164,32 +166,33 @@ class ErrorHandler:
             if expected_type == "object" and actual_type in ["list", "str"]:
                 recovery = RecoveryAction(
                     strategy=RecoveryStrategy.SKIP_SECTION,
-                    description=f"Skip invalid path definition: {section_path}"
+                    description=f"Skip invalid path definition: {section_path}",
                 )
             else:
                 recovery = RecoveryAction(
                     strategy=RecoveryStrategy.USE_DEFAULT,
                     description=f"Use empty object for {section_path}",
-                    default_value={}
+                    default_value={},
                 )
         elif section_path.startswith("components.schemas."):
             recovery = RecoveryAction(
                 strategy=RecoveryStrategy.USE_DEFAULT,
                 description="Use basic string schema as fallback",
-                default_value={"type": "string", "description": "Schema parsing failed"}
+                default_value={
+                    "type": "string",
+                    "description": "Schema parsing failed",
+                },
             )
         else:
             recovery = RecoveryAction(
                 strategy=RecoveryStrategy.SKIP_SECTION,
-                description=f"Skip problematic section: {section_path}"
+                description=f"Skip problematic section: {section_path}",
             )
 
         return recovery, parse_error
 
     def handle_reference_error(
-        self,
-        ref_path: str,
-        context: ErrorContext
+        self, ref_path: str, context: ErrorContext
     ) -> Tuple[RecoveryAction, ParseError]:
         """Handle $ref resolution errors.
 
@@ -205,18 +208,20 @@ class ErrorHandler:
             error_type="ReferenceResolutionError",
             context=f"Reference: {ref_path}",
             recoverable=True,
-            suggestion=f"Check if referenced component exists: {ref_path}"
+            suggestion=f"Check if referenced component exists: {ref_path}",
         )
 
         # Strategy: leave reference as-is for later resolution
         recovery = RecoveryAction(
             strategy=RecoveryStrategy.PARTIAL_PARSE,
-            description="Keep unresolved reference for later processing"
+            description="Keep unresolved reference for later processing",
         )
 
         return recovery, parse_error
 
-    def attempt_json_repair(self, json_text: str, error: json.JSONDecodeError) -> Optional[str]:
+    def attempt_json_repair(
+        self, json_text: str, error: json.JSONDecodeError
+    ) -> Optional[str]:
         """Attempt to repair common JSON syntax errors.
 
         Args:
@@ -228,7 +233,7 @@ class ErrorHandler:
         """
         try:
             error_msg = error.msg
-            pos = getattr(error, 'pos', None)
+            pos = getattr(error, "pos", None)
 
             if not pos:
                 return None
@@ -239,8 +244,8 @@ class ErrorHandler:
             # Fix trailing commas
             if "Expecting property name" in error_msg:
                 # Remove trailing comma before }
-                repaired = re.sub(r',(\s*})', r'\1', repaired)
-                repaired = re.sub(r',(\s*])', r'\1', repaired)
+                repaired = re.sub(r",(\s*})", r"\1", repaired)
+                repaired = re.sub(r",(\s*])", r"\1", repaired)
 
             # Fix missing commas
             elif "Expecting ',' delimiter" in error_msg:
@@ -250,15 +255,17 @@ class ErrorHandler:
             # Fix unescaped quotes in strings
             elif "Unterminated string" in error_msg:
                 # Try to find and escape unescaped quotes
-                lines = repaired.split('\n')
+                lines = repaired.split("\n")
                 for i, line in enumerate(lines):
                     # Simple heuristic: escape quotes not at start/end of values
                     if '"' in line:
                         # This is a simplified fix - real implementation would be more complex
-                        fixed_line = re.sub(r'(?<!\\)"(?![\s,}\]])', r'\"', line)
+                        fixed_line = re.sub(
+                            r'(?<!\\)"(?![\s,}\]])', r"\"", line
+                        )
                         if fixed_line != line:
                             lines[i] = fixed_line
-                repaired = '\n'.join(lines)
+                repaired = "\n".join(lines)
 
             # Validate the repair
             try:
@@ -266,7 +273,7 @@ class ErrorHandler:
                 self.logger.info(
                     "Successfully repaired JSON",
                     original_error=error_msg,
-                    repair_length=len(repaired) - len(json_text)
+                    repair_length=len(repaired) - len(json_text),
                 )
                 return repaired
             except json.JSONDecodeError:
@@ -276,7 +283,7 @@ class ErrorHandler:
             self.logger.warning(
                 "JSON repair attempt failed",
                 error=str(e),
-                original_error=error.msg
+                original_error=error.msg,
             )
             return None
 
@@ -308,7 +315,7 @@ class ErrorHandler:
             message=error.message,
             recoverable=error.recoverable,
             total_errors=len(self.errors),
-            total_warnings=len(self.warnings)
+            total_warnings=len(self.warnings),
         )
 
     def get_error_summary(self) -> Dict[str, Any]:
@@ -320,10 +327,12 @@ class ErrorHandler:
         return {
             "total_errors": len(self.errors),
             "total_warnings": len(self.warnings),
-            "error_types": list(set(e.error_type for e in self.errors + self.warnings)),
+            "error_types": list(
+                set(e.error_type for e in self.errors + self.warnings)
+            ),
             "has_critical_errors": any(not e.recoverable for e in self.errors),
             "errors": [self._serialize_error(e) for e in self.errors],
-            "warnings": [self._serialize_error(e) for e in self.warnings]
+            "warnings": [self._serialize_error(e) for e in self.warnings],
         }
 
     def _is_recoverable_json_error(self, error_msg: str) -> bool:
@@ -340,7 +349,7 @@ class ErrorHandler:
             "Expecting property name",
             "Expecting ':' delimiter",
             "Unterminated string",
-            "Extra data"
+            "Extra data",
         ]
 
         return any(pattern in error_msg for pattern in recoverable_patterns)
@@ -359,7 +368,7 @@ class ErrorHandler:
             "Expecting property name": "Remove trailing comma or add missing property name",
             "Expecting ':' delimiter": "Add colon between property name and value",
             "Unterminated string": "Add closing quote or escape quotes within string",
-            "Extra data": "Remove extra characters after valid JSON ends"
+            "Extra data": "Remove extra characters after valid JSON ends",
         }
 
         for pattern, suggestion in suggestions.items():
@@ -369,10 +378,7 @@ class ErrorHandler:
         return "Validate JSON syntax using a JSON validator tool"
 
     def _get_structure_error_suggestion(
-        self,
-        section_path: str,
-        expected_type: str,
-        actual_type: str
+        self, section_path: str, expected_type: str, actual_type: str
     ) -> str:
         """Get suggestion for fixing structure error.
 
@@ -389,9 +395,13 @@ class ErrorHandler:
         elif section_path.startswith("components.schemas."):
             return f"Schema definitions should be objects with OpenAPI schema properties"
         else:
-            return f"Convert {section_path} from {actual_type} to {expected_type}"
+            return (
+                f"Convert {section_path} from {actual_type} to {expected_type}"
+            )
 
-    def _build_error_context(self, error_msg: str, context: ErrorContext) -> str:
+    def _build_error_context(
+        self, error_msg: str, context: ErrorContext
+    ) -> str:
         """Build detailed error context string.
 
         Args:
@@ -428,5 +438,5 @@ class ErrorHandler:
             "column": error.column_number,
             "context": error.context,
             "recoverable": error.recoverable,
-            "suggestion": error.suggestion
+            "suggestion": error.suggestion,
         }

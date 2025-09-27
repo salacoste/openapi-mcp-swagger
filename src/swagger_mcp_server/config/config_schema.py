@@ -1,7 +1,7 @@
 """Configuration schema definition and validation."""
 
-from typing import Dict, Any, Optional
 from dataclasses import dataclass
+from typing import Any, Dict, Optional
 
 
 @dataclass
@@ -17,28 +17,28 @@ class ConfigurationSchema:
                     "type": "string",
                     "default": "localhost",
                     "regex": r"^[a-zA-Z0-9.-]+$",
-                    "help": "Server host address. Use '0.0.0.0' to accept connections from any IP."
+                    "help": "Server host address. Use '0.0.0.0' to accept connections from any IP.",
                 },
                 "port": {
                     "type": "integer",
                     "min": 1024,
                     "max": 65535,
                     "default": 8080,
-                    "help": "Server port number. Must be between 1024-65535."
+                    "help": "Server port number. Must be between 1024-65535.",
                 },
                 "max_connections": {
                     "type": "integer",
                     "min": 1,
                     "max": 1000,
                     "default": 100,
-                    "help": "Maximum number of concurrent client connections."
+                    "help": "Maximum number of concurrent client connections.",
                 },
                 "timeout": {
                     "type": "integer",
                     "min": 1,
                     "max": 300,
                     "default": 30,
-                    "help": "Connection timeout in seconds."
+                    "help": "Connection timeout in seconds.",
                 },
                 "ssl": {
                     "type": "dict",
@@ -46,23 +46,23 @@ class ConfigurationSchema:
                         "enabled": {
                             "type": "boolean",
                             "default": False,
-                            "help": "Enable SSL/TLS encryption for secure connections."
+                            "help": "Enable SSL/TLS encryption for secure connections.",
                         },
                         "cert_file": {
                             "type": "string",
                             "nullable": True,
                             "default": None,
-                            "help": "Path to SSL certificate file (required if SSL enabled)."
+                            "help": "Path to SSL certificate file (required if SSL enabled).",
                         },
                         "key_file": {
                             "type": "string",
                             "nullable": True,
                             "default": None,
-                            "help": "Path to SSL private key file (required if SSL enabled)."
-                        }
-                    }
-                }
-            }
+                            "help": "Path to SSL private key file (required if SSL enabled).",
+                        },
+                    },
+                },
+            },
         },
         "database": {
             "type": "dict",
@@ -70,21 +70,21 @@ class ConfigurationSchema:
                 "path": {
                     "type": "string",
                     "default": "./mcp_server.db",
-                    "help": "SQLite database file path. Can be relative or absolute."
+                    "help": "SQLite database file path. Can be relative or absolute.",
                 },
                 "pool_size": {
                     "type": "integer",
                     "min": 1,
                     "max": 50,
                     "default": 5,
-                    "help": "Database connection pool size for concurrent operations."
+                    "help": "Database connection pool size for concurrent operations.",
                 },
                 "timeout": {
                     "type": "integer",
                     "min": 1,
                     "max": 60,
                     "default": 10,
-                    "help": "Database operation timeout in seconds."
+                    "help": "Database operation timeout in seconds.",
                 },
                 "backup": {
                     "type": "dict",
@@ -92,23 +92,23 @@ class ConfigurationSchema:
                         "enabled": {
                             "type": "boolean",
                             "default": True,
-                            "help": "Enable automatic database backups."
+                            "help": "Enable automatic database backups.",
                         },
                         "interval": {
                             "type": "integer",
                             "min": 3600,
                             "default": 86400,
-                            "help": "Backup interval in seconds (default: 24 hours)."
+                            "help": "Backup interval in seconds (default: 24 hours).",
                         },
                         "retention": {
                             "type": "integer",
                             "min": 1,
                             "default": 7,
-                            "help": "Number of backup files to retain."
-                        }
-                    }
-                }
-            }
+                            "help": "Number of backup files to retain.",
+                        },
+                    },
+                },
+            },
         },
         "search": {
             "type": "dict",
@@ -117,12 +117,12 @@ class ConfigurationSchema:
                     "type": "string",
                     "allowed": ["whoosh"],
                     "default": "whoosh",
-                    "help": "Search engine backend (currently only Whoosh is supported)."
+                    "help": "Search engine backend (currently only Whoosh is supported).",
                 },
                 "index_directory": {
                     "type": "string",
                     "default": "./search_index",
-                    "help": "Directory for search index files."
+                    "help": "Directory for search index files.",
                 },
                 "field_weights": {
                     "type": "dict",
@@ -132,37 +132,37 @@ class ConfigurationSchema:
                             "min": 0.1,
                             "max": 3.0,
                             "default": 1.5,
-                            "help": "Weight for endpoint path matching in search results."
+                            "help": "Weight for endpoint path matching in search results.",
                         },
                         "summary": {
                             "type": "float",
                             "min": 0.1,
                             "max": 3.0,
                             "default": 1.2,
-                            "help": "Weight for endpoint summary in search ranking."
+                            "help": "Weight for endpoint summary in search ranking.",
                         },
                         "description": {
                             "type": "float",
                             "min": 0.1,
                             "max": 3.0,
                             "default": 1.0,
-                            "help": "Weight for description text in search ranking."
+                            "help": "Weight for description text in search ranking.",
                         },
                         "parameters": {
                             "type": "float",
                             "min": 0.1,
                             "max": 3.0,
                             "default": 0.8,
-                            "help": "Weight for parameter matching in search results."
+                            "help": "Weight for parameter matching in search results.",
                         },
                         "tags": {
                             "type": "float",
                             "min": 0.1,
                             "max": 3.0,
                             "default": 0.6,
-                            "help": "Weight for tag matching in search results."
-                        }
-                    }
+                            "help": "Weight for tag matching in search results.",
+                        },
+                    },
                 },
                 "performance": {
                     "type": "dict",
@@ -172,25 +172,25 @@ class ConfigurationSchema:
                             "min": 16,
                             "max": 1024,
                             "default": 64,
-                            "help": "Search index cache size in megabytes."
+                            "help": "Search index cache size in megabytes.",
                         },
                         "max_results": {
                             "type": "integer",
                             "min": 10,
                             "max": 10000,
                             "default": 1000,
-                            "help": "Maximum number of search results to return."
+                            "help": "Maximum number of search results to return.",
                         },
                         "search_timeout": {
                             "type": "integer",
                             "min": 1,
                             "max": 30,
                             "default": 10,
-                            "help": "Search operation timeout in seconds."
-                        }
-                    }
-                }
-            }
+                            "help": "Search operation timeout in seconds.",
+                        },
+                    },
+                },
+            },
         },
         "logging": {
             "type": "dict",
@@ -199,18 +199,18 @@ class ConfigurationSchema:
                     "type": "string",
                     "allowed": ["DEBUG", "INFO", "WARNING", "ERROR"],
                     "default": "INFO",
-                    "help": "Logging verbosity: DEBUG, INFO, WARNING, ERROR."
+                    "help": "Logging verbosity: DEBUG, INFO, WARNING, ERROR.",
                 },
                 "format": {
                     "type": "string",
                     "default": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-                    "help": "Log message format string."
+                    "help": "Log message format string.",
                 },
                 "file": {
                     "type": "string",
                     "nullable": True,
                     "default": None,
-                    "help": "Log file path. If not specified, logs to console only."
+                    "help": "Log file path. If not specified, logs to console only.",
                 },
                 "rotation": {
                     "type": "dict",
@@ -218,25 +218,25 @@ class ConfigurationSchema:
                         "enabled": {
                             "type": "boolean",
                             "default": False,
-                            "help": "Enable log file rotation."
+                            "help": "Enable log file rotation.",
                         },
                         "max_size_mb": {
                             "type": "integer",
                             "min": 1,
                             "max": 1000,
                             "default": 10,
-                            "help": "Maximum log file size in megabytes before rotation."
+                            "help": "Maximum log file size in megabytes before rotation.",
                         },
                         "backup_count": {
                             "type": "integer",
                             "min": 1,
                             "max": 10,
                             "default": 5,
-                            "help": "Number of rotated log files to keep."
-                        }
-                    }
-                }
-            }
+                            "help": "Number of rotated log files to keep.",
+                        },
+                    },
+                },
+            },
         },
         "features": {
             "type": "dict",
@@ -247,14 +247,14 @@ class ConfigurationSchema:
                         "enabled": {
                             "type": "boolean",
                             "default": True,
-                            "help": "Enable performance metrics collection."
+                            "help": "Enable performance metrics collection.",
                         },
                         "endpoint": {
                             "type": "string",
                             "default": "/metrics",
-                            "help": "Metrics endpoint path."
-                        }
-                    }
+                            "help": "Metrics endpoint path.",
+                        },
+                    },
                 },
                 "health_check": {
                     "type": "dict",
@@ -262,14 +262,14 @@ class ConfigurationSchema:
                         "enabled": {
                             "type": "boolean",
                             "default": True,
-                            "help": "Enable health check endpoint."
+                            "help": "Enable health check endpoint.",
                         },
                         "endpoint": {
                             "type": "string",
                             "default": "/health",
-                            "help": "Health check endpoint path."
-                        }
-                    }
+                            "help": "Health check endpoint path.",
+                        },
+                    },
                 },
                 "rate_limiting": {
                     "type": "dict",
@@ -277,19 +277,19 @@ class ConfigurationSchema:
                         "enabled": {
                             "type": "boolean",
                             "default": False,
-                            "help": "Enable rate limiting for API requests."
+                            "help": "Enable rate limiting for API requests.",
                         },
                         "requests_per_minute": {
                             "type": "integer",
                             "min": 1,
                             "max": 10000,
                             "default": 100,
-                            "help": "Maximum requests per minute per client."
-                        }
-                    }
-                }
-            }
-        }
+                            "help": "Maximum requests per minute per client.",
+                        },
+                    },
+                },
+            },
+        },
     }
 
     @classmethod
@@ -316,7 +316,7 @@ class ConfigurationSchema:
     @classmethod
     def get_configuration_help(cls, key: str) -> Optional[str]:
         """Get help text for a configuration key using dot notation."""
-        keys = key.split('.')
+        keys = key.split(".")
         current_schema = cls.SCHEMA
 
         try:
@@ -346,7 +346,9 @@ class ConfigurationSchema:
         return sorted(keys)
 
     @classmethod
-    def _collect_keys(cls, schema: Dict[str, Any], prefix: str, keys: list[str]):
+    def _collect_keys(
+        cls, schema: Dict[str, Any], prefix: str, keys: list[str]
+    ):
         """Recursively collect all configuration keys."""
         for key, definition in schema.items():
             current_key = f"{prefix}.{key}" if prefix else key
@@ -360,9 +362,11 @@ class ConfigurationSchema:
                     keys.append(current_key)
 
     @classmethod
-    def validate_configuration_value(cls, key: str, value: Any) -> tuple[bool, Optional[str]]:
+    def validate_configuration_value(
+        cls, key: str, value: Any
+    ) -> tuple[bool, Optional[str]]:
         """Validate a single configuration value."""
-        keys = key.split('.')
+        keys = key.split(".")
         current_schema = cls.SCHEMA
 
         try:
@@ -387,7 +391,9 @@ class ConfigurationSchema:
             return False, f"Validation error for {key}: {str(e)}"
 
     @classmethod
-    def _validate_value(cls, value: Any, definition: Dict[str, Any], key: str) -> tuple[bool, Optional[str]]:
+    def _validate_value(
+        cls, value: Any, definition: Dict[str, Any], key: str
+    ) -> tuple[bool, Optional[str]]:
         """Validate a value against its schema definition."""
         # Type validation
         expected_type = definition.get("type")
@@ -416,6 +422,7 @@ class ConfigurationSchema:
         # Regex validation for strings
         if expected_type == "string" and "regex" in definition:
             import re
+
             if not re.match(definition["regex"], value):
                 return False, f"{key} has invalid format"
 

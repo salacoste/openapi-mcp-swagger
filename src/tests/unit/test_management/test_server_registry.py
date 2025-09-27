@@ -1,13 +1,17 @@
 """Tests for server registry functionality."""
 
-import pytest
+import asyncio
 import tempfile
 import time
-import asyncio
 from pathlib import Path
-from unittest.mock import Mock, patch, AsyncMock
+from unittest.mock import AsyncMock, Mock, patch
 
-from swagger_mcp_server.management.server_registry import ServerRegistry, ServerInstance
+import pytest
+
+from swagger_mcp_server.management.server_registry import (
+    ServerInstance,
+    ServerRegistry,
+)
 
 
 class TestServerRegistry:
@@ -21,6 +25,7 @@ class TestServerRegistry:
     def teardown_method(self):
         """Clean up test fixtures."""
         import shutil
+
         if self.temp_dir.exists():
             shutil.rmtree(self.temp_dir)
 
@@ -34,7 +39,7 @@ class TestServerRegistry:
             "pid": 12345,
             "config_file": "/path/to/config.yaml",
             "working_directory": "/path/to/work",
-            "api_title": "Test API"
+            "api_title": "Test API",
         }
 
         instance = await self.registry.register_server(server_info)
@@ -56,7 +61,7 @@ class TestServerRegistry:
             "name": "test-server",
             "host": "localhost",
             "port": 8080,
-            "pid": 12345
+            "pid": 12345,
         }
 
         instance = await self.registry.register_server(server_info)
@@ -83,7 +88,7 @@ class TestServerRegistry:
                 "name": f"test-server-{i}",
                 "host": "localhost",
                 "port": 8080 + i,
-                "pid": 12345 + i
+                "pid": 12345 + i,
             }
             instance = await self.registry.register_server(server_info)
             servers.append(instance)
@@ -104,7 +109,7 @@ class TestServerRegistry:
                 "name": "test-server",
                 "host": "localhost",
                 "port": 8080 + i,
-                "pid": 12345 + i
+                "pid": 12345 + i,
             }
             await self.registry.register_server(server_info)
 
@@ -113,7 +118,7 @@ class TestServerRegistry:
             "name": "other-server",
             "host": "localhost",
             "port": 9000,
-            "pid": 54321
+            "pid": 54321,
         }
         await self.registry.register_server(different_server)
 
@@ -130,7 +135,7 @@ class TestServerRegistry:
             "name": "test-server",
             "host": "localhost",
             "port": 8080,
-            "pid": 12345
+            "pid": 12345,
         }
 
         await self.registry.register_server(server_info)
@@ -151,7 +156,7 @@ class TestServerRegistry:
             "name": "test-server",
             "host": "localhost",
             "port": 8080,
-            "pid": 12345
+            "pid": 12345,
         }
 
         instance = await self.registry.register_server(server_info)
@@ -179,13 +184,15 @@ class TestServerRegistry:
             "name": "test-server",
             "host": "localhost",
             "port": 8080,
-            "pid": 12345
+            "pid": 12345,
         }
 
         instance = await self.registry.register_server(server_info)
 
         # Update status
-        result = await self.registry.update_server_status(instance.id, "running")
+        result = await self.registry.update_server_status(
+            instance.id, "running"
+        )
         assert result is True
 
         # Verify status was updated
@@ -193,7 +200,9 @@ class TestServerRegistry:
         assert retrieved.status == "running"
 
         # Test updating non-existent server
-        result = await self.registry.update_server_status("non-existent", "running")
+        result = await self.registry.update_server_status(
+            "non-existent", "running"
+        )
         assert result is False
 
     @pytest.mark.asyncio
@@ -208,11 +217,13 @@ class TestServerRegistry:
             "name": "test-server",
             "host": "localhost",
             "port": 8080,
-            "pid": 12345
+            "pid": 12345,
         }
 
-        with patch('swagger_mcp_server.management.server_registry.ServerRegistry._is_process_alive',
-                   return_value=True):
+        with patch(
+            "swagger_mcp_server.management.server_registry.ServerRegistry._is_process_alive",
+            return_value=True,
+        ):
             await self.registry.register_server(server_info)
 
             # Port should not be available
@@ -229,7 +240,7 @@ class TestServerRegistry:
                 "name": f"test-server-{i}",
                 "host": "localhost",
                 "port": 8080 + i,
-                "pid": 12345 + i
+                "pid": 12345 + i,
             }
             instance = await self.registry.register_server(server_info)
             servers.append(instance)
@@ -238,7 +249,11 @@ class TestServerRegistry:
         def mock_is_process_alive(pid):
             return pid != 12345  # First server is dead
 
-        with patch.object(self.registry, '_is_process_alive', side_effect=mock_is_process_alive):
+        with patch.object(
+            self.registry,
+            "_is_process_alive",
+            side_effect=mock_is_process_alive,
+        ):
             removed_ids = await self.registry.cleanup_dead_servers()
 
         assert len(removed_ids) == 1
@@ -262,7 +277,7 @@ class TestServerInstance:
             pid=12345,
             start_time=time.time(),
             config_file="/path/to/config.yaml",
-            api_title="Test API"
+            api_title="Test API",
         )
 
         assert instance.id == "test-id"
@@ -282,7 +297,7 @@ class TestServerInstance:
             host="localhost",
             port=8080,
             pid=12345,
-            start_time=start_time
+            start_time=start_time,
         )
 
         uptime = instance.uptime
@@ -296,7 +311,7 @@ class TestServerInstance:
             host="localhost",
             port=8080,
             pid=12345,
-            start_time=time.time()
+            start_time=time.time(),
         )
 
         assert instance.url == "http://localhost:8080"
@@ -311,7 +326,7 @@ class TestServerInstance:
             port=8080,
             pid=12345,
             start_time=start_time,
-            config_file="/path/to/config.yaml"
+            config_file="/path/to/config.yaml",
         )
 
         data = instance.to_dict()
@@ -334,7 +349,7 @@ class TestServerInstance:
             "pid": 12345,
             "start_time": time.time(),
             "config_file": "/path/to/config.yaml",
-            "status": "running"
+            "status": "running",
         }
 
         instance = ServerInstance.from_dict(data)

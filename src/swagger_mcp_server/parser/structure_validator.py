@@ -1,12 +1,12 @@
 """OpenAPI structure validation and preservation utilities."""
 
-from typing import Any, Dict, List, Optional, Set, Union
-from collections import OrderedDict
 import copy
+from collections import OrderedDict
+from typing import Any, Dict, List, Optional, Set, Union
 
-from swagger_mcp_server.parser.base import ParseError, SwaggerParseError
-from swagger_mcp_server.parser.error_handler import ErrorHandler, ErrorContext
 from swagger_mcp_server.config.logging import get_logger
+from swagger_mcp_server.parser.base import ParseError, SwaggerParseError
+from swagger_mcp_server.parser.error_handler import ErrorContext, ErrorHandler
 
 logger = get_logger(__name__)
 
@@ -14,7 +14,9 @@ logger = get_logger(__name__)
 class StructureValidator:
     """Validates and preserves OpenAPI document structure."""
 
-    def __init__(self, error_handler: ErrorHandler, preserve_order: bool = True):
+    def __init__(
+        self, error_handler: ErrorHandler, preserve_order: bool = True
+    ):
         """Initialize structure validator.
 
         Args:
@@ -43,13 +45,11 @@ class StructureValidator:
             "servers": list,
             "security": list,
             "tags": list,
-            "externalDocs": dict
+            "externalDocs": dict,
         }
 
     def validate_and_preserve_structure(
-        self,
-        data: Dict[str, Any],
-        file_path: str
+        self, data: Dict[str, Any], file_path: str
     ) -> Dict[str, Any]:
         """Validate OpenAPI structure and preserve all data.
 
@@ -90,7 +90,7 @@ class StructureValidator:
                 file_path=file_path,
                 errors=len(self.error_handler.errors),
                 warnings=len(self.error_handler.warnings),
-                extensions_preserved=self._count_extensions(preserved_data)
+                extensions_preserved=self._count_extensions(preserved_data),
             )
 
             return preserved_data
@@ -101,10 +101,12 @@ class StructureValidator:
             raise SwaggerParseError(
                 f"Structure validation failed: {str(e)}",
                 "StructureValidationError",
-                suggestion="Check OpenAPI specification format and required fields"
+                suggestion="Check OpenAPI specification format and required fields",
             )
 
-    def _validate_root_structure(self, data: Dict[str, Any], file_path: str) -> None:
+    def _validate_root_structure(
+        self, data: Dict[str, Any], file_path: str
+    ) -> None:
         """Validate root OpenAPI document structure.
 
         Args:
@@ -114,8 +116,8 @@ class StructureValidator:
         context = ErrorContext(file_path=file_path, section_path="root")
 
         # Check for OpenAPI or Swagger version
-        openapi_version = data.get('openapi')
-        swagger_version = data.get('swagger')
+        openapi_version = data.get("openapi")
+        swagger_version = data.get("swagger")
 
         if not openapi_version and not swagger_version:
             recovery, error = self.error_handler.handle_structure_error(
@@ -126,7 +128,7 @@ class StructureValidator:
             if not error.recoverable:
                 raise SwaggerParseError(
                     "Missing required 'openapi' or 'swagger' version field",
-                    "MissingVersionField"
+                    "MissingVersionField",
                 )
 
         # Validate required root fields
@@ -137,7 +139,7 @@ class StructureValidator:
                     error_type="MissingRequiredField",
                     context=f"Root level field: {field}",
                     recoverable=field != "openapi",
-                    suggestion=f"Add required field '{field}' to document root"
+                    suggestion=f"Add required field '{field}' to document root",
                 )
                 self.error_handler.add_error(error)
 
@@ -148,21 +150,23 @@ class StructureValidator:
                     f"root.{field}",
                     expected_type.__name__,
                     data[field],
-                    context
+                    context,
                 )
                 self.error_handler.add_error(error)
 
-    def _validate_info_section(self, data: Dict[str, Any], file_path: str) -> None:
+    def _validate_info_section(
+        self, data: Dict[str, Any], file_path: str
+    ) -> None:
         """Validate info section structure.
 
         Args:
             data: Document data
             file_path: File path for error context
         """
-        if 'info' not in data:
+        if "info" not in data:
             return
 
-        info = data['info']
+        info = data["info"]
         context = ErrorContext(file_path=file_path, section_path="info")
 
         if not isinstance(info, dict):
@@ -180,18 +184,18 @@ class StructureValidator:
                     error_type="MissingRequiredField",
                     context=f"info.{field}",
                     recoverable=False,
-                    suggestion=f"Add required field 'info.{field}'"
+                    suggestion=f"Add required field 'info.{field}'",
                 )
                 self.error_handler.add_error(error)
 
         # Validate field types
         field_types = {
-            'title': str,
-            'version': str,
-            'description': str,
-            'termsOfService': str,
-            'contact': dict,
-            'license': dict
+            "title": str,
+            "version": str,
+            "description": str,
+            "termsOfService": str,
+            "contact": dict,
+            "license": dict,
         }
 
         for field, expected_type in field_types.items():
@@ -200,21 +204,23 @@ class StructureValidator:
                     f"info.{field}",
                     expected_type.__name__,
                     info[field],
-                    context
+                    context,
                 )
                 self.error_handler.add_error(error)
 
-    def _validate_paths_section(self, data: Dict[str, Any], file_path: str) -> None:
+    def _validate_paths_section(
+        self, data: Dict[str, Any], file_path: str
+    ) -> None:
         """Validate paths section structure.
 
         Args:
             data: Document data
             file_path: File path for error context
         """
-        if 'paths' not in data:
+        if "paths" not in data:
             return
 
-        paths = data['paths']
+        paths = data["paths"]
         context = ErrorContext(file_path=file_path, section_path="paths")
 
         if not isinstance(paths, dict):
@@ -226,27 +232,31 @@ class StructureValidator:
 
         # Validate each path
         valid_http_methods = {
-            'get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace'
+            "get",
+            "put",
+            "post",
+            "delete",
+            "options",
+            "head",
+            "patch",
+            "trace",
         }
 
         for path_name, path_data in paths.items():
-            if not isinstance(path_name, str) or not path_name.startswith('/'):
+            if not isinstance(path_name, str) or not path_name.startswith("/"):
                 error = ParseError(
                     message=f"Invalid path name: {path_name}",
                     error_type="InvalidPathName",
                     context=f"paths.{path_name}",
                     recoverable=True,
-                    suggestion="Path names must be strings starting with '/'"
+                    suggestion="Path names must be strings starting with '/'",
                 )
                 self.error_handler.add_error(error)
                 continue
 
             if not isinstance(path_data, dict):
                 recovery, error = self.error_handler.handle_structure_error(
-                    f"paths.{path_name}",
-                    "object",
-                    path_data,
-                    context
+                    f"paths.{path_name}", "object", path_data, context
                 )
                 self.error_handler.add_error(error)
                 continue
@@ -255,25 +265,30 @@ class StructureValidator:
             for method_name, operation in path_data.items():
                 if method_name.lower() in valid_http_methods:
                     if not isinstance(operation, dict):
-                        recovery, error = self.error_handler.handle_structure_error(
+                        (
+                            recovery,
+                            error,
+                        ) = self.error_handler.handle_structure_error(
                             f"paths.{path_name}.{method_name}",
                             "object",
                             operation,
-                            context
+                            context,
                         )
                         self.error_handler.add_error(error)
 
-    def _validate_components_section(self, data: Dict[str, Any], file_path: str) -> None:
+    def _validate_components_section(
+        self, data: Dict[str, Any], file_path: str
+    ) -> None:
         """Validate components section structure.
 
         Args:
             data: Document data
             file_path: File path for error context
         """
-        if 'components' not in data:
+        if "components" not in data:
             return
 
-        components = data['components']
+        components = data["components"]
         context = ErrorContext(file_path=file_path, section_path="components")
 
         if not isinstance(components, dict):
@@ -285,33 +300,45 @@ class StructureValidator:
 
         # Validate component subsections
         component_sections = [
-            'schemas', 'responses', 'parameters', 'examples',
-            'requestBodies', 'headers', 'securitySchemes', 'links', 'callbacks'
+            "schemas",
+            "responses",
+            "parameters",
+            "examples",
+            "requestBodies",
+            "headers",
+            "securitySchemes",
+            "links",
+            "callbacks",
         ]
 
         for section_name in component_sections:
             if section_name in components:
                 section_data = components[section_name]
                 if not isinstance(section_data, dict):
-                    recovery, error = self.error_handler.handle_structure_error(
+                    (
+                        recovery,
+                        error,
+                    ) = self.error_handler.handle_structure_error(
                         f"components.{section_name}",
                         "object",
                         section_data,
-                        context
+                        context,
                     )
                     self.error_handler.add_error(error)
 
-    def _validate_servers_section(self, data: Dict[str, Any], file_path: str) -> None:
+    def _validate_servers_section(
+        self, data: Dict[str, Any], file_path: str
+    ) -> None:
         """Validate servers section structure.
 
         Args:
             data: Document data
             file_path: File path for error context
         """
-        if 'servers' not in data:
+        if "servers" not in data:
             return
 
-        servers = data['servers']
+        servers = data["servers"]
         context = ErrorContext(file_path=file_path, section_path="servers")
 
         if not isinstance(servers, list):
@@ -325,21 +352,18 @@ class StructureValidator:
         for i, server in enumerate(servers):
             if not isinstance(server, dict):
                 recovery, error = self.error_handler.handle_structure_error(
-                    f"servers[{i}]",
-                    "object",
-                    server,
-                    context
+                    f"servers[{i}]", "object", server, context
                 )
                 self.error_handler.add_error(error)
                 continue
 
-            if 'url' not in server:
+            if "url" not in server:
                 error = ParseError(
                     message=f"Server object missing required 'url' field at index {i}",
                     error_type="MissingRequiredField",
                     context=f"servers[{i}]",
                     recoverable=True,
-                    suggestion="Add 'url' field to server object"
+                    suggestion="Add 'url' field to server object",
                 )
                 self.error_handler.add_error(error)
 
@@ -352,12 +376,16 @@ class StructureValidator:
         if isinstance(data, dict):
             # Extensions are already preserved in the deep copy
             # Just log them for tracking
-            extensions = [k for k in data.keys() if isinstance(k, str) and k.startswith('x-')]
+            extensions = [
+                k
+                for k in data.keys()
+                if isinstance(k, str) and k.startswith("x-")
+            ]
             if extensions:
                 self.logger.debug(
                     "Extensions preserved",
                     extensions=extensions,
-                    count=len(extensions)
+                    count=len(extensions),
                 )
 
             # Recursively process nested objects
@@ -371,7 +399,7 @@ class StructureValidator:
         self,
         original: Dict[str, Any],
         preserved: Dict[str, Any],
-        file_path: str
+        file_path: str,
     ) -> None:
         """Validate that no data was lost during preservation.
 
@@ -389,7 +417,7 @@ class StructureValidator:
                     error_type="DataIntegrityError",
                     context="Structure preservation",
                     recoverable=False,
-                    suggestion="Report this as a parser bug"
+                    suggestion="Report this as a parser bug",
                 )
                 self.error_handler.add_error(error)
 
@@ -402,14 +430,14 @@ class StructureValidator:
                     "Extension count mismatch",
                     original_count=original_extensions,
                     preserved_count=preserved_extensions,
-                    file_path=file_path
+                    file_path=file_path,
                 )
 
         except Exception as e:
             self.logger.error(
                 "Data integrity validation failed",
                 error=str(e),
-                file_path=file_path
+                file_path=file_path,
             )
 
     def _convert_to_ordered_dict(self, data: Any) -> Any:
@@ -431,7 +459,9 @@ class StructureValidator:
         else:
             return data
 
-    def _find_missing_keys(self, original: Any, preserved: Any, path: str = "") -> List[str]:
+    def _find_missing_keys(
+        self, original: Any, preserved: Any, path: str = ""
+    ) -> List[str]:
         """Find keys that exist in original but not in preserved data.
 
         Args:
@@ -451,15 +481,25 @@ class StructureValidator:
                     missing.append(current_path)
                 else:
                     missing.extend(
-                        self._find_missing_keys(original[key], preserved[key], current_path)
+                        self._find_missing_keys(
+                            original[key], preserved[key], current_path
+                        )
                     )
         elif isinstance(original, list) and isinstance(preserved, list):
             if len(original) != len(preserved):
-                missing.append(f"{path}[length mismatch: {len(original)} vs {len(preserved)}]")
+                missing.append(
+                    f"{path}[length mismatch: {len(original)} vs {len(preserved)}]"
+                )
             else:
-                for i, (orig_item, pres_item) in enumerate(zip(original, preserved)):
+                for i, (orig_item, pres_item) in enumerate(
+                    zip(original, preserved)
+                ):
                     current_path = f"{path}[{i}]" if path else f"[{i}]"
-                    missing.extend(self._find_missing_keys(orig_item, pres_item, current_path))
+                    missing.extend(
+                        self._find_missing_keys(
+                            orig_item, pres_item, current_path
+                        )
+                    )
 
         return missing
 
@@ -476,7 +516,7 @@ class StructureValidator:
 
         if isinstance(data, dict):
             for key, value in data.items():
-                if isinstance(key, str) and key.startswith('x-'):
+                if isinstance(key, str) and key.startswith("x-"):
                     count += 1
                 count += self._count_extensions(value)
         elif isinstance(data, list):

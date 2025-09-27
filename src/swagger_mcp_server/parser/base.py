@@ -2,10 +2,10 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
+from datetime import datetime
 from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Union
-from datetime import datetime
 
 from swagger_mcp_server.config.logging import get_logger
 
@@ -208,8 +208,7 @@ class BaseParser(ABC):
         """
         if not file_path.exists():
             raise SwaggerParseError(
-                f"File not found: {file_path}",
-                "FileNotFound"
+                f"File not found: {file_path}", "FileNotFound"
             )
 
         # Check file size
@@ -220,13 +219,13 @@ class BaseParser(ABC):
             raise SwaggerParseError(
                 f"File size {file_size / (1024*1024):.1f}MB exceeds maximum "
                 f"{self.config.max_file_size_mb}MB",
-                "FileTooLarge"
+                "FileTooLarge",
             )
 
         self.logger.info(
             "File validation passed",
             file_path=str(file_path),
-            file_size_mb=file_size / (1024 * 1024)
+            file_size_mb=file_size / (1024 * 1024),
         )
 
 
@@ -237,7 +236,9 @@ class ParserFactory:
         self._parsers: Dict[ParserType, type] = {}
         self.logger = get_logger(__name__)
 
-    def register_parser(self, parser_type: ParserType, parser_class: type) -> None:
+    def register_parser(
+        self, parser_type: ParserType, parser_class: type
+    ) -> None:
         """Register a parser class for a specific type.
 
         Args:
@@ -248,13 +249,13 @@ class ParserFactory:
         self.logger.debug(
             "Parser registered",
             parser_type=parser_type.value,
-            parser_class=parser_class.__name__
+            parser_class=parser_class.__name__,
         )
 
     def create_parser(
         self,
         file_path: Union[str, Path],
-        config: Optional[ParserConfig] = None
+        config: Optional[ParserConfig] = None,
     ) -> BaseParser:
         """Create appropriate parser for the given file.
 
@@ -276,7 +277,7 @@ class ParserFactory:
         if parser_type not in self._parsers:
             raise SwaggerParseError(
                 f"No parser available for type: {parser_type.value}",
-                "UnsupportedFileType"
+                "UnsupportedFileType",
             )
 
         parser_class = self._parsers[parser_type]
@@ -296,17 +297,17 @@ class ParserFactory:
         """
         extension = file_path.suffix.lower()
 
-        if extension == '.json':
+        if extension == ".json":
             # For JSON files, we'll assume OpenAPI/Swagger JSON
             # Could be enhanced with content sniffing
             return ParserType.OPENAPI_JSON
-        elif extension in ['.yaml', '.yml']:
+        elif extension in [".yaml", ".yml"]:
             return ParserType.OPENAPI_YAML
         else:
             raise SwaggerParseError(
                 f"Unsupported file extension: {extension}",
                 "UnsupportedFileType",
-                suggestion="Supported formats: .json, .yaml, .yml"
+                suggestion="Supported formats: .json, .yaml, .yml",
             )
 
     def get_supported_extensions(self) -> List[str]:
@@ -318,10 +319,13 @@ class ParserFactory:
         extensions = set()
         for parser_type in self._parsers:
             # This would need to be implemented per parser
-            if parser_type in [ParserType.SWAGGER_JSON, ParserType.OPENAPI_JSON]:
-                extensions.add('.json')
+            if parser_type in [
+                ParserType.SWAGGER_JSON,
+                ParserType.OPENAPI_JSON,
+            ]:
+                extensions.add(".json")
             elif parser_type == ParserType.OPENAPI_YAML:
-                extensions.update(['.yaml', '.yml'])
+                extensions.update([".yaml", ".yml"])
 
         return sorted(list(extensions))
 
@@ -337,7 +341,7 @@ class SwaggerParseError(Exception):
         column_number: Optional[int] = None,
         context: Optional[str] = None,
         suggestion: Optional[str] = None,
-        recoverable: bool = False
+        recoverable: bool = False,
     ):
         """Initialize parsing error.
 
@@ -371,5 +375,5 @@ class SwaggerParseError(Exception):
             column_number=self.column_number,
             context=self.context,
             recoverable=self.recoverable,
-            suggestion=self.suggestion
+            suggestion=self.suggestion,
         )

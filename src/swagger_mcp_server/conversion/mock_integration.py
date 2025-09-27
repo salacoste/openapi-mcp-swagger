@@ -4,11 +4,11 @@ This module provides simplified mock implementations of the Epic 1, 2, and 3 com
 to demonstrate the conversion pipeline functionality without requiring full integration.
 """
 
+import asyncio
 import json
 import os
-import asyncio
-from typing import Dict, Any, List
 from pathlib import Path
+from typing import Any, Dict, List
 
 
 class MockSwaggerParser:
@@ -17,7 +17,7 @@ class MockSwaggerParser:
     async def parse_file(self, file_path: str) -> Dict[str, Any]:
         """Parse a Swagger file and return normalized data."""
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, "r", encoding="utf-8") as f:
                 swagger_data = json.load(f)
 
             # Extract basic information
@@ -31,22 +31,27 @@ class MockSwaggerParser:
             for path, methods in paths.items():
                 for method, details in methods.items():
                     if isinstance(details, dict):
-                        endpoints.append({
-                            "path": path,
-                            "method": method.upper(),
-                            "summary": details.get("summary", ""),
-                            "description": details.get("description", ""),
-                            "tags": details.get("tags", []),
-                            "operationId": details.get("operationId", f"{method}_{path}"),
-                            "parameters": details.get("parameters", []),
-                            "responses": details.get("responses", {}),
-                        })
+                        endpoints.append(
+                            {
+                                "path": path,
+                                "method": method.upper(),
+                                "summary": details.get("summary", ""),
+                                "description": details.get("description", ""),
+                                "tags": details.get("tags", []),
+                                "operationId": details.get(
+                                    "operationId", f"{method}_{path}"
+                                ),
+                                "parameters": details.get("parameters", []),
+                                "responses": details.get("responses", {}),
+                            }
+                        )
 
             parsed_data = {
                 "info": info,
                 "endpoints": endpoints,
                 "schemas": schemas,
-                "swagger_version": swagger_data.get("swagger") or swagger_data.get("openapi"),
+                "swagger_version": swagger_data.get("swagger")
+                or swagger_data.get("openapi"),
             }
 
             return parsed_data
@@ -58,7 +63,9 @@ class MockSwaggerParser:
 class MockSchemaNormalizer:
     """Mock implementation of schema normalizer from Epic 1."""
 
-    async def normalize_schema_data(self, parsed_data: Dict[str, Any]) -> Dict[str, Any]:
+    async def normalize_schema_data(
+        self, parsed_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Normalize parsed schema data."""
         # For mock implementation, just pass through with some enhancements
         normalized_data = parsed_data.copy()
@@ -89,7 +96,7 @@ class MockDatabase:
         os.makedirs(os.path.dirname(self.database_path), exist_ok=True)
 
         # Create empty database file
-        with open(self.database_path, 'w') as f:
+        with open(self.database_path, "w") as f:
             f.write("# Mock SQLite database placeholder\n")
 
     async def store_swagger_data(self, normalized_data: Dict[str, Any]):
@@ -126,18 +133,18 @@ class MockSearchEngine:
         await self.index_manager.initialize()
 
         # Create some mock index files
-        index_files = [
-            "endpoints.idx",
-            "schemas.idx",
-            "metadata.idx"
-        ]
+        index_files = ["endpoints.idx", "schemas.idx", "metadata.idx"]
 
         for file_name in index_files:
             file_path = os.path.join(self.index_manager.index_path, file_name)
-            with open(file_path, 'w') as f:
+            with open(file_path, "w") as f:
                 f.write(f"# Mock search index file for {file_name}\n")
-                f.write(f"# Indexed {len(normalized_data.get('endpoints', []))} endpoints\n")
-                f.write(f"# Indexed {len(normalized_data.get('schemas', {}))} schemas\n")
+                f.write(
+                    f"# Indexed {len(normalized_data.get('endpoints', []))} endpoints\n"
+                )
+                f.write(
+                    f"# Indexed {len(normalized_data.get('schemas', {}))} schemas\n"
+                )
 
 
 class MockMCPServer:

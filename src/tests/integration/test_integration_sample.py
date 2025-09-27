@@ -18,7 +18,9 @@ async def test_temp_db_fixture(temp_db):
         await db.execute("CREATE TABLE test (id INTEGER PRIMARY KEY)")
         await db.commit()
 
-        cursor = await db.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        cursor = await db.execute(
+            "SELECT name FROM sqlite_master WHERE type='table'"
+        )
         tables = await cursor.fetchall()
         assert len(tables) == 1
         assert tables[0][0] == "test"

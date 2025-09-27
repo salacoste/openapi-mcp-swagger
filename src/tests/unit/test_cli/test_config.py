@@ -1,14 +1,19 @@
 """Tests for the configuration management system."""
 
-import pytest
+import json
 import os
 import tempfile
-import yaml
-import json
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
-from swagger_mcp_server.cli.config import ConfigurationManager, get_config_manager, reload_config
+import pytest
+import yaml
+
+from swagger_mcp_server.cli.config import (
+    ConfigurationManager,
+    get_config_manager,
+    reload_config,
+)
 
 
 class TestConfigurationManager:
@@ -22,6 +27,7 @@ class TestConfigurationManager:
     def teardown_method(self):
         """Clean up test fixtures."""
         import shutil
+
         if os.path.exists(self.temp_dir):
             shutil.rmtree(self.temp_dir)
 
@@ -54,13 +60,17 @@ class TestConfigurationManager:
 
         # Test non-existent key
         assert self.config_manager.get("nonexistent.key") is None
-        assert self.config_manager.get("nonexistent.key", "default") == "default"
+        assert (
+            self.config_manager.get("nonexistent.key", "default") == "default"
+        )
 
     def test_set_config_value(self):
         """Test setting configuration values."""
         # Test setting a value
         success = self.config_manager.set("server.port", 9000)
-        assert success is True or success is False  # May fail due to file permissions
+        assert (
+            success is True or success is False
+        )  # May fail due to file permissions
         assert self.config_manager.get("server.port") == 9000
 
         # Test setting nested value
@@ -69,11 +79,14 @@ class TestConfigurationManager:
 
     def test_environment_variable_loading(self):
         """Test loading configuration from environment variables."""
-        with patch.dict(os.environ, {
-            'SWAGGER_MCP_PORT': '9000',
-            'SWAGGER_MCP_HOST': '0.0.0.0',
-            'SWAGGER_MCP_LOG_LEVEL': 'debug'
-        }):
+        with patch.dict(
+            os.environ,
+            {
+                "SWAGGER_MCP_PORT": "9000",
+                "SWAGGER_MCP_HOST": "0.0.0.0",
+                "SWAGGER_MCP_LOG_LEVEL": "debug",
+            },
+        ):
             config_manager = ConfigurationManager()
 
             # Environment variables should override defaults
@@ -85,13 +98,8 @@ class TestConfigurationManager:
         """Test loading configuration from YAML files."""
         # Create temporary config file
         config_data = {
-            "server": {
-                "port": 9000,
-                "host": "0.0.0.0"
-            },
-            "logging": {
-                "level": "debug"
-            }
+            "server": {"port": 9000, "host": "0.0.0.0"},
+            "logging": {"level": "debug"},
         }
 
         config_file = Path(self.temp_dir) / "test_config.yaml"
@@ -99,10 +107,14 @@ class TestConfigurationManager:
             yaml.dump(config_data, f)
 
         # Mock the config file path
-        with patch.object(self.config_manager, "config_dirs", {
-            "global_config": config_file,
-            "project_config": Path("/nonexistent")
-        }):
+        with patch.object(
+            self.config_manager,
+            "config_dirs",
+            {
+                "global_config": config_file,
+                "project_config": Path("/nonexistent"),
+            },
+        ):
             config_manager = ConfigurationManager()
 
             # Should load values from file
@@ -119,11 +131,15 @@ class TestConfigurationManager:
             yaml.dump(config_data, f)
 
         # Set environment variable (should override file)
-        with patch.dict(os.environ, {'SWAGGER_MCP_PORT': '9000'}):
-            with patch.object(ConfigurationManager, "config_dirs", {
-                "global_config": config_file,
-                "project_config": Path("/nonexistent")
-            }):
+        with patch.dict(os.environ, {"SWAGGER_MCP_PORT": "9000"}):
+            with patch.object(
+                ConfigurationManager,
+                "config_dirs",
+                {
+                    "global_config": config_file,
+                    "project_config": Path("/nonexistent"),
+                },
+            ):
                 config_manager = ConfigurationManager()
 
                 # Environment should win
@@ -231,13 +247,10 @@ class TestConfigurationManager:
         """Test configuration merging."""
         base = {
             "server": {"port": 8080, "host": "localhost"},
-            "logging": {"level": "info"}
+            "logging": {"level": "info"},
         }
 
-        override = {
-            "server": {"port": 9000},
-            "new_section": {"value": "test"}
-        }
+        override = {"server": {"port": 9000}, "new_section": {"value": "test"}}
 
         result = self.config_manager._merge_configs(base, override)
 
@@ -321,24 +334,33 @@ class TestConfigurationEdgeCases:
             with open(config_file, "w") as f:
                 f.write("invalid: yaml: content: [")  # Invalid YAML
 
-            with patch.object(ConfigurationManager, "config_dirs", {
-                "global_config": config_file,
-                "project_config": Path("/nonexistent")
-            }):
+            with patch.object(
+                ConfigurationManager,
+                "config_dirs",
+                {
+                    "global_config": config_file,
+                    "project_config": Path("/nonexistent"),
+                },
+            ):
                 # Should handle gracefully
                 manager = ConfigurationManager()
                 assert isinstance(manager.config, dict)
 
         finally:
             import shutil
+
             shutil.rmtree(temp_dir)
 
     def test_nonexistent_config_file(self):
         """Test handling of non-existent configuration files."""
-        with patch.object(ConfigurationManager, "config_dirs", {
-            "global_config": Path("/nonexistent/config.yaml"),
-            "project_config": Path("/nonexistent/project.yaml")
-        }):
+        with patch.object(
+            ConfigurationManager,
+            "config_dirs",
+            {
+                "global_config": Path("/nonexistent/config.yaml"),
+                "project_config": Path("/nonexistent/project.yaml"),
+            },
+        ):
             # Should handle gracefully
             manager = ConfigurationManager()
             assert isinstance(manager.config, dict)
@@ -347,10 +369,13 @@ class TestConfigurationEdgeCases:
 
     def test_type_conversion_errors(self):
         """Test handling of type conversion errors in environment variables."""
-        with patch.dict(os.environ, {
-            'SWAGGER_MCP_PORT': 'not_a_number',
-            'SWAGGER_MCP_TIMEOUT': 'invalid_int'
-        }):
+        with patch.dict(
+            os.environ,
+            {
+                "SWAGGER_MCP_PORT": "not_a_number",
+                "SWAGGER_MCP_TIMEOUT": "invalid_int",
+            },
+        ):
             # Should handle conversion errors gracefully
             manager = ConfigurationManager()
             # Should fall back to defaults

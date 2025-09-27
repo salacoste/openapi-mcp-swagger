@@ -79,7 +79,7 @@ class ProgressReporter:
     def __init__(
         self,
         callback: Optional[ProgressCallback] = None,
-        interval_bytes: int = 1024 * 1024  # 1MB
+        interval_bytes: int = 1024 * 1024,  # 1MB
     ):
         """Initialize progress reporter.
 
@@ -102,7 +102,9 @@ class ProgressReporter:
         self.total_operation_bytes = 0
         self.total_processed_bytes = 0
 
-    async def start_operation(self, total_bytes: int = 0, description: str = "Processing") -> None:
+    async def start_operation(
+        self, total_bytes: int = 0, description: str = "Processing"
+    ) -> None:
         """Start a new parsing operation.
 
         Args:
@@ -118,7 +120,7 @@ class ProgressReporter:
             phase=ProgressPhase.INITIALIZATION,
             progress_percent=0.0,
             message=description,
-            total_bytes=total_bytes
+            total_bytes=total_bytes,
         )
 
         await self._emit_event(event)
@@ -126,14 +128,14 @@ class ProgressReporter:
         self.logger.info(
             "Progress tracking started",
             total_bytes=total_bytes,
-            description=description
+            description=description,
         )
 
     async def start_phase(
         self,
         phase: ProgressPhase,
         description: str,
-        phase_total_bytes: int = 0
+        phase_total_bytes: int = 0,
     ) -> None:
         """Start a new processing phase.
 
@@ -151,16 +153,14 @@ class ProgressReporter:
 
         # Initialize phase metrics
         self.phase_metrics[phase] = PhaseMetrics(
-            phase=phase,
-            start_time=current_time,
-            total_bytes=phase_total_bytes
+            phase=phase, start_time=current_time, total_bytes=phase_total_bytes
         )
 
         event = ProgressEvent(
             phase=phase,
             progress_percent=0.0,
             message=description,
-            total_bytes=phase_total_bytes
+            total_bytes=phase_total_bytes,
         )
 
         await self._emit_event(event)
@@ -169,14 +169,14 @@ class ProgressReporter:
             "Phase started",
             phase=phase.value,
             description=description,
-            phase_total_bytes=phase_total_bytes
+            phase_total_bytes=phase_total_bytes,
         )
 
     async def update_progress(
         self,
         bytes_processed: int,
         total_bytes: int,
-        message: Optional[str] = None
+        message: Optional[str] = None,
     ) -> None:
         """Update progress within current phase.
 
@@ -195,16 +195,19 @@ class ProgressReporter:
         time_since_last = current_time - self.last_report_time
 
         should_report = (
-            bytes_since_last >= self.interval_bytes or
-            time_since_last >= 1.0 or  # At least every second
-            bytes_processed >= total_bytes  # Always report completion
+            bytes_since_last >= self.interval_bytes
+            or time_since_last >= 1.0
+            or bytes_processed  # At least every second
+            >= total_bytes  # Always report completion
         )
 
         if not should_report:
             return
 
         # Calculate progress percentage
-        progress_percent = (bytes_processed / total_bytes * 100) if total_bytes > 0 else 0
+        progress_percent = (
+            (bytes_processed / total_bytes * 100) if total_bytes > 0 else 0
+        )
 
         # Update phase metrics
         phase_metrics = self.phase_metrics[self.current_phase]
@@ -220,10 +223,11 @@ class ProgressReporter:
         event = ProgressEvent(
             phase=self.current_phase,
             progress_percent=progress_percent,
-            message=message or f"{self.current_phase.value.title()} in progress",
+            message=message
+            or f"{self.current_phase.value.title()} in progress",
             bytes_processed=bytes_processed,
             total_bytes=total_bytes,
-            estimated_remaining_ms=estimated_remaining
+            estimated_remaining_ms=estimated_remaining,
         )
 
         phase_metrics.events.append(event)
@@ -240,7 +244,7 @@ class ProgressReporter:
             progress_percent=progress_percent,
             bytes_processed=bytes_processed,
             total_bytes=total_bytes,
-            estimated_remaining_ms=estimated_remaining
+            estimated_remaining_ms=estimated_remaining,
         )
 
     async def complete_phase(self, message: str = "Phase completed") -> None:
@@ -261,7 +265,7 @@ class ProgressReporter:
             progress_percent=100.0,
             message=message,
             bytes_processed=phase_metrics.bytes_processed,
-            total_bytes=phase_metrics.total_bytes
+            total_bytes=phase_metrics.total_bytes,
         )
 
         phase_metrics.events.append(event)
@@ -272,12 +276,14 @@ class ProgressReporter:
             phase=self.current_phase.value,
             duration_ms=phase_metrics.duration_ms,
             bytes_processed=phase_metrics.bytes_processed,
-            processing_speed_mb_per_sec=phase_metrics.processing_speed_mb_per_sec
+            processing_speed_mb_per_sec=phase_metrics.processing_speed_mb_per_sec,
         )
 
         self.current_phase = None
 
-    async def complete(self, message: str = "Operation completed successfully") -> None:
+    async def complete(
+        self, message: str = "Operation completed successfully"
+    ) -> None:
         """Complete the entire operation.
 
         Args:
@@ -294,7 +300,7 @@ class ProgressReporter:
             progress_percent=100.0,
             message=message,
             bytes_processed=self.total_processed_bytes,
-            total_bytes=self.total_operation_bytes
+            total_bytes=self.total_operation_bytes,
         )
 
         await self._emit_event(event)
@@ -304,7 +310,7 @@ class ProgressReporter:
             total_duration_ms=total_duration,
             total_bytes_processed=self.total_processed_bytes,
             phases_completed=len(self.phase_metrics),
-            overall_speed_mb_per_sec=self._calculate_overall_speed()
+            overall_speed_mb_per_sec=self._calculate_overall_speed(),
         )
 
     async def fail(self, error_message: str) -> None:
@@ -318,7 +324,7 @@ class ProgressReporter:
             progress_percent=0.0,  # Reset to indicate failure
             message=f"Failed: {error_message}",
             bytes_processed=self.total_processed_bytes,
-            total_bytes=self.total_operation_bytes
+            total_bytes=self.total_operation_bytes,
         )
 
         await self._emit_event(event)
@@ -326,8 +332,10 @@ class ProgressReporter:
         self.logger.error(
             "Operation failed",
             error_message=error_message,
-            current_phase=self.current_phase.value if self.current_phase else None,
-            bytes_processed=self.total_processed_bytes
+            current_phase=self.current_phase.value
+            if self.current_phase
+            else None,
+            bytes_processed=self.total_processed_bytes,
         )
 
     async def cancel(self, reason: str = "Operation cancelled") -> None:
@@ -341,7 +349,7 @@ class ProgressReporter:
             progress_percent=0.0,
             message=f"Cancelled: {reason}",
             bytes_processed=self.total_processed_bytes,
-            total_bytes=self.total_operation_bytes
+            total_bytes=self.total_operation_bytes,
         )
 
         await self._emit_event(event)
@@ -349,7 +357,9 @@ class ProgressReporter:
         self.logger.warning(
             "Operation cancelled",
             reason=reason,
-            current_phase=self.current_phase.value if self.current_phase else None
+            current_phase=self.current_phase.value
+            if self.current_phase
+            else None,
         )
 
     def get_metrics(self) -> Dict[str, Any]:
@@ -373,11 +383,13 @@ class ProgressReporter:
                     "progress_percent": metrics.progress_percent,
                     "processing_speed_mb_per_sec": metrics.processing_speed_mb_per_sec,
                     "is_completed": metrics.is_completed,
-                    "events_count": len(metrics.events)
+                    "events_count": len(metrics.events),
                 }
                 for phase, metrics in self.phase_metrics.items()
             },
-            "current_phase": self.current_phase.value if self.current_phase else None
+            "current_phase": self.current_phase.value
+            if self.current_phase
+            else None,
         }
 
     def reset(self) -> None:
@@ -409,14 +421,11 @@ class ProgressReporter:
                 self.logger.warning(
                     "Progress callback error",
                     error=str(e),
-                    event_phase=event.phase.value
+                    event_phase=event.phase.value,
                 )
 
     def _estimate_remaining_time(
-        self,
-        bytes_processed: int,
-        total_bytes: int,
-        start_time: float
+        self, bytes_processed: int, total_bytes: int, start_time: float
     ) -> Optional[float]:
         """Estimate remaining time based on current progress.
 
@@ -428,7 +437,11 @@ class ProgressReporter:
         Returns:
             Estimated remaining time in milliseconds, or None if cannot estimate
         """
-        if bytes_processed <= 0 or total_bytes <= 0 or bytes_processed >= total_bytes:
+        if (
+            bytes_processed <= 0
+            or total_bytes <= 0
+            or bytes_processed >= total_bytes
+        ):
             return None
 
         elapsed_time = time.time() - start_time
@@ -452,7 +465,7 @@ class ProgressReporter:
         if self.total_processed_bytes == 0:
             return 0.0
 
-        total_duration_seconds = (time.time() - self.operation_start_time)
+        total_duration_seconds = time.time() - self.operation_start_time
         if total_duration_seconds <= 0:
             return 0.0
 

@@ -1,17 +1,24 @@
 """Tests for search index manager functionality."""
 
 import asyncio
-import tempfile
 import shutil
+import tempfile
 from pathlib import Path
-from unittest.mock import Mock, AsyncMock, patch
+from unittest.mock import AsyncMock, Mock, patch
+
 import pytest
 
-from swagger_mcp_server.search.index_manager import SearchIndexManager
 from swagger_mcp_server.config.settings import SearchConfig
-from swagger_mcp_server.storage.repositories.endpoint_repository import EndpointRepository
-from swagger_mcp_server.storage.repositories.schema_repository import SchemaRepository
-from swagger_mcp_server.storage.repositories.metadata_repository import MetadataRepository
+from swagger_mcp_server.search.index_manager import SearchIndexManager
+from swagger_mcp_server.storage.repositories.endpoint_repository import (
+    EndpointRepository,
+)
+from swagger_mcp_server.storage.repositories.metadata_repository import (
+    MetadataRepository,
+)
+from swagger_mcp_server.storage.repositories.schema_repository import (
+    SchemaRepository,
+)
 
 
 @pytest.fixture
@@ -67,7 +74,9 @@ class TestSearchIndexManager:
         assert index_manager.config is not None
         assert index_manager._index is None
 
-    def test_index_directory_creation(self, temp_index_dir, mock_repositories, search_config):
+    def test_index_directory_creation(
+        self, temp_index_dir, mock_repositories, search_config
+    ):
         """Test that index directory is created if it doesn't exist."""
         # Use a subdirectory that doesn't exist
         non_existent_dir = Path(temp_index_dir) / "new_index_dir"
@@ -102,7 +111,10 @@ class TestSearchIndexManager:
         index_manager.endpoint_repo.get_all = AsyncMock(return_value=[])
 
         # Create index
-        total_indexed, elapsed_time = await index_manager.create_index_from_database()
+        (
+            total_indexed,
+            elapsed_time,
+        ) = await index_manager.create_index_from_database()
 
         assert total_indexed == 0
         assert elapsed_time >= 0
@@ -138,10 +150,15 @@ class TestSearchIndexManager:
         ]
 
         index_manager.endpoint_repo.count_all = AsyncMock(return_value=2)
-        index_manager.endpoint_repo.get_all = AsyncMock(return_value=sample_endpoints)
+        index_manager.endpoint_repo.get_all = AsyncMock(
+            return_value=sample_endpoints
+        )
 
         # Create index
-        total_indexed, elapsed_time = await index_manager.create_index_from_database()
+        (
+            total_indexed,
+            elapsed_time,
+        ) = await index_manager.create_index_from_database()
 
         assert total_indexed == 2
         assert elapsed_time >= 0
@@ -157,22 +174,26 @@ class TestSearchIndexManager:
 
         # Mock database
         index_manager.endpoint_repo.count_all = AsyncMock(return_value=1)
-        index_manager.endpoint_repo.get_all = AsyncMock(return_value=[
-            {
-                "id": "1",
-                "path": "/api/test",
-                "method": "GET",
-                "summary": "Test",
-                "description": "Test endpoint",
-                "parameters": [],
-                "tags": [],
-                "security": [],
-                "responses": {},
-            }
-        ])
+        index_manager.endpoint_repo.get_all = AsyncMock(
+            return_value=[
+                {
+                    "id": "1",
+                    "path": "/api/test",
+                    "method": "GET",
+                    "summary": "Test",
+                    "description": "Test endpoint",
+                    "parameters": [],
+                    "tags": [],
+                    "security": [],
+                    "responses": {},
+                }
+            ]
+        )
 
         # Create index with callback
-        await index_manager.create_index_from_database(progress_callback=progress_callback)
+        await index_manager.create_index_from_database(
+            progress_callback=progress_callback
+        )
 
         # Verify callback was called
         assert len(progress_calls) >= 2  # At least start and end calls
@@ -200,7 +221,9 @@ class TestSearchIndexManager:
             "responses": {},
         }
 
-        index_manager.endpoint_repo.get_by_id = AsyncMock(return_value=updated_endpoint)
+        index_manager.endpoint_repo.get_by_id = AsyncMock(
+            return_value=updated_endpoint
+        )
 
         # Update document
         result = await index_manager.update_endpoint_document("1")
@@ -350,8 +373,16 @@ class TestDocumentProcessing:
             "summary": "Get user",
             "description": "Retrieve a user by ID",
             "parameters": [
-                {"name": "id", "type": "string", "description": "User identifier"},
-                {"name": "include", "type": "array", "description": "Include related data"},
+                {
+                    "name": "id",
+                    "type": "string",
+                    "description": "User identifier",
+                },
+                {
+                    "name": "include",
+                    "type": "array",
+                    "description": "Include related data",
+                },
             ],
             "tags": ["users"],
             "security": [],
@@ -362,7 +393,9 @@ class TestDocumentProcessing:
         document = await index_manager._create_search_document(endpoint_data)
 
         assert "id (string): User identifier" in document["parameters"]
-        assert "include (array): Include related data" in document["parameters"]
+        assert (
+            "include (array): Include related data" in document["parameters"]
+        )
         assert "id include" == document["parameter_names"]
 
     @pytest.mark.asyncio
@@ -402,9 +435,11 @@ class TestDocumentProcessing:
                 "200": {
                     "description": "Success",
                     "content": {
-                        "application/json": {"schema": {"$ref": "#/components/schemas/Data"}},
+                        "application/json": {
+                            "schema": {"$ref": "#/components/schemas/Data"}
+                        },
                         "text/csv": {"schema": {"type": "string"}},
-                    }
+                    },
                 },
                 "404": {"description": "Not found"},
             },
@@ -426,18 +461,20 @@ class TestBatchProcessing:
         # Mock large dataset
         all_endpoints = []
         for i in range(250):  # More than one batch
-            all_endpoints.append({
-                "id": f"endpoint_{i}",
-                "path": f"/api/endpoint_{i}",
-                "method": "GET",
-                "summary": f"Endpoint {i}",
-                "description": f"Test endpoint number {i}",
-                "parameters": [],
-                "tags": [],
-                "security": [],
-                "responses": {},
-                "deprecated": False,
-            })
+            all_endpoints.append(
+                {
+                    "id": f"endpoint_{i}",
+                    "path": f"/api/endpoint_{i}",
+                    "method": "GET",
+                    "summary": f"Endpoint {i}",
+                    "description": f"Test endpoint number {i}",
+                    "parameters": [],
+                    "tags": [],
+                    "security": [],
+                    "responses": {},
+                    "deprecated": False,
+                }
+            )
 
         # Mock repository to return batches
         def mock_get_all(limit=None, offset=0):
@@ -446,13 +483,17 @@ class TestBatchProcessing:
             end = offset + limit if limit else len(all_endpoints)
             return all_endpoints[offset:end]
 
-        index_manager.endpoint_repo.get_all = AsyncMock(side_effect=mock_get_all)
+        index_manager.endpoint_repo.get_all = AsyncMock(
+            side_effect=mock_get_all
+        )
 
         # Process in batches
         batch_count = 0
         total_documents = 0
 
-        async for batch_num, documents in index_manager._process_endpoints_in_batches(100):
+        async for batch_num, documents in index_manager._process_endpoints_in_batches(
+            100
+        ):
             batch_count += 1
             total_documents += len(documents)
 

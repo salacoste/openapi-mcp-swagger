@@ -8,17 +8,21 @@ Tests cover all aspects of advanced query processing including:
 - Query suggestions and auto-completion
 """
 
-import pytest
 import asyncio
+from typing import List, Set
 from unittest.mock import Mock, patch
-from typing import Set, List
 
-from swagger_mcp_server.search.query_processor import (
-    QueryProcessor,
-    ProcessedQuery,
-    QuerySuggestion
+import pytest
+
+from swagger_mcp_server.config.settings import (
+    SearchConfig,
+    SearchPerformanceConfig,
 )
-from swagger_mcp_server.config.settings import SearchConfig, SearchPerformanceConfig
+from swagger_mcp_server.search.query_processor import (
+    ProcessedQuery,
+    QueryProcessor,
+    QuerySuggestion,
+)
 
 
 @pytest.fixture
@@ -26,9 +30,7 @@ def search_config():
     """Create test search configuration."""
     return SearchConfig(
         performance=SearchPerformanceConfig(
-            max_search_results=100,
-            search_timeout=5.0,
-            index_batch_size=1000
+            max_search_results=100, search_timeout=5.0, index_batch_size=1000
         )
     )
 
@@ -43,10 +45,27 @@ def query_processor(search_config):
 def sample_available_terms():
     """Sample terms available in search index."""
     return {
-        'user', 'customer', 'authentication', 'auth', 'bearer',
-        'endpoint', 'users', 'create', 'update', 'delete',
-        'get', 'post', 'put', 'patch', 'json', 'xml',
-        'parameter', 'response', 'request', 'api', 'rest'
+        "user",
+        "customer",
+        "authentication",
+        "auth",
+        "bearer",
+        "endpoint",
+        "users",
+        "create",
+        "update",
+        "delete",
+        "get",
+        "post",
+        "put",
+        "patch",
+        "json",
+        "xml",
+        "parameter",
+        "response",
+        "request",
+        "api",
+        "rest",
     }
 
 
@@ -60,10 +79,10 @@ class TestQueryPreprocessing:
         processed = await query_processor.process_query(query)
 
         assert processed.original_query == query
-        assert processed.query_type == 'simple'
+        assert processed.query_type == "simple"
         assert len(processed.normalized_terms) >= 2
-        assert any('user' in term for term in processed.normalized_terms)
-        assert any('auth' in term for term in processed.normalized_terms)
+        assert any("user" in term for term in processed.normalized_terms)
+        assert any("auth" in term for term in processed.normalized_terms)
 
     @pytest.mark.asyncio
     async def test_query_normalization_stemming(self, query_processor):
@@ -75,8 +94,8 @@ class TestQueryPreprocessing:
         normalized = processed.normalized_terms
         assert len(normalized) > 0
         # Should handle plural forms
-        if hasattr(query_processor, 'stemmer') and query_processor.stemmer:
-            assert any('user' in term for term in normalized)
+        if hasattr(query_processor, "stemmer") and query_processor.stemmer:
+            assert any("user" in term for term in normalized)
 
     @pytest.mark.asyncio
     async def test_empty_query_handling(self, query_processor):
@@ -107,7 +126,9 @@ class TestQueryPreprocessing:
             results.append(processed.normalized_terms)
 
         # All should produce similar normalized terms
-        assert len(set(str(r) for r in results)) <= 2  # Allow for minor variations
+        assert (
+            len(set(str(r) for r in results)) <= 2
+        )  # Allow for minor variations
 
 
 class TestBooleanQueryProcessing:
@@ -119,9 +140,9 @@ class TestBooleanQueryProcessing:
         query = "user AND authentication"
         processed = await query_processor.process_query(query)
 
-        assert processed.query_type == 'boolean'
-        assert 'and' in processed.boolean_operators
-        assert len(processed.boolean_operators['and']) == 2
+        assert processed.query_type == "boolean"
+        assert "and" in processed.boolean_operators
+        assert len(processed.boolean_operators["and"]) == 2
 
     @pytest.mark.asyncio
     async def test_or_query_parsing(self, query_processor):
@@ -129,9 +150,9 @@ class TestBooleanQueryProcessing:
         query = "user OR customer"
         processed = await query_processor.process_query(query)
 
-        assert processed.query_type == 'boolean'
-        assert 'or' in processed.boolean_operators
-        assert len(processed.boolean_operators['or']) == 2
+        assert processed.query_type == "boolean"
+        assert "or" in processed.boolean_operators
+        assert len(processed.boolean_operators["or"]) == 2
 
     @pytest.mark.asyncio
     async def test_not_query_parsing(self, query_processor):
@@ -139,10 +160,10 @@ class TestBooleanQueryProcessing:
         query = "authentication NOT oauth"
         processed = await query_processor.process_query(query)
 
-        assert processed.query_type == 'boolean'
-        assert 'not' in processed.boolean_operators
-        assert 'oauth' in processed.boolean_operators['not']
-        assert 'oauth' in processed.excluded_terms
+        assert processed.query_type == "boolean"
+        assert "not" in processed.boolean_operators
+        assert "oauth" in processed.boolean_operators["not"]
+        assert "oauth" in processed.excluded_terms
 
     @pytest.mark.asyncio
     async def test_complex_boolean_query(self, query_processor):
@@ -150,24 +171,20 @@ class TestBooleanQueryProcessing:
         query = "user AND authentication OR bearer NOT oauth"
         processed = await query_processor.process_query(query)
 
-        assert processed.query_type == 'boolean'
-        assert 'and' in processed.boolean_operators
-        assert 'or' in processed.boolean_operators
-        assert 'not' in processed.boolean_operators
+        assert processed.query_type == "boolean"
+        assert "and" in processed.boolean_operators
+        assert "or" in processed.boolean_operators
+        assert "not" in processed.boolean_operators
 
     @pytest.mark.asyncio
     async def test_case_insensitive_boolean_operators(self, query_processor):
         """Test case insensitive boolean operator parsing."""
-        queries = [
-            "user AND auth",
-            "user and auth",
-            "user And auth"
-        ]
+        queries = ["user AND auth", "user and auth", "user And auth"]
 
         for query in queries:
             processed = await query_processor.process_query(query)
-            assert processed.query_type == 'boolean'
-            assert 'and' in processed.boolean_operators
+            assert processed.query_type == "boolean"
+            assert "and" in processed.boolean_operators
 
 
 class TestFieldSpecificQueries:
@@ -179,9 +196,9 @@ class TestFieldSpecificQueries:
         query = "path:/users authentication"
         processed = await query_processor.process_query(query)
 
-        assert processed.query_type == 'field_specific'
-        assert 'path' in processed.field_filters
-        assert processed.field_filters['path'] == '/users'
+        assert processed.query_type == "field_specific"
+        assert "path" in processed.field_filters
+        assert processed.field_filters["path"] == "/users"
 
     @pytest.mark.asyncio
     async def test_method_filter_parsing(self, query_processor):
@@ -189,9 +206,9 @@ class TestFieldSpecificQueries:
         query = "method:GET user endpoints"
         processed = await query_processor.process_query(query)
 
-        assert processed.query_type == 'field_specific'
-        assert 'method' in processed.field_filters
-        assert processed.field_filters['method'] == 'GET'
+        assert processed.query_type == "field_specific"
+        assert "method" in processed.field_filters
+        assert processed.field_filters["method"] == "GET"
 
     @pytest.mark.asyncio
     async def test_multiple_field_filters(self, query_processor):
@@ -199,13 +216,13 @@ class TestFieldSpecificQueries:
         query = "path:/users method:POST auth:bearer create user"
         processed = await query_processor.process_query(query)
 
-        assert processed.query_type == 'field_specific'
-        assert 'path' in processed.field_filters
-        assert 'method' in processed.field_filters
-        assert 'auth' in processed.field_filters
-        assert processed.field_filters['path'] == '/users'
-        assert processed.field_filters['method'] == 'POST'
-        assert processed.field_filters['auth'] == 'bearer'
+        assert processed.query_type == "field_specific"
+        assert "path" in processed.field_filters
+        assert "method" in processed.field_filters
+        assert "auth" in processed.field_filters
+        assert processed.field_filters["path"] == "/users"
+        assert processed.field_filters["method"] == "POST"
+        assert processed.field_filters["auth"] == "bearer"
 
     @pytest.mark.asyncio
     async def test_param_filter_parsing(self, query_processor):
@@ -213,10 +230,10 @@ class TestFieldSpecificQueries:
         query = "param:user_id status:200"
         processed = await query_processor.process_query(query)
 
-        assert 'param' in processed.field_filters
-        assert 'status' in processed.field_filters
-        assert processed.field_filters['param'] == 'user_id'
-        assert processed.field_filters['status'] == '200'
+        assert "param" in processed.field_filters
+        assert "status" in processed.field_filters
+        assert processed.field_filters["param"] == "user_id"
+        assert processed.field_filters["status"] == "200"
 
     @pytest.mark.asyncio
     async def test_response_filter_parsing(self, query_processor):
@@ -224,10 +241,10 @@ class TestFieldSpecificQueries:
         query = "response:json type:object"
         processed = await query_processor.process_query(query)
 
-        assert 'response' in processed.field_filters
-        assert 'type' in processed.field_filters
-        assert processed.field_filters['response'] == 'json'
-        assert processed.field_filters['type'] == 'object'
+        assert "response" in processed.field_filters
+        assert "type" in processed.field_filters
+        assert processed.field_filters["response"] == "json"
+        assert processed.field_filters["type"] == "object"
 
 
 class TestQueryEnhancement:
@@ -243,7 +260,7 @@ class TestQueryEnhancement:
         enhanced = processed.enhanced_terms
         assert len(enhanced) > len(processed.normalized_terms)
         # Check for auth synonyms
-        auth_synonyms = ['authentication', 'authorization', 'login']
+        auth_synonyms = ["authentication", "authorization", "login"]
         assert any(syn in enhanced for syn in auth_synonyms)
 
     @pytest.mark.asyncio
@@ -254,7 +271,7 @@ class TestQueryEnhancement:
 
         enhanced = processed.enhanced_terms
         # Should include variations like user_id, users
-        assert 'users' in enhanced or any('user' in term for term in enhanced)
+        assert "users" in enhanced or any("user" in term for term in enhanced)
 
     @pytest.mark.asyncio
     async def test_duplicate_removal(self, query_processor):
@@ -288,7 +305,7 @@ class TestFuzzyMatching:
 
         # Short terms should not be in fuzzy terms
         fuzzy = processed.fuzzy_terms
-        short_terms = ['get', 'put', 'api']
+        short_terms = ["get", "put", "api"]
         assert not any(term in fuzzy for term in short_terms)
 
 
@@ -299,18 +316,26 @@ class TestWhooshQueryGeneration:
         """Test simple Whoosh query generation."""
         processed_query = ProcessedQuery(
             original_query="user auth",
-            normalized_terms=['user', 'auth'],
+            normalized_terms=["user", "auth"],
             field_filters={},
             boolean_operators={},
             fuzzy_terms=[],
             excluded_terms=[],
-            query_type='simple',
-            enhanced_terms=['user', 'auth', 'authentication', 'users'],
-            suggestions=[]
+            query_type="simple",
+            enhanced_terms=["user", "auth", "authentication", "users"],
+            suggestions=[],
         )
 
-        schema_fields = ['endpoint_path', 'summary', 'description', 'parameters', 'tags']
-        query = query_processor.generate_whoosh_query(processed_query, schema_fields)
+        schema_fields = [
+            "endpoint_path",
+            "summary",
+            "description",
+            "parameters",
+            "tags",
+        ]
+        query = query_processor.generate_whoosh_query(
+            processed_query, schema_fields
+        )
 
         assert query is not None
         # Should be a compound query for enhanced terms
@@ -320,17 +345,24 @@ class TestWhooshQueryGeneration:
         processed_query = ProcessedQuery(
             original_query="path:/users method:GET",
             normalized_terms=[],
-            field_filters={'path': '/users', 'method': 'GET'},
+            field_filters={"path": "/users", "method": "GET"},
             boolean_operators={},
             fuzzy_terms=[],
             excluded_terms=[],
-            query_type='field_specific',
+            query_type="field_specific",
             enhanced_terms=[],
-            suggestions=[]
+            suggestions=[],
         )
 
-        schema_fields = ['endpoint_path', 'http_method', 'summary', 'description']
-        query = query_processor.generate_whoosh_query(processed_query, schema_fields)
+        schema_fields = [
+            "endpoint_path",
+            "http_method",
+            "summary",
+            "description",
+        ]
+        query = query_processor.generate_whoosh_query(
+            processed_query, schema_fields
+        )
 
         assert query is not None
 
@@ -338,18 +370,20 @@ class TestWhooshQueryGeneration:
         """Test boolean Whoosh query generation."""
         processed_query = ProcessedQuery(
             original_query="user AND auth",
-            normalized_terms=['user', 'auth'],
+            normalized_terms=["user", "auth"],
             field_filters={},
-            boolean_operators={'and': ['user', 'auth'], 'or': [], 'not': []},
+            boolean_operators={"and": ["user", "auth"], "or": [], "not": []},
             fuzzy_terms=[],
             excluded_terms=[],
-            query_type='boolean',
-            enhanced_terms=['user', 'auth'],
-            suggestions=[]
+            query_type="boolean",
+            enhanced_terms=["user", "auth"],
+            suggestions=[],
         )
 
-        schema_fields = ['endpoint_path', 'summary', 'description']
-        query = query_processor.generate_whoosh_query(processed_query, schema_fields)
+        schema_fields = ["endpoint_path", "summary", "description"]
+        query = query_processor.generate_whoosh_query(
+            processed_query, schema_fields
+        )
 
         assert query is not None
 
@@ -357,18 +391,20 @@ class TestWhooshQueryGeneration:
         """Test excluded terms in Whoosh query generation."""
         processed_query = ProcessedQuery(
             original_query="auth NOT oauth",
-            normalized_terms=['auth'],
+            normalized_terms=["auth"],
             field_filters={},
-            boolean_operators={'and': [], 'or': [], 'not': ['oauth']},
+            boolean_operators={"and": [], "or": [], "not": ["oauth"]},
             fuzzy_terms=[],
-            excluded_terms=['oauth'],
-            query_type='boolean',
-            enhanced_terms=['auth', 'authentication'],
-            suggestions=[]
+            excluded_terms=["oauth"],
+            query_type="boolean",
+            enhanced_terms=["auth", "authentication"],
+            suggestions=[],
         )
 
-        schema_fields = ['endpoint_path', 'summary', 'description']
-        query = query_processor.generate_whoosh_query(processed_query, schema_fields)
+        schema_fields = ["endpoint_path", "summary", "description"]
+        query = query_processor.generate_whoosh_query(
+            processed_query, schema_fields
+        )
 
         assert query is not None
 
@@ -377,7 +413,9 @@ class TestQuerySuggestions:
     """Test query suggestion generation."""
 
     @pytest.mark.asyncio
-    async def test_typo_fix_suggestions(self, query_processor, sample_available_terms):
+    async def test_typo_fix_suggestions(
+        self, query_processor, sample_available_terms
+    ):
         """Test typo fix suggestions."""
         query = "autentication"  # Typo in "authentication"
         suggestions = await query_processor.generate_query_suggestions(
@@ -386,36 +424,42 @@ class TestQuerySuggestions:
 
         assert len(suggestions) > 0
         # Should suggest "authentication"
-        typo_fixes = [s for s in suggestions if s.category == 'typo_fix']
-        assert any('authentication' in s.query for s in typo_fixes)
+        typo_fixes = [s for s in suggestions if s.category == "typo_fix"]
+        assert any("authentication" in s.query for s in typo_fixes)
 
     @pytest.mark.asyncio
     async def test_broader_query_suggestions(self, query_processor):
         """Test broader query suggestions for zero results."""
         query = "very specific complex query terms"
-        suggestions = await query_processor.generate_query_suggestions(query, 0)
+        suggestions = await query_processor.generate_query_suggestions(
+            query, 0
+        )
 
         assert len(suggestions) > 0
         # Should suggest broader alternatives
-        broader = [s for s in suggestions if s.category == 'expansion']
+        broader = [s for s in suggestions if s.category == "expansion"]
         assert len(broader) > 0
 
     @pytest.mark.asyncio
     async def test_refinement_suggestions(self, query_processor):
         """Test refinement suggestions for few results."""
         query = "user"
-        suggestions = await query_processor.generate_query_suggestions(query, 3)
+        suggestions = await query_processor.generate_query_suggestions(
+            query, 3
+        )
 
         assert len(suggestions) > 0
         # Should suggest refinements
-        refinements = [s for s in suggestions if s.category == 'refinement']
+        refinements = [s for s in suggestions if s.category == "refinement"]
         assert len(refinements) > 0
 
     @pytest.mark.asyncio
     async def test_api_pattern_suggestions(self, query_processor):
         """Test API pattern suggestions."""
         query = "user create"
-        suggestions = await query_processor.generate_query_suggestions(query, 3)
+        suggestions = await query_processor.generate_query_suggestions(
+            query, 3
+        )
 
         # Should include API pattern suggestions
         assert len(suggestions) > 0
@@ -425,7 +469,9 @@ class TestQuerySuggestions:
     async def test_suggestion_limit(self, query_processor):
         """Test that suggestions are limited to reasonable number."""
         query = "user authentication api endpoint"
-        suggestions = await query_processor.generate_query_suggestions(query, 0)
+        suggestions = await query_processor.generate_query_suggestions(
+            query, 0
+        )
 
         # Should not exceed 5 suggestions
         assert len(suggestions) <= 5
@@ -434,7 +480,9 @@ class TestQuerySuggestions:
     async def test_suggestion_scoring(self, query_processor):
         """Test that suggestions are scored and sorted."""
         query = "user"
-        suggestions = await query_processor.generate_query_suggestions(query, 0)
+        suggestions = await query_processor.generate_query_suggestions(
+            query, 0
+        )
 
         if len(suggestions) > 1:
             # Should be sorted by score (descending)
@@ -452,7 +500,7 @@ class TestPerformanceAndEdgeCases:
         processed = await query_processor.process_query(long_query)
 
         assert processed.original_query == long_query
-        assert processed.query_type in ['simple', 'natural_language']
+        assert processed.query_type in ["simple", "natural_language"]
 
     @pytest.mark.asyncio
     async def test_special_characters_query(self, query_processor):
@@ -513,7 +561,9 @@ class TestNLTKIntegration:
 
     def test_nltk_availability_handling(self, search_config):
         """Test handling when NLTK is not available."""
-        with patch('swagger_mcp_server.search.query_processor.NLTK_AVAILABLE', False):
+        with patch(
+            "swagger_mcp_server.search.query_processor.NLTK_AVAILABLE", False
+        ):
             processor = QueryProcessor(search_config)
             assert processor.stemmer is None
             assert processor.stop_words == set()
@@ -521,7 +571,9 @@ class TestNLTKIntegration:
     @pytest.mark.asyncio
     async def test_fallback_processing_without_nltk(self, search_config):
         """Test query processing fallback when NLTK is unavailable."""
-        with patch('swagger_mcp_server.search.query_processor.NLTK_AVAILABLE', False):
+        with patch(
+            "swagger_mcp_server.search.query_processor.NLTK_AVAILABLE", False
+        ):
             processor = QueryProcessor(search_config)
             query = "users authentication endpoints"
             processed = await processor.process_query(query)
@@ -534,8 +586,12 @@ class TestNLTKIntegration:
     async def test_nltk_error_handling(self, query_processor):
         """Test handling of NLTK processing errors."""
         # Mock NLTK components to raise errors
-        if hasattr(query_processor, 'stemmer') and query_processor.stemmer:
-            with patch.object(query_processor.stemmer, 'stem', side_effect=Exception("NLTK error")):
+        if hasattr(query_processor, "stemmer") and query_processor.stemmer:
+            with patch.object(
+                query_processor.stemmer,
+                "stem",
+                side_effect=Exception("NLTK error"),
+            ):
                 query = "users authentication"
                 processed = await query_processor.process_query(query)
 
@@ -565,15 +621,25 @@ class TestQueryProcessorIntegration:
         assert processed.boolean_operators
         assert processed.excluded_terms
         assert processed.enhanced_terms
-        assert processed.query_type == 'field_specific'
+        assert processed.query_type == "field_specific"
 
         # Test Whoosh query generation
-        schema_fields = ['endpoint_path', 'http_method', 'auth_type', 'summary', 'description']
-        whoosh_query = query_processor.generate_whoosh_query(processed, schema_fields)
+        schema_fields = [
+            "endpoint_path",
+            "http_method",
+            "auth_type",
+            "summary",
+            "description",
+        ]
+        whoosh_query = query_processor.generate_whoosh_query(
+            processed, schema_fields
+        )
         assert whoosh_query is not None
 
     @pytest.mark.asyncio
-    async def test_suggestion_generation_pipeline(self, query_processor, sample_available_terms):
+    async def test_suggestion_generation_pipeline(
+        self, query_processor, sample_available_terms
+    ):
         """Test complete suggestion generation pipeline."""
         query = "authen user"  # Partial/typo query
         suggestions = await query_processor.generate_query_suggestions(
@@ -582,4 +648,6 @@ class TestQueryProcessorIntegration:
 
         assert len(suggestions) > 0
         assert all(isinstance(s, QuerySuggestion) for s in suggestions)
-        assert all(hasattr(s, 'query') and hasattr(s, 'score') for s in suggestions)
+        assert all(
+            hasattr(s, "query") and hasattr(s, "score") for s in suggestions
+        )

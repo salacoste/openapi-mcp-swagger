@@ -3,9 +3,10 @@
 import asyncio
 import tempfile
 from pathlib import Path
-from typing import AsyncGenerator, Dict, Any
-import pytest
+from typing import Any, AsyncGenerator, Dict
+
 import aiosqlite
+import pytest
 from faker import Faker
 
 fake = Faker()
@@ -39,7 +40,7 @@ def sample_openapi_spec() -> Dict[str, Any]:
         "info": {
             "title": "Test API",
             "version": "1.0.0",
-            "description": "Test API for unit tests"
+            "description": "Test API for unit tests",
         },
         "paths": {
             "/users": {
@@ -53,12 +54,14 @@ def sample_openapi_spec() -> Dict[str, Any]:
                                 "application/json": {
                                     "schema": {
                                         "type": "array",
-                                        "items": {"$ref": "#/components/schemas/User"}
+                                        "items": {
+                                            "$ref": "#/components/schemas/User"
+                                        },
                                     }
                                 }
-                            }
+                            },
                         }
-                    }
+                    },
                 },
                 "post": {
                     "summary": "Create user",
@@ -69,19 +72,21 @@ def sample_openapi_spec() -> Dict[str, Any]:
                             "application/json": {
                                 "schema": {"$ref": "#/components/schemas/User"}
                             }
-                        }
+                        },
                     },
                     "responses": {
                         "201": {
                             "description": "User created",
                             "content": {
                                 "application/json": {
-                                    "schema": {"$ref": "#/components/schemas/User"}
+                                    "schema": {
+                                        "$ref": "#/components/schemas/User"
+                                    }
                                 }
-                            }
+                            },
                         }
-                    }
-                }
+                    },
+                },
             },
             "/users/{id}": {
                 "get": {
@@ -91,7 +96,7 @@ def sample_openapi_spec() -> Dict[str, Any]:
                             "name": "id",
                             "in": "path",
                             "required": True,
-                            "schema": {"type": "integer"}
+                            "schema": {"type": "integer"},
                         }
                     ],
                     "responses": {
@@ -99,16 +104,16 @@ def sample_openapi_spec() -> Dict[str, Any]:
                             "description": "User found",
                             "content": {
                                 "application/json": {
-                                    "schema": {"$ref": "#/components/schemas/User"}
+                                    "schema": {
+                                        "$ref": "#/components/schemas/User"
+                                    }
                                 }
-                            }
+                            },
                         },
-                        "404": {
-                            "description": "User not found"
-                        }
-                    }
+                        "404": {"description": "User not found"},
+                    },
                 }
-            }
+            },
         },
         "components": {
             "schemas": {
@@ -116,28 +121,25 @@ def sample_openapi_spec() -> Dict[str, Any]:
                     "type": "object",
                     "required": ["id", "name", "email"],
                     "properties": {
-                        "id": {
-                            "type": "integer",
-                            "description": "User ID"
-                        },
+                        "id": {"type": "integer", "description": "User ID"},
                         "name": {
                             "type": "string",
-                            "description": "User full name"
+                            "description": "User full name",
                         },
                         "email": {
                             "type": "string",
                             "format": "email",
-                            "description": "User email address"
+                            "description": "User email address",
                         },
                         "created_at": {
                             "type": "string",
                             "format": "date-time",
-                            "description": "User creation timestamp"
-                        }
-                    }
+                            "description": "User creation timestamp",
+                        },
+                    },
                 }
             }
-        }
+        },
     }
 
 
@@ -162,13 +164,13 @@ def large_openapi_spec(sample_openapi_spec) -> Dict[str, Any]:
                                     "type": "object",
                                     "properties": {
                                         "id": {"type": "integer"},
-                                        "name": {"type": "string"}
-                                    }
+                                        "name": {"type": "string"},
+                                    },
                                 }
                             }
-                        }
+                        },
                     }
-                }
+                },
             }
         }
 

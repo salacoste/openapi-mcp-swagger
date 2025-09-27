@@ -14,7 +14,7 @@ def configure_logging(
     level: str = "INFO",
     log_file: Optional[str] = None,
     json_logs: bool = True,
-    enable_performance_logging: bool = True
+    enable_performance_logging: bool = True,
 ) -> FilteringBoundLogger:
     """Configure structured logging with structlog.
 
@@ -44,13 +44,17 @@ def configure_logging(
     if json_logs:
         processors.append(structlog.processors.JSONRenderer())
     else:
-        processors.extend([
-            structlog.processors.CallsiteParameterAdder(
-                parameters=[structlog.processors.CallsiteParameter.FILENAME,
-                           structlog.processors.CallsiteParameter.LINENO]
-            ),
-            structlog.dev.ConsoleRenderer(colors=True)
-        ])
+        processors.extend(
+            [
+                structlog.processors.CallsiteParameterAdder(
+                    parameters=[
+                        structlog.processors.CallsiteParameter.FILENAME,
+                        structlog.processors.CallsiteParameter.LINENO,
+                    ]
+                ),
+                structlog.dev.ConsoleRenderer(colors=True),
+            ]
+        )
 
     # Configure standard library logging
     logging.basicConfig(
@@ -69,12 +73,12 @@ def configure_logging(
             log_path,
             maxBytes=10 * 1024 * 1024,  # 10MB
             backupCount=30,
-            encoding='utf-8'
+            encoding="utf-8",
         )
         file_handler.setLevel(numeric_level)
 
         # JSON format for file logs
-        file_formatter = logging.Formatter('%(message)s')
+        file_formatter = logging.Formatter("%(message)s")
         file_handler.setFormatter(file_formatter)
 
         root_logger = logging.getLogger()
@@ -112,7 +116,7 @@ def log_performance(
     logger: FilteringBoundLogger,
     operation: str,
     duration_ms: float,
-    **context: Any
+    **context: Any,
 ) -> None:
     """Log performance metrics in a structured format.
 
@@ -127,7 +131,7 @@ def log_performance(
         operation=operation,
         duration_ms=duration_ms,
         metric_type="performance",
-        **context
+        **context,
     )
 
 
@@ -137,7 +141,7 @@ def log_api_request(
     endpoint: str,
     response_time_ms: float,
     status_code: int,
-    **context: Any
+    **context: Any,
 ) -> None:
     """Log API request metrics.
 
@@ -156,7 +160,7 @@ def log_api_request(
         response_time_ms=response_time_ms,
         status_code=status_code,
         metric_type="api_request",
-        **context
+        **context,
     )
 
 
@@ -165,7 +169,7 @@ def log_database_query(
     query_type: str,
     execution_time_ms: float,
     rows_affected: int = 0,
-    **context: Any
+    **context: Any,
 ) -> None:
     """Log database query metrics.
 
@@ -182,7 +186,7 @@ def log_database_query(
         execution_time_ms=execution_time_ms,
         rows_affected=rows_affected,
         metric_type="database_query",
-        **context
+        **context,
     )
 
 
@@ -192,7 +196,7 @@ def log_parsing_progress(
     bytes_processed: int,
     total_bytes: int,
     progress_percent: float,
-    **context: Any
+    **context: Any,
 ) -> None:
     """Log file parsing progress.
 
@@ -211,7 +215,7 @@ def log_parsing_progress(
         total_bytes=total_bytes,
         progress_percent=progress_percent,
         metric_type="parsing_progress",
-        **context
+        **context,
     )
 
 
@@ -225,8 +229,15 @@ def sanitize_log_data(data: Dict[str, Any]) -> Dict[str, Any]:
         Sanitized dictionary with sensitive values masked
     """
     sensitive_keys = {
-        'password', 'token', 'key', 'secret', 'authorization',
-        'api_key', 'access_token', 'refresh_token', 'jwt'
+        "password",
+        "token",
+        "key",
+        "secret",
+        "authorization",
+        "api_key",
+        "access_token",
+        "refresh_token",
+        "jwt",
     }
 
     sanitized = data.copy()

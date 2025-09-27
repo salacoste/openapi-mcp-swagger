@@ -1,14 +1,20 @@
 """Tests for the conversion pipeline."""
 
-import pytest
-import tempfile
-import os
 import json
+import os
+import tempfile
 from pathlib import Path
-from unittest.mock import patch, AsyncMock
+from unittest.mock import AsyncMock, patch
 
-from swagger_mcp_server.conversion.pipeline import ConversionPipeline, ConversionError
-from swagger_mcp_server.conversion.progress_tracker import ConversionProgressTracker
+import pytest
+
+from swagger_mcp_server.conversion.pipeline import (
+    ConversionError,
+    ConversionPipeline,
+)
+from swagger_mcp_server.conversion.progress_tracker import (
+    ConversionProgressTracker,
+)
 
 
 class TestConversionPipeline:
@@ -24,18 +30,14 @@ class TestConversionPipeline:
             "info": {
                 "title": "Test API",
                 "version": "1.0.0",
-                "description": "A test API"
+                "description": "A test API",
             },
             "paths": {
                 "/users": {
                     "get": {
                         "summary": "Get users",
                         "description": "Retrieve a list of users",
-                        "responses": {
-                            "200": {
-                                "description": "Success"
-                            }
-                        }
+                        "responses": {"200": {"description": "Success"}},
                     }
                 }
             },
@@ -45,20 +47,21 @@ class TestConversionPipeline:
                         "type": "object",
                         "properties": {
                             "id": {"type": "integer"},
-                            "name": {"type": "string"}
-                        }
+                            "name": {"type": "string"},
+                        },
                     }
                 }
-            }
+            },
         }
 
         self.swagger_file = os.path.join(self.temp_dir, "test_api.json")
-        with open(self.swagger_file, 'w') as f:
+        with open(self.swagger_file, "w") as f:
             json.dump(self.swagger_data, f)
 
     def teardown_method(self):
         """Clean up test fixtures."""
         import shutil
+
         if os.path.exists(self.temp_dir):
             shutil.rmtree(self.temp_dir)
 
@@ -66,9 +69,7 @@ class TestConversionPipeline:
         """Test pipeline initialization."""
         output_dir = os.path.join(self.temp_dir, "output")
         pipeline = ConversionPipeline(
-            self.swagger_file,
-            output_dir,
-            {"verbose": True}
+            self.swagger_file, output_dir, {"verbose": True}
         )
 
         assert pipeline.swagger_file == self.swagger_file
@@ -109,7 +110,7 @@ class TestConversionPipeline:
     async def test_validate_input_file_too_large(self):
         """Test input file validation with oversized file."""
         # Create a large file (mock)
-        with patch('os.path.getsize', return_value=200 * 1024 * 1024):  # 200MB
+        with patch("os.path.getsize", return_value=200 * 1024 * 1024):  # 200MB
             pipeline = ConversionPipeline(self.swagger_file)
 
             with pytest.raises(ConversionError) as exc_info:
@@ -139,13 +140,11 @@ class TestConversionPipeline:
 
         # Create a file in the directory
         test_file = os.path.join(output_dir, "test.txt")
-        with open(test_file, 'w') as f:
+        with open(test_file, "w") as f:
             f.write("test content")
 
         pipeline = ConversionPipeline(
-            self.swagger_file,
-            output_dir,
-            {"force": True}
+            self.swagger_file, output_dir, {"force": True}
         )
 
         await pipeline._prepare_output_directory()
@@ -256,7 +255,7 @@ class TestConversionPipelineIntegration:
             "info": {
                 "title": "Integration Test API",
                 "version": "2.0.0",
-                "description": "An API for integration testing"
+                "description": "An API for integration testing",
             },
             "paths": {
                 "/users": {
@@ -264,14 +263,14 @@ class TestConversionPipelineIntegration:
                         "summary": "List users",
                         "operationId": "listUsers",
                         "tags": ["users"],
-                        "responses": {"200": {"description": "Success"}}
+                        "responses": {"200": {"description": "Success"}},
                     },
                     "post": {
                         "summary": "Create user",
                         "operationId": "createUser",
                         "tags": ["users"],
-                        "responses": {"201": {"description": "Created"}}
-                    }
+                        "responses": {"201": {"description": "Created"}},
+                    },
                 },
                 "/users/{id}": {
                     "get": {
@@ -283,12 +282,12 @@ class TestConversionPipelineIntegration:
                                 "name": "id",
                                 "in": "path",
                                 "required": True,
-                                "schema": {"type": "integer"}
+                                "schema": {"type": "integer"},
                             }
                         ],
-                        "responses": {"200": {"description": "Success"}}
+                        "responses": {"200": {"description": "Success"}},
                     }
-                }
+                },
             },
             "components": {
                 "schemas": {
@@ -298,27 +297,28 @@ class TestConversionPipelineIntegration:
                         "properties": {
                             "id": {"type": "integer"},
                             "name": {"type": "string"},
-                            "email": {"type": "string", "format": "email"}
-                        }
+                            "email": {"type": "string", "format": "email"},
+                        },
                     },
                     "UserProfile": {
                         "type": "object",
                         "properties": {
                             "user": {"$ref": "#/components/schemas/User"},
-                            "bio": {"type": "string"}
-                        }
-                    }
+                            "bio": {"type": "string"},
+                        },
+                    },
                 }
-            }
+            },
         }
 
         self.swagger_file = os.path.join(self.temp_dir, "integration_api.json")
-        with open(self.swagger_file, 'w') as f:
+        with open(self.swagger_file, "w") as f:
             json.dump(self.swagger_data, f)
 
     def teardown_method(self):
         """Clean up test fixtures."""
         import shutil
+
         if os.path.exists(self.temp_dir):
             shutil.rmtree(self.temp_dir)
 
@@ -329,7 +329,7 @@ class TestConversionPipelineIntegration:
         pipeline = ConversionPipeline(
             self.swagger_file,
             output_dir,
-            {"skip_validation": True}  # Skip validation for speed
+            {"skip_validation": True},  # Skip validation for speed
         )
 
         result = await pipeline.execute_conversion()
@@ -344,7 +344,7 @@ class TestConversionPipelineIntegration:
         # Check conversion stats
         stats = result["conversion_stats"]
         assert stats["endpoints_found"] == 3  # 3 endpoints total
-        assert stats["schemas_found"] == 2    # 2 schemas
+        assert stats["schemas_found"] == 2  # 2 schemas
         assert stats["api_title"] == "Integration Test API"
 
         # Check that output directory was created
@@ -363,7 +363,7 @@ class TestConversionPipelineIntegration:
             "name": "custom-server",
             "port": 9000,
             "verbose": True,
-            "skip_validation": True
+            "skip_validation": True,
         }
 
         pipeline = ConversionPipeline(self.swagger_file, output_dir, options)
@@ -403,6 +403,7 @@ class TestConversionPerformance:
     def teardown_method(self):
         """Clean up test fixtures."""
         import shutil
+
         if os.path.exists(self.temp_dir):
             shutil.rmtree(self.temp_dir)
 
@@ -416,7 +417,7 @@ class TestConversionPerformance:
             "openapi": "3.0.0",
             "info": {"title": "Performance Test API", "version": "1.0.0"},
             "paths": {},
-            "components": {"schemas": {}}
+            "components": {"schemas": {}},
         }
 
         # Add multiple endpoints and schemas
@@ -424,27 +425,25 @@ class TestConversionPerformance:
             swagger_data["paths"][f"/resource{i}"] = {
                 "get": {
                     "summary": f"Get resource {i}",
-                    "responses": {"200": {"description": "Success"}}
+                    "responses": {"200": {"description": "Success"}},
                 }
             }
             swagger_data["components"]["schemas"][f"Resource{i}"] = {
                 "type": "object",
                 "properties": {
                     "id": {"type": "integer"},
-                    "name": {"type": "string"}
-                }
+                    "name": {"type": "string"},
+                },
             }
 
         swagger_file = os.path.join(self.temp_dir, "performance_test.json")
-        with open(swagger_file, 'w') as f:
+        with open(swagger_file, "w") as f:
             json.dump(swagger_data, f)
 
         # Run conversion and measure time
         output_dir = os.path.join(self.temp_dir, "output")
         pipeline = ConversionPipeline(
-            swagger_file,
-            output_dir,
-            {"skip_validation": True}
+            swagger_file, output_dir, {"skip_validation": True}
         )
 
         start_time = time.time()
@@ -454,7 +453,9 @@ class TestConversionPerformance:
         conversion_time = end_time - start_time
 
         # Should complete in reasonable time (generous limit for test environment)
-        assert conversion_time < 10.0, f"Conversion took {conversion_time:.2f}s"
+        assert (
+            conversion_time < 10.0
+        ), f"Conversion took {conversion_time:.2f}s"
 
         # Check result
         assert result["status"] == "success"

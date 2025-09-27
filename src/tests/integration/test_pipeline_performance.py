@@ -1,12 +1,15 @@
 """Performance tests for pipeline processing."""
 
 import asyncio
-import pytest
 import time
 from pathlib import Path
 
+import pytest
+
 from swagger_mcp_server.pipeline import (
-    SwaggerProcessingPipeline, PipelineFactory, ProcessingResult
+    PipelineFactory,
+    ProcessingResult,
+    SwaggerProcessingPipeline,
 )
 from swagger_mcp_server.storage import DatabaseConfig
 
@@ -19,7 +22,9 @@ class TestPipelinePerformance:
         """Path to the test Swagger file."""
         project_root = Path(__file__).parent.parent.parent.parent
         swagger_file = project_root / "swagger-openapi-data" / "swagger.json"
-        assert swagger_file.exists(), f"Test swagger file not found: {swagger_file}"
+        assert (
+            swagger_file.exists()
+        ), f"Test swagger file not found: {swagger_file}"
         return str(swagger_file)
 
     @pytest.fixture
@@ -27,13 +32,13 @@ class TestPipelinePerformance:
         """Temporary database configuration for testing."""
         db_path = tmp_path / "test_performance.db"
         return DatabaseConfig(
-            database_path=str(db_path),
-            enable_wal=True,
-            max_connections=10
+            database_path=str(db_path), enable_wal=True, max_connections=10
         )
 
     @pytest.mark.asyncio
-    async def test_ozon_api_processing_within_60_seconds(self, test_swagger_file, temp_db_config):
+    async def test_ozon_api_processing_within_60_seconds(
+        self, test_swagger_file, temp_db_config
+    ):
         """Test that 262KB Ozon API processes within 60 seconds (AC: 2)."""
         # Create high-performance pipeline
         pipeline = PipelineFactory.create_high_performance_pipeline()
@@ -49,12 +54,14 @@ class TestPipelinePerformance:
 
         # Verify processing completed successfully
         assert result.success, f"Processing failed: {result.errors}"
-        assert result.api_id is not None, "API ID should be set on successful processing"
+        assert (
+            result.api_id is not None
+        ), "API ID should be set on successful processing"
 
         # Verify performance requirement (60 seconds)
-        assert processing_time < 60.0, (
-            f"Processing took {processing_time:.2f}s, exceeding 60s requirement"
-        )
+        assert (
+            processing_time < 60.0
+        ), f"Processing took {processing_time:.2f}s, exceeding 60s requirement"
 
         # Verify metrics are populated
         assert result.metrics.total_duration > 0
@@ -67,11 +74,15 @@ class TestPipelinePerformance:
         assert result.metrics.schemas_processed > 0
 
         print(f"✅ Ozon API processed successfully in {processing_time:.2f}s")
-        print(f"📊 Metrics: {result.metrics.endpoints_processed} endpoints, "
-              f"{result.metrics.schemas_processed} schemas")
+        print(
+            f"📊 Metrics: {result.metrics.endpoints_processed} endpoints, "
+            f"{result.metrics.schemas_processed} schemas"
+        )
 
     @pytest.mark.asyncio
-    async def test_pipeline_memory_efficiency(self, test_swagger_file, temp_db_config):
+    async def test_pipeline_memory_efficiency(
+        self, test_swagger_file, temp_db_config
+    ):
         """Test that pipeline processes large files without excessive memory usage."""
         pipeline = PipelineFactory.create_high_performance_pipeline()
         pipeline.db_config = temp_db_config
@@ -100,7 +111,9 @@ class TestPipelinePerformance:
             print(f"🧠 Peak memory: {result.metrics.memory_peak_mb:.1f}MB")
 
     @pytest.mark.asyncio
-    async def test_batch_processing_performance(self, test_swagger_file, temp_db_config):
+    async def test_batch_processing_performance(
+        self, test_swagger_file, temp_db_config
+    ):
         """Test batch processing performance with multiple files."""
         pipeline = PipelineFactory.create_high_performance_pipeline()
         pipeline.db_config = temp_db_config
@@ -110,24 +123,32 @@ class TestPipelinePerformance:
         file_paths = [test_swagger_file] * 3
 
         start_time = time.time()
-        batch_result = await pipeline.process_batch(file_paths, max_concurrent=2)
+        batch_result = await pipeline.process_batch(
+            file_paths, max_concurrent=2
+        )
         batch_time = time.time() - start_time
 
         # Verify all files processed successfully
-        assert batch_result.successful_files == 3, f"Expected 3 successful files, got {batch_result.successful_files}"
-        assert batch_result.failed_files == 0, f"No files should fail, got {batch_result.failed_files}"
+        assert (
+            batch_result.successful_files == 3
+        ), f"Expected 3 successful files, got {batch_result.successful_files}"
+        assert (
+            batch_result.failed_files == 0
+        ), f"No files should fail, got {batch_result.failed_files}"
 
         # Verify batch processing is more efficient than sequential
         # Should take less than 3x single file time due to concurrency
         single_file_time = batch_result.results[0].metrics.total_duration
         max_expected_time = single_file_time * 2.5  # Allow some overhead
 
-        assert batch_time < max_expected_time, (
-            f"Batch processing took {batch_time:.2f}s, should be less than {max_expected_time:.2f}s"
-        )
+        assert (
+            batch_time < max_expected_time
+        ), f"Batch processing took {batch_time:.2f}s, should be less than {max_expected_time:.2f}s"
 
         print(f"✅ Batch processing completed in {batch_time:.2f}s")
-        print(f"📊 Throughput: {batch_result.batch_metrics['throughput']:.1f} files/second")
+        print(
+            f"📊 Throughput: {batch_result.batch_metrics['throughput']:.1f} files/second"
+        )
 
 
 @pytest.mark.asyncio
@@ -157,7 +178,11 @@ if __name__ == "__main__":
     # Run the main performance test
     async def main():
         # Simple test runner for development
-        test_file = Path(__file__).parent.parent.parent.parent / "swagger-openapi-data" / "swagger.json"
+        test_file = (
+            Path(__file__).parent.parent.parent.parent
+            / "swagger-openapi-data"
+            / "swagger.json"
+        )
         if test_file.exists():
             print(f"🚀 Running performance test with {test_file}")
             pipeline = PipelineFactory.create_high_performance_pipeline()
@@ -168,13 +193,18 @@ if __name__ == "__main__":
                 duration = time.time() - start
 
                 if result.success:
-                    print(f"✅ SUCCESS: Processed in {duration:.2f}s (target: <60s)")
-                    print(f"📊 {result.metrics.endpoints_processed} endpoints, {result.metrics.schemas_processed} schemas")
+                    print(
+                        f"✅ SUCCESS: Processed in {duration:.2f}s (target: <60s)"
+                    )
+                    print(
+                        f"📊 {result.metrics.endpoints_processed} endpoints, {result.metrics.schemas_processed} schemas"
+                    )
                 else:
                     print(f"❌ FAILED: {result.errors}")
             except Exception as e:
                 print(f"💥 ERROR: {str(e)}")
                 import traceback
+
                 traceback.print_exc()
         else:
             print(f"❌ Test file not found: {test_file}")

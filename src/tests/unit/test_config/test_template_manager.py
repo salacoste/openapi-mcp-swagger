@@ -1,6 +1,7 @@
 """Tests for configuration template management."""
 
 import pytest
+
 from swagger_mcp_server.config import ConfigurationTemplateManager
 
 
@@ -44,7 +45,9 @@ class TestConfigurationTemplateManager:
         assert template["server"]["host"] == "0.0.0.0"
         assert template["server"]["port"] == 8080
         assert template["server"]["max_connections"] == 50
-        assert template["server"]["ssl"]["enabled"] is False  # Disabled for easier testing
+        assert (
+            template["server"]["ssl"]["enabled"] is False
+        )  # Disabled for easier testing
         assert template["logging"]["level"] == "INFO"
         assert template["features"]["rate_limiting"]["enabled"] is True
 
@@ -55,11 +58,15 @@ class TestConfigurationTemplateManager:
         assert template is not None
         assert template["server"]["host"] == "0.0.0.0"
         assert template["server"]["port"] == 8080
-        assert template["server"]["ssl"]["enabled"] is False  # Handled by ingress
+        assert (
+            template["server"]["ssl"]["enabled"] is False
+        )  # Handled by ingress
         assert template["database"]["path"] == "/data/mcp_server.db"
         assert template["search"]["index_directory"] == "/data/search_index"
         assert template["logging"]["file"] is None  # Log to stdout
-        assert template["features"]["rate_limiting"]["enabled"] is False  # Handled by ingress
+        assert (
+            template["features"]["rate_limiting"]["enabled"] is False
+        )  # Handled by ingress
 
     def test_get_template_by_name(self, template_manager):
         """Test getting templates by name."""
@@ -106,10 +113,12 @@ class TestConfigurationTemplateManager:
         customizations = {
             "server.port": 9000,
             "logging.level": "WARNING",
-            "features.metrics.enabled": False
+            "features.metrics.enabled": False,
         }
 
-        customized = template_manager.customize_template(base_template, customizations)
+        customized = template_manager.customize_template(
+            base_template, customizations
+        )
 
         # Check customizations applied
         assert customized["server"]["port"] == 9000
@@ -130,10 +139,12 @@ class TestConfigurationTemplateManager:
 
         customizations = {
             "new_section.nested.value": "test",
-            "server.new_setting": True
+            "server.new_setting": True,
         }
 
-        customized = template_manager.customize_template(base_template, customizations)
+        customized = template_manager.customize_template(
+            base_template, customizations
+        )
 
         # Check new nested structure created
         assert customized["new_section"]["nested"]["value"] == "test"
@@ -150,7 +161,9 @@ class TestConfigurationTemplateManager:
         assert "Level: DEBUG" in doc
         assert "swagger-mcp-server config init --template development" in doc
 
-    def test_generate_template_documentation_production(self, template_manager):
+    def test_generate_template_documentation_production(
+        self, template_manager
+    ):
         """Test production template documentation generation."""
         doc = template_manager.generate_template_documentation("production")
 
@@ -178,11 +191,9 @@ class TestConfigurationTemplateManager:
             "server": {
                 "port": 99,  # Invalid port (too low)
                 "host": "",  # Invalid empty host
-                "max_connections": -1  # Invalid negative connections
+                "max_connections": -1,  # Invalid negative connections
             },
-            "logging": {
-                "level": "INVALID_LEVEL"
-            }
+            "logging": {"level": "INVALID_LEVEL"},
         }
 
         is_valid, errors = template_manager.validate_template(invalid_template)
@@ -197,19 +208,35 @@ class TestConfigurationTemplateManager:
         """Test that all templates have consistent structure."""
         templates = ["development", "staging", "production", "container"]
 
-        required_sections = ["server", "database", "search", "logging", "features"]
-        required_server_keys = ["host", "port", "max_connections", "timeout", "ssl"]
+        required_sections = [
+            "server",
+            "database",
+            "search",
+            "logging",
+            "features",
+        ]
+        required_server_keys = [
+            "host",
+            "port",
+            "max_connections",
+            "timeout",
+            "ssl",
+        ]
 
         for template_name in templates:
             template = template_manager.get_template(template_name)
 
             # Check all required sections exist
             for section in required_sections:
-                assert section in template, f"Template {template_name} missing section {section}"
+                assert (
+                    section in template
+                ), f"Template {template_name} missing section {section}"
 
             # Check server section has required keys
             for key in required_server_keys:
-                assert key in template["server"], f"Template {template_name} missing server.{key}"
+                assert (
+                    key in template["server"]
+                ), f"Template {template_name} missing server.{key}"
 
             # Check SSL subsection
             ssl_section = template["server"]["ssl"]
@@ -226,7 +253,9 @@ class TestConfigurationTemplateManager:
 
         # Development should have debugging features
         assert dev_template["logging"]["level"] == "DEBUG"
-        assert dev_template["server"]["max_connections"] == 10  # Low for development
+        assert (
+            dev_template["server"]["max_connections"] == 10
+        )  # Low for development
         assert dev_template["features"]["rate_limiting"]["enabled"] is False
 
         # Production should be secure and performant
@@ -236,7 +265,9 @@ class TestConfigurationTemplateManager:
         assert prod_template["server"]["max_connections"] == 100
 
         # Staging should balance production and development
-        assert staging_template["server"]["ssl"]["enabled"] is False  # For testing
+        assert (
+            staging_template["server"]["ssl"]["enabled"] is False
+        )  # For testing
         assert staging_template["logging"]["level"] == "INFO"
         assert staging_template["server"]["max_connections"] == 50
 
@@ -264,7 +295,9 @@ class TestConfigurationTemplateManager:
         original_port = original["server"]["port"]
 
         customizations = {"server.port": 9000}
-        customized = template_manager.customize_template(original, customizations)
+        customized = template_manager.customize_template(
+            original, customizations
+        )
 
         # Original should be unchanged
         assert original["server"]["port"] == original_port

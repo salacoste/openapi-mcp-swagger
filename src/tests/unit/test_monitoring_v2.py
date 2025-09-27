@@ -1,26 +1,27 @@
 """Comprehensive tests for MCP server performance monitoring (Story 2.6)."""
 
-import pytest
-import time
 import asyncio
+import time
+from typing import Any, Dict
 from unittest.mock import AsyncMock, MagicMock, patch
-from typing import Dict, Any
 
-from swagger_mcp_server.server.mcp_server_v2 import SwaggerMcpServer
+import pytest
+
 from swagger_mcp_server.config.settings import Settings
-from swagger_mcp_server.server.monitoring import (
-    PerformanceMonitor,
-    PerformanceThresholds,
-    MethodMetrics,
-    SystemMetrics,
-    MetricsCollector,
-    monitor_performance,
-    global_monitor
-)
 from swagger_mcp_server.server.health import (
+    ComponentHealth,
     HealthChecker,
     HealthStatus,
-    ComponentHealth
+)
+from swagger_mcp_server.server.mcp_server_v2 import SwaggerMcpServer
+from swagger_mcp_server.server.monitoring import (
+    MethodMetrics,
+    MetricsCollector,
+    PerformanceMonitor,
+    PerformanceThresholds,
+    SystemMetrics,
+    global_monitor,
+    monitor_performance,
 )
 
 
@@ -45,7 +46,7 @@ class TestMethodMetrics:
         # Record multiple requests
         metrics.record_request(0.1)  # 100ms
         metrics.record_request(0.2)  # 200ms
-        metrics.record_request(0.15) # 150ms
+        metrics.record_request(0.15)  # 150ms
 
         assert metrics.total_requests == 3
         assert metrics.total_errors == 0
@@ -74,8 +75,28 @@ class TestMethodMetrics:
         metrics = MethodMetrics("testMethod")
 
         # Add enough requests for P95 calculation
-        response_times = [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5,
-                         0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 2.0]
+        response_times = [
+            0.1,
+            0.15,
+            0.2,
+            0.25,
+            0.3,
+            0.35,
+            0.4,
+            0.45,
+            0.5,
+            0.6,
+            0.7,
+            0.8,
+            0.9,
+            1.0,
+            1.1,
+            1.2,
+            1.3,
+            1.4,
+            1.5,
+            2.0,
+        ]
 
         for rt in response_times:
             metrics.record_request(rt)
@@ -93,8 +114,13 @@ class TestMethodMetrics:
         metrics_dict = metrics.get_metrics_dict()
 
         required_fields = [
-            "avg_response_time", "p95_response_time", "requests_per_minute",
-            "error_rate", "total_requests", "total_errors", "error_types"
+            "avg_response_time",
+            "p95_response_time",
+            "requests_per_minute",
+            "error_rate",
+            "total_requests",
+            "total_errors",
+            "error_types",
         ]
         for field in required_fields:
             assert field in metrics_dict
@@ -137,8 +163,11 @@ class TestSystemMetrics:
         metrics_dict = metrics.get_metrics_dict()
 
         required_fields = [
-            "concurrent_connections", "database_pool_utilization",
-            "memory_usage_mb", "cpu_utilization", "uptime_seconds"
+            "concurrent_connections",
+            "database_pool_utilization",
+            "memory_usage_mb",
+            "cpu_utilization",
+            "uptime_seconds",
         ]
         for field in required_fields:
             assert field in metrics_dict
@@ -156,7 +185,9 @@ class TestPerformanceMonitor:
         monitor = PerformanceMonitor(thresholds)
 
         assert monitor.thresholds.searchEndpoints_max_ms == 100
-        assert len(monitor.method_metrics) == 3  # searchEndpoints, getSchema, getExample
+        assert (
+            len(monitor.method_metrics) == 3
+        )  # searchEndpoints, getSchema, getExample
         assert monitor.monitoring_enabled is True
 
     def test_record_request_success(self):
@@ -187,7 +218,9 @@ class TestPerformanceMonitor:
         monitor = PerformanceMonitor(thresholds)
 
         # Record a request that exceeds threshold
-        monitor.record_request("searchEndpoints", 0.25, None, "req-123")  # 250ms > 100ms
+        monitor.record_request(
+            "searchEndpoints", 0.25, None, "req-123"
+        )  # 250ms > 100ms
 
         # Should have created an alert
         assert len(monitor.alerts) > 0
@@ -206,7 +239,9 @@ class TestPerformanceMonitor:
             monitor.record_request("getExample", 0.1, error, f"req-{i}")
 
         # Should have created an alert for high error rate
-        error_rate_alerts = [a for a in monitor.alerts if a["type"] == "error_rate_exceeded"]
+        error_rate_alerts = [
+            a for a in monitor.alerts if a["type"] == "error_rate_exceeded"
+        ]
         assert len(error_rate_alerts) > 0
 
     def test_connection_count_update(self):
@@ -246,8 +281,12 @@ class TestPerformanceMonitor:
         summary = monitor.get_health_summary()
 
         required_fields = [
-            "status", "uptime_seconds", "total_requests",
-            "total_errors", "recent_alerts", "critical_alerts"
+            "status",
+            "uptime_seconds",
+            "total_requests",
+            "total_errors",
+            "recent_alerts",
+            "critical_alerts",
         ]
         for field in required_fields:
             assert field in summary
@@ -366,12 +405,14 @@ class TestHealthChecker:
     def mock_db_manager(self):
         """Create mock database manager."""
         mock_manager = AsyncMock()
-        mock_manager.health_check = AsyncMock(return_value={
-            "status": "healthy",
-            "database_path": ":memory:",
-            "file_size_bytes": 1024,
-            "table_counts": {"endpoints": 5, "schemas": 3}
-        })
+        mock_manager.health_check = AsyncMock(
+            return_value={
+                "status": "healthy",
+                "database_path": ":memory:",
+                "file_size_bytes": 1024,
+                "table_counts": {"endpoints": 5, "schemas": 3},
+            }
+        )
         return mock_manager
 
     @pytest.fixture
@@ -379,10 +420,9 @@ class TestHealthChecker:
         """Create mock MCP server."""
         mock_server = MagicMock()
         mock_server.endpoint_repo = AsyncMock()
-        mock_server._search_endpoints = AsyncMock(return_value={
-            "results": [],
-            "pagination": {"total": 0}
-        })
+        mock_server._search_endpoints = AsyncMock(
+            return_value={"results": [], "pagination": {"total": 0}}
+        )
         return mock_server
 
     @pytest.mark.asyncio
@@ -442,7 +482,7 @@ class TestHealthChecker:
 
         # Record some good performance metrics
         monitor.record_request("searchEndpoints", 0.1)  # 100ms
-        monitor.record_request("getSchema", 0.3)        # 300ms
+        monitor.record_request("getSchema", 0.3)  # 300ms
 
         health = await checker.check_performance_health()
 
@@ -457,7 +497,9 @@ class TestHealthChecker:
         checker = HealthChecker(monitor)
 
         # Record requests near threshold (degraded but not unhealthy)
-        monitor.record_request("searchEndpoints", 0.09)  # 90ms (90% of 100ms threshold)
+        monitor.record_request(
+            "searchEndpoints", 0.09
+        )  # 90ms (90% of 100ms threshold)
 
         health = await checker.check_performance_health()
 
@@ -488,8 +530,14 @@ class TestHealthChecker:
         health = await checker.get_overall_health(mock_server, mock_db_manager)
 
         required_fields = [
-            "status", "message", "timestamp", "uptime_seconds",
-            "check_duration_ms", "components", "performance_summary", "version"
+            "status",
+            "message",
+            "timestamp",
+            "uptime_seconds",
+            "check_duration_ms",
+            "components",
+            "performance_summary",
+            "version",
         ]
         for field in required_fields:
             assert field in health
@@ -567,7 +615,9 @@ class TestMCPServerMonitoringIntegration:
         server.schema_repo = AsyncMock()
         server.metadata_repo = AsyncMock()
         server.db_manager = AsyncMock()
-        server.db_manager.health_check = AsyncMock(return_value={"status": "healthy"})
+        server.db_manager.health_check = AsyncMock(
+            return_value={"status": "healthy"}
+        )
         return server
 
     @pytest.mark.asyncio
@@ -591,11 +641,17 @@ class TestMCPServerMonitoringIntegration:
 
         # Test update connection count
         server.update_connection_count(10)
-        assert server.performance_monitor.system_metrics.concurrent_connections == 10
+        assert (
+            server.performance_monitor.system_metrics.concurrent_connections
+            == 10
+        )
 
         # Test update database pool utilization
         server.update_database_pool_utilization(0.7)
-        assert server.performance_monitor.system_metrics.database_pool_utilization == 0.7
+        assert (
+            server.performance_monitor.system_metrics.database_pool_utilization
+            == 0.7
+        )
 
         # Test stop monitoring
         await server.stop_monitoring()
@@ -612,15 +668,16 @@ class TestMCPServerMonitoringIntegration:
         # Make some requests that should be monitored
         try:
             await server._search_endpoints_with_resilience(
-                {"keywords": "test", "httpMethods": ["GET"]},
-                "test-request"
+                {"keywords": "test", "httpMethods": ["GET"]}, "test-request"
             )
         except:
             pass  # We expect some errors due to mocking
 
         # Check that metrics were recorded
         metrics = await server.get_performance_metrics()
-        search_metrics = metrics["performance_metrics"].get("searchEndpoints", {})
+        search_metrics = metrics["performance_metrics"].get(
+            "searchEndpoints", {}
+        )
 
         # Should have at least attempted to record metrics
         assert isinstance(search_metrics, dict)

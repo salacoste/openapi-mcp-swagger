@@ -13,10 +13,10 @@ Main components:
 - SearchConfig: Search system configuration
 """
 
-from .search_engine import SearchEngine
 from .index_manager import SearchIndexManager
 from .index_schema import IndexSchema, create_search_schema
 from .relevance import RelevanceRanker
+from .search_engine import SearchEngine
 
 __all__ = [
     "SearchEngine",

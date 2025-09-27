@@ -1,15 +1,17 @@
 """Search optimization for normalized OpenAPI data structures."""
 
 import re
-from typing import Any, Dict, List, Optional, Set, Tuple
 from collections import Counter
 from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Set, Tuple
 
-from swagger_mcp_server.parser.models import (
-    NormalizedEndpoint, NormalizedSchema, NormalizedSecurityScheme,
-    ParameterLocation
-)
 from swagger_mcp_server.config.logging import get_logger
+from swagger_mcp_server.parser.models import (
+    NormalizedEndpoint,
+    NormalizedSchema,
+    NormalizedSecurityScheme,
+    ParameterLocation,
+)
 
 logger = get_logger(__name__)
 
@@ -17,6 +19,7 @@ logger = get_logger(__name__)
 @dataclass
 class SearchableDocument:
     """Represents a searchable document with metadata."""
+
     id: str
     type: str  # 'endpoint', 'schema', 'security'
     title: str
@@ -29,9 +32,12 @@ class SearchableDocument:
 @dataclass
 class SearchIndex:
     """Search index with optimized data structures."""
+
     documents: List[SearchableDocument]
     term_frequencies: Dict[str, Dict[str, int]]  # term -> doc_id -> frequency
-    document_frequencies: Dict[str, int]  # term -> number of docs containing term
+    document_frequencies: Dict[
+        str, int
+    ]  # term -> number of docs containing term
     document_lengths: Dict[str, int]  # doc_id -> total terms
     total_documents: int
     vocabulary: Set[str]
@@ -45,27 +51,98 @@ class SearchOptimizer:
 
         # Stop words for filtering
         self.stop_words = {
-            'a', 'an', 'and', 'are', 'as', 'at', 'be', 'by', 'for', 'from',
-            'has', 'he', 'in', 'is', 'it', 'its', 'of', 'on', 'that', 'the',
-            'to', 'was', 'were', 'will', 'with', 'this', 'these', 'they',
-            'them', 'their', 'his', 'her', 'have', 'had', 'can', 'could',
-            'should', 'would', 'may', 'might', 'must', 'shall', 'do', 'does',
-            'did', 'get', 'set', 'put', 'post', 'delete', 'patch'
+            "a",
+            "an",
+            "and",
+            "are",
+            "as",
+            "at",
+            "be",
+            "by",
+            "for",
+            "from",
+            "has",
+            "he",
+            "in",
+            "is",
+            "it",
+            "its",
+            "of",
+            "on",
+            "that",
+            "the",
+            "to",
+            "was",
+            "were",
+            "will",
+            "with",
+            "this",
+            "these",
+            "they",
+            "them",
+            "their",
+            "his",
+            "her",
+            "have",
+            "had",
+            "can",
+            "could",
+            "should",
+            "would",
+            "may",
+            "might",
+            "must",
+            "shall",
+            "do",
+            "does",
+            "did",
+            "get",
+            "set",
+            "put",
+            "post",
+            "delete",
+            "patch",
         }
 
         # API-specific important terms that shouldn't be filtered
         self.important_terms = {
-            'api', 'rest', 'http', 'https', 'json', 'xml', 'oauth', 'jwt',
-            'auth', 'token', 'key', 'secret', 'bearer', 'basic', 'digest',
-            'create', 'read', 'update', 'delete', 'list', 'search', 'filter',
-            'sort', 'page', 'limit', 'offset', 'id', 'uuid', 'status', 'error'
+            "api",
+            "rest",
+            "http",
+            "https",
+            "json",
+            "xml",
+            "oauth",
+            "jwt",
+            "auth",
+            "token",
+            "key",
+            "secret",
+            "bearer",
+            "basic",
+            "digest",
+            "create",
+            "read",
+            "update",
+            "delete",
+            "list",
+            "search",
+            "filter",
+            "sort",
+            "page",
+            "limit",
+            "offset",
+            "id",
+            "uuid",
+            "status",
+            "error",
         }
 
     def optimize_for_search(
         self,
         endpoints: List[NormalizedEndpoint],
         schemas: Dict[str, NormalizedSchema],
-        security_schemes: Dict[str, NormalizedSecurityScheme]
+        security_schemes: Dict[str, NormalizedSecurityScheme],
     ) -> SearchIndex:
         """Optimize normalized data for efficient search.
 
@@ -81,7 +158,7 @@ class SearchOptimizer:
             "Starting search optimization",
             endpoints=len(endpoints),
             schemas=len(schemas),
-            security_schemes=len(security_schemes)
+            security_schemes=len(security_schemes),
         )
 
         documents = []
@@ -107,18 +184,22 @@ class SearchOptimizer:
         self.logger.info(
             "Search optimization completed",
             total_documents=search_index.total_documents,
-            vocabulary_size=len(search_index.vocabulary)
+            vocabulary_size=len(search_index.vocabulary),
         )
 
         return search_index
 
-    def _create_endpoint_document(self, endpoint: NormalizedEndpoint) -> SearchableDocument:
+    def _create_endpoint_document(
+        self, endpoint: NormalizedEndpoint
+    ) -> SearchableDocument:
         """Create a searchable document for an endpoint."""
         # Build comprehensive content
         content_parts = []
 
         # Basic info
-        content_parts.append(f"{endpoint.method.value.upper()} {endpoint.path}")
+        content_parts.append(
+            f"{endpoint.method.value.upper()} {endpoint.path}"
+        )
 
         if endpoint.operation_id:
             content_parts.append(endpoint.operation_id)
@@ -152,7 +233,7 @@ class SearchOptimizer:
                     content_parts.append(content_type)
 
         # Extensions
-        if hasattr(endpoint, 'searchable_text') and endpoint.searchable_text:
+        if hasattr(endpoint, "searchable_text") and endpoint.searchable_text:
             content_parts.extend(endpoint.searchable_text)
 
         # Tags
@@ -160,7 +241,11 @@ class SearchOptimizer:
 
         # Add method and path components as tags
         tags.append(endpoint.method.value)
-        path_parts = [part for part in endpoint.path.split('/') if part and not part.startswith('{')]
+        path_parts = [
+            part
+            for part in endpoint.path.split("/")
+            if part and not part.startswith("{")
+        ]
         tags.extend(path_parts)
 
         # Calculate boost based on importance
@@ -172,23 +257,25 @@ class SearchOptimizer:
 
         return SearchableDocument(
             id=f"endpoint_{endpoint.method.value}_{endpoint.path.replace('/', '_').replace('{', '').replace('}', '')}",
-            type='endpoint',
+            type="endpoint",
             title=f"{endpoint.method.value.upper()} {endpoint.path}",
-            content=' '.join(content_parts),
+            content=" ".join(content_parts),
             tags=tags,
             metadata={
-                'method': endpoint.method.value,
-                'path': endpoint.path,
-                'operation_id': endpoint.operation_id,
-                'tags': list(endpoint.tags) if endpoint.tags else [],
-                'deprecated': endpoint.deprecated,
-                'parameter_count': len(endpoint.parameters),
-                'response_count': len(endpoint.responses),
+                "method": endpoint.method.value,
+                "path": endpoint.path,
+                "operation_id": endpoint.operation_id,
+                "tags": list(endpoint.tags) if endpoint.tags else [],
+                "deprecated": endpoint.deprecated,
+                "parameter_count": len(endpoint.parameters),
+                "response_count": len(endpoint.responses),
             },
-            boost=boost
+            boost=boost,
         )
 
-    def _create_schema_document(self, schema_name: str, schema: NormalizedSchema) -> SearchableDocument:
+    def _create_schema_document(
+        self, schema_name: str, schema: NormalizedSchema
+    ) -> SearchableDocument:
         """Create a searchable document for a schema."""
         content_parts = []
 
@@ -222,16 +309,18 @@ class SearchOptimizer:
                 content_parts.append(schema.example)
 
         # Extensions searchable content
-        if hasattr(schema, 'searchable_text') and schema.searchable_text:
+        if hasattr(schema, "searchable_text") and schema.searchable_text:
             content_parts.extend(schema.searchable_text)
 
         # Tags
-        tags = [schema_name, 'schema']
+        tags = [schema_name, "schema"]
         if schema.type:
             tags.append(schema.type)
 
         # Add property names as tags
-        tags.extend(list(schema.properties.keys())[:10])  # Limit to avoid too many tags
+        tags.extend(
+            list(schema.properties.keys())[:10]
+        )  # Limit to avoid too many tags
 
         # Calculate boost
         boost = 1.0
@@ -242,23 +331,25 @@ class SearchOptimizer:
 
         return SearchableDocument(
             id=f"schema_{schema_name}",
-            type='schema',
+            type="schema",
             title=schema.title or schema_name,
-            content=' '.join(content_parts),
+            content=" ".join(content_parts),
             tags=tags,
             metadata={
-                'name': schema_name,
-                'type': schema.type,
-                'format': schema.format,
-                'deprecated': schema.deprecated,
-                'property_count': len(schema.properties),
-                'required_count': len(schema.required),
-                'has_example': schema.example is not None,
+                "name": schema_name,
+                "type": schema.type,
+                "format": schema.format,
+                "deprecated": schema.deprecated,
+                "property_count": len(schema.properties),
+                "required_count": len(schema.required),
+                "has_example": schema.example is not None,
             },
-            boost=boost
+            boost=boost,
         )
 
-    def _create_security_document(self, scheme_name: str, scheme: NormalizedSecurityScheme) -> SearchableDocument:
+    def _create_security_document(
+        self, scheme_name: str, scheme: NormalizedSecurityScheme
+    ) -> SearchableDocument:
         """Create a searchable document for a security scheme."""
         content_parts = []
 
@@ -281,7 +372,7 @@ class SearchOptimizer:
 
         # OAuth2 flows and scopes
         if scheme.oauth2_flows:
-            content_parts.append('oauth2')
+            content_parts.append("oauth2")
             for flow_type, flow in scheme.oauth2_flows.items():
                 content_parts.append(flow_type.value)
                 if flow.scopes:
@@ -292,32 +383,38 @@ class SearchOptimizer:
 
         # OpenID Connect
         if scheme.openid_connect_url:
-            content_parts.append('openid connect')
+            content_parts.append("openid connect")
 
         # Tags
-        tags = [scheme_name, 'security', scheme.type.value]
+        tags = [scheme_name, "security", scheme.type.value]
 
         if scheme.oauth2_flows:
-            tags.extend(flow.type.value for flow in scheme.oauth2_flows.values())
+            tags.extend(
+                flow.type.value for flow in scheme.oauth2_flows.values()
+            )
 
         return SearchableDocument(
             id=f"security_{scheme_name}",
-            type='security',
+            type="security",
             title=scheme_name,
-            content=' '.join(content_parts),
+            content=" ".join(content_parts),
             tags=tags,
             metadata={
-                'name': scheme_name,
-                'type': scheme.type.value,
-                'api_key_name': scheme.api_key_name,
-                'http_scheme': scheme.http_scheme,
-                'has_oauth2': bool(scheme.oauth2_flows),
-                'oauth2_flow_count': len(scheme.oauth2_flows) if scheme.oauth2_flows else 0,
+                "name": scheme_name,
+                "type": scheme.type.value,
+                "api_key_name": scheme.api_key_name,
+                "http_scheme": scheme.http_scheme,
+                "has_oauth2": bool(scheme.oauth2_flows),
+                "oauth2_flow_count": len(scheme.oauth2_flows)
+                if scheme.oauth2_flows
+                else 0,
             },
-            boost=1.0
+            boost=1.0,
         )
 
-    def _build_search_index(self, documents: List[SearchableDocument]) -> SearchIndex:
+    def _build_search_index(
+        self, documents: List[SearchableDocument]
+    ) -> SearchIndex:
         """Build optimized search index from documents."""
         term_frequencies = {}
         document_frequencies = Counter()
@@ -346,7 +443,7 @@ class SearchOptimizer:
             document_frequencies=dict(document_frequencies),
             document_lengths=document_lengths,
             total_documents=len(documents),
-            vocabulary=vocabulary
+            vocabulary=vocabulary,
         )
 
     def _tokenize_content(self, content: str) -> List[str]:
@@ -358,10 +455,10 @@ class SearchOptimizer:
         content = content.lower()
 
         # Replace common separators with spaces
-        content = re.sub(r'[/_\-\.]+', ' ', content)
+        content = re.sub(r"[/_\-\.]+", " ", content)
 
         # Extract words (including numbers)
-        words = re.findall(r'\b[a-z0-9]+\b', content)
+        words = re.findall(r"\b[a-z0-9]+\b", content)
 
         # Filter and process words
         processed_words = []
@@ -381,18 +478,20 @@ class SearchOptimizer:
             processed_words.append(word)
 
             # Add word stems for compound words
-            if len(word) > 6 and '_' not in word and '-' not in word:
+            if len(word) > 6 and "_" not in word and "-" not in word:
                 # Simple stemming for API-related words
-                if word.endswith('s') and len(word) > 4:
+                if word.endswith("s") and len(word) > 4:
                     processed_words.append(word[:-1])  # Remove plural 's'
-                elif word.endswith('ed') and len(word) > 5:
+                elif word.endswith("ed") and len(word) > 5:
                     processed_words.append(word[:-2])  # Remove 'ed'
-                elif word.endswith('ing') and len(word) > 6:
+                elif word.endswith("ing") and len(word) > 6:
                     processed_words.append(word[:-3])  # Remove 'ing'
 
         return processed_words
 
-    def get_search_statistics(self, search_index: SearchIndex) -> Dict[str, Any]:
+    def get_search_statistics(
+        self, search_index: SearchIndex
+    ) -> Dict[str, Any]:
         """Generate statistics about the search index.
 
         Args:
@@ -402,68 +501,95 @@ class SearchOptimizer:
             Dictionary with search statistics
         """
         stats = {
-            'total_documents': search_index.total_documents,
-            'vocabulary_size': len(search_index.vocabulary),
-            'average_document_length': 0.0,
-            'document_types': Counter(),
-            'most_common_terms': [],
-            'document_length_distribution': {},
-            'coverage_statistics': {},
+            "total_documents": search_index.total_documents,
+            "vocabulary_size": len(search_index.vocabulary),
+            "average_document_length": 0.0,
+            "document_types": Counter(),
+            "most_common_terms": [],
+            "document_length_distribution": {},
+            "coverage_statistics": {},
         }
 
         # Calculate averages
         if search_index.document_lengths:
             total_length = sum(search_index.document_lengths.values())
-            stats['average_document_length'] = total_length / len(search_index.document_lengths)
+            stats["average_document_length"] = total_length / len(
+                search_index.document_lengths
+            )
 
         # Document type distribution
         for doc in search_index.documents:
-            stats['document_types'][doc.type] += 1
+            stats["document_types"][doc.type] += 1
 
         # Most common terms
         term_doc_counts = []
         for term, doc_count in search_index.document_frequencies.items():
             term_doc_counts.append((term, doc_count))
 
-        stats['most_common_terms'] = sorted(term_doc_counts, key=lambda x: x[1], reverse=True)[:20]
+        stats["most_common_terms"] = sorted(
+            term_doc_counts, key=lambda x: x[1], reverse=True
+        )[:20]
 
         # Document length distribution
-        length_ranges = [(0, 50), (51, 100), (101, 200), (201, 500), (501, float('inf'))]
-        length_dist = {f"{start}-{end if end != float('inf') else '500+'}": 0
-                      for start, end in length_ranges}
+        length_ranges = [
+            (0, 50),
+            (51, 100),
+            (101, 200),
+            (201, 500),
+            (501, float("inf")),
+        ]
+        length_dist = {
+            f"{start}-{end if end != float('inf') else '500+'}": 0
+            for start, end in length_ranges
+        }
 
         for length in search_index.document_lengths.values():
             for start, end in length_ranges:
                 if start <= length <= end:
-                    range_key = f"{start}-{end if end != float('inf') else '500+'}"
+                    range_key = (
+                        f"{start}-{end if end != float('inf') else '500+'}"
+                    )
                     length_dist[range_key] += 1
                     break
 
-        stats['document_length_distribution'] = length_dist
+        stats["document_length_distribution"] = length_dist
 
         # Coverage statistics
-        endpoint_docs = [doc for doc in search_index.documents if doc.type == 'endpoint']
-        schema_docs = [doc for doc in search_index.documents if doc.type == 'schema']
-        security_docs = [doc for doc in search_index.documents if doc.type == 'security']
+        endpoint_docs = [
+            doc for doc in search_index.documents if doc.type == "endpoint"
+        ]
+        schema_docs = [
+            doc for doc in search_index.documents if doc.type == "schema"
+        ]
+        security_docs = [
+            doc for doc in search_index.documents if doc.type == "security"
+        ]
 
-        stats['coverage_statistics'] = {
-            'endpoints': len(endpoint_docs),
-            'schemas': len(schema_docs),
-            'security_schemes': len(security_docs),
-            'endpoints_with_operation_id': sum(1 for doc in endpoint_docs
-                                             if doc.metadata.get('operation_id')),
-            'endpoints_with_description': sum(1 for doc in endpoint_docs
-                                            if 'description' in doc.content),
-            'deprecated_items': sum(1 for doc in search_index.documents
-                                  if doc.metadata.get('deprecated', False)),
+        stats["coverage_statistics"] = {
+            "endpoints": len(endpoint_docs),
+            "schemas": len(schema_docs),
+            "security_schemes": len(security_docs),
+            "endpoints_with_operation_id": sum(
+                1 for doc in endpoint_docs if doc.metadata.get("operation_id")
+            ),
+            "endpoints_with_description": sum(
+                1 for doc in endpoint_docs if "description" in doc.content
+            ),
+            "deprecated_items": sum(
+                1
+                for doc in search_index.documents
+                if doc.metadata.get("deprecated", False)
+            ),
         }
 
         # Convert Counter to dict for JSON serialization
-        stats['document_types'] = dict(stats['document_types'])
+        stats["document_types"] = dict(stats["document_types"])
 
         return stats
 
-    def optimize_search_performance(self, search_index: SearchIndex) -> SearchIndex:
+    def optimize_search_performance(
+        self, search_index: SearchIndex
+    ) -> SearchIndex:
         """Apply performance optimizations to search index.
 
         Args:
@@ -480,7 +606,9 @@ class SearchOptimizer:
                 rare_terms.add(term)
 
         if rare_terms:
-            self.logger.info(f"Removing {len(rare_terms)} rare terms from index")
+            self.logger.info(
+                f"Removing {len(rare_terms)} rare terms from index"
+            )
 
             # Filter rare terms from vocabulary
             search_index.vocabulary -= rare_terms
@@ -501,10 +629,12 @@ class SearchOptimizer:
             sorted_terms = sorted(
                 search_index.document_frequencies.items(),
                 key=lambda x: x[1],
-                reverse=True
+                reverse=True,
             )
 
-            kept_terms = set(term for term, _ in sorted_terms[:max_vocabulary_size])
+            kept_terms = set(
+                term for term, _ in sorted_terms[:max_vocabulary_size]
+            )
             # Always keep important terms
             kept_terms.update(self.important_terms & search_index.vocabulary)
 

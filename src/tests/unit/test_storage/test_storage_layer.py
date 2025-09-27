@@ -1,35 +1,47 @@
 """Tests for the storage layer components."""
 
-import os
-import pytest
-import tempfile
 import asyncio
+import os
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
-from unittest.mock import Mock, patch, AsyncMock
+from unittest.mock import AsyncMock, Mock, patch
 
-from swagger_mcp_server.storage.database import DatabaseManager, DatabaseConfig, get_db_manager
+import pytest
+
+from swagger_mcp_server.storage.backup import BackupManager
+from swagger_mcp_server.storage.database import (
+    DatabaseConfig,
+    DatabaseManager,
+    get_db_manager,
+)
+from swagger_mcp_server.storage.migrations import Migration, MigrationManager
 from swagger_mcp_server.storage.models import (
-    APIMetadata, Endpoint, Schema, SecurityScheme, EndpointDependency
+    APIMetadata,
+    Endpoint,
+    EndpointDependency,
+    Schema,
+    SecurityScheme,
 )
 from swagger_mcp_server.storage.repositories import (
-    EndpointRepository, SchemaRepository, SecurityRepository, MetadataRepository
+    EndpointRepository,
+    MetadataRepository,
+    SchemaRepository,
+    SecurityRepository,
 )
-from swagger_mcp_server.storage.migrations import MigrationManager, Migration
-from swagger_mcp_server.storage.backup import BackupManager
 
 
 @pytest.fixture
 async def temp_db():
     """Create a temporary database for testing."""
-    with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as temp_file:
+    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as temp_file:
         temp_path = temp_file.name
 
     config = DatabaseConfig(
         database_path=temp_path,
         enable_wal=False,  # Disable WAL for simpler testing
         enable_fts=True,
-        vacuum_on_startup=False
+        vacuum_on_startup=False,
     )
 
     db_manager = DatabaseManager(config)
@@ -53,11 +65,19 @@ async def sample_api_metadata():
         description="A test API for unit testing",
         base_url="https://api.example.com",
         contact_info={"name": "Test Team", "email": "test@example.com"},
-        license_info={"name": "MIT", "url": "https://opensource.org/licenses/MIT"},
-        servers=[{"url": "https://api.example.com", "description": "Production server"}],
+        license_info={
+            "name": "MIT",
+            "url": "https://opensource.org/licenses/MIT",
+        },
+        servers=[
+            {
+                "url": "https://api.example.com",
+                "description": "Production server",
+            }
+        ],
         specification_hash="abc123def456",
         file_path="/path/to/test.json",
-        file_size=1024
+        file_size=1024,
     )
 
 
@@ -77,7 +97,7 @@ async def sample_endpoint(sample_api_metadata):
                 "name": "id",
                 "in": "path",
                 "required": True,
-                "schema": {"type": "string"}
+                "schema": {"type": "string"},
             }
         ],
         responses={
@@ -87,16 +107,16 @@ async def sample_endpoint(sample_api_metadata):
                     "application/json": {
                         "schema": {"$ref": "#/components/schemas/User"}
                     }
-                }
+                },
             },
-            "404": {"description": "User not found"}
+            "404": {"description": "User not found"},
         },
         searchable_text="get user by id retrieve single user unique identifier",
         parameter_names=["id"],
         response_codes=["200", "404"],
         content_types=["application/json"],
         schema_dependencies=["User"],
-        security_dependencies=["bearerAuth"]
+        security_dependencies=["bearerAuth"],
     )
 
 
@@ -112,12 +132,16 @@ async def sample_schema(sample_api_metadata):
         properties={
             "id": {"type": "string", "description": "User ID"},
             "name": {"type": "string", "description": "User name"},
-            "email": {"type": "string", "format": "email", "description": "User email"}
+            "email": {
+                "type": "string",
+                "format": "email",
+                "description": "User email",
+            },
         },
         required=["id", "name"],
         searchable_text="user object represents user system id name email",
         property_names=["id", "name", "email"],
-        reference_count=1
+        reference_count=1,
     )
 
 
@@ -131,7 +155,7 @@ async def sample_security_scheme(sample_api_metadata):
         description="Bearer token authentication",
         http_scheme="bearer",
         bearer_format="JWT",
-        reference_count=1
+        reference_count=1,
     )
 
 
@@ -148,9 +172,9 @@ class TestDatabaseManager:
 
         # Test health check
         health = await db_manager.health_check()
-        assert health['status'] == 'healthy'
-        assert 'file_size_bytes' in health
-        assert 'table_counts' in health
+        assert health["status"] == "healthy"
+        assert "file_size_bytes" in health
+        assert "table_counts" in health
 
     async def test_session_management(self, temp_db):
         """Test database session management."""
@@ -181,18 +205,21 @@ class TestDatabaseManager:
         db_manager = temp_db
 
         info = await db_manager.get_database_info()
-        assert 'sqlite_version' in info
-        assert 'database_size_bytes' in info
-        assert 'tables' in info
-        assert 'indexes' in info
-        assert 'table_counts' in info
+        assert "sqlite_version" in info
+        assert "database_size_bytes" in info
+        assert "tables" in info
+        assert "indexes" in info
+        assert "table_counts" in info
 
         # Should contain our expected tables
         expected_tables = {
-            'api_metadata', 'endpoints', 'schemas', 'security_schemes',
-            'endpoint_dependencies'
+            "api_metadata",
+            "endpoints",
+            "schemas",
+            "security_schemes",
+            "endpoint_dependencies",
         }
-        actual_tables = set(info['tables'])
+        actual_tables = set(info["tables"])
         assert expected_tables.issubset(actual_tables)
 
 
@@ -216,7 +243,9 @@ class TestRepositories:
             assert retrieved_api.title == "Test API"
 
             # Test get by title and version
-            by_title_version = await repo.get_by_title_version("Test API", "1.0.0")
+            by_title_version = await repo.get_by_title_version(
+                "Test API", "1.0.0"
+            )
             assert by_title_version is not None
             assert by_title_version.id == created_api.id
 
@@ -237,12 +266,14 @@ class TestRepositories:
 
             # Test statistics
             stats = await repo.get_statistics()
-            assert stats['total_apis'] == 1
-            assert stats['unique_titles'] == 1
+            assert stats["total_apis"] == 1
+            assert stats["unique_titles"] == 1
 
             await session.commit()
 
-    async def test_endpoint_repository(self, temp_db, sample_api_metadata, sample_endpoint):
+    async def test_endpoint_repository(
+        self, temp_db, sample_api_metadata, sample_endpoint
+    ):
         """Test EndpointRepository operations."""
         async with temp_db.get_session() as session:
             metadata_repo = MetadataRepository(session)
@@ -284,17 +315,21 @@ class TestRepositories:
             assert by_tags[0].id == created_endpoint.id
 
             # Test get methods for path
-            methods = await endpoint_repo.get_methods_for_path("/users/{id}", api.id)
+            methods = await endpoint_repo.get_methods_for_path(
+                "/users/{id}", api.id
+            )
             assert "get" in methods
 
             # Test statistics
             stats = await endpoint_repo.get_statistics(api.id)
-            assert stats['total_endpoints'] == 1
-            assert stats['methods']['get'] == 1
+            assert stats["total_endpoints"] == 1
+            assert stats["methods"]["get"] == 1
 
             await session.commit()
 
-    async def test_schema_repository(self, temp_db, sample_api_metadata, sample_schema):
+    async def test_schema_repository(
+        self, temp_db, sample_api_metadata, sample_schema
+    ):
         """Test SchemaRepository operations."""
         async with temp_db.get_session() as session:
             metadata_repo = MetadataRepository(session)
@@ -327,19 +362,23 @@ class TestRepositories:
             assert by_type[0].id == created_schema.id
 
             # Test find schemas with property
-            with_property = await schema_repo.find_schemas_with_property("name", api.id)
+            with_property = await schema_repo.find_schemas_with_property(
+                "name", api.id
+            )
             assert len(with_property) == 1
             assert with_property[0].id == created_schema.id
 
             # Test statistics
             stats = await schema_repo.get_statistics(api.id)
-            assert stats['total_schemas'] == 1
-            assert stats['types']['object'] == 1
-            assert stats['referenced_count'] == 1
+            assert stats["total_schemas"] == 1
+            assert stats["types"]["object"] == 1
+            assert stats["referenced_count"] == 1
 
             await session.commit()
 
-    async def test_security_repository(self, temp_db, sample_api_metadata, sample_security_scheme):
+    async def test_security_repository(
+        self, temp_db, sample_api_metadata, sample_security_scheme
+    ):
         """Test SecurityRepository operations."""
         async with temp_db.get_session() as session:
             metadata_repo = MetadataRepository(session)
@@ -378,9 +417,9 @@ class TestRepositories:
 
             # Test statistics
             stats = await security_repo.get_statistics(api.id)
-            assert stats['total_schemes'] == 1
-            assert stats['types']['http'] == 1
-            assert stats['used_count'] == 1
+            assert stats["total_schemes"] == 1
+            assert stats["types"]["http"] == 1
+            assert stats["used_count"] == 1
 
             await session.commit()
 
@@ -396,7 +435,7 @@ class TestMigrationSystem:
 
         # Check that migrations table exists
         info = await temp_db.get_database_info()
-        assert 'database_migrations' in info['tables']
+        assert "database_migrations" in info["tables"]
 
     async def test_builtin_migrations(self, temp_db):
         """Test built-in migrations."""
@@ -419,12 +458,12 @@ class TestMigrationSystem:
         await migration_manager.initialize_migration_system()
 
         status = await migration_manager.get_migration_status()
-        assert 'current_version' in status
-        assert 'applied_count' in status
-        assert 'pending_count' in status
-        assert 'applied' in status
-        assert 'pending' in status
-        assert 'is_up_to_date' in status
+        assert "current_version" in status
+        assert "applied_count" in status
+        assert "pending_count" in status
+        assert "applied" in status
+        assert "pending" in status
+        assert "is_up_to_date" in status
 
     async def test_migrate_to_latest(self, temp_db):
         """Test migrating to latest version."""
@@ -432,16 +471,20 @@ class TestMigrationSystem:
         await migration_manager.initialize_migration_system()
 
         # Test dry run first
-        applied_versions = await migration_manager.migrate_to_latest(dry_run=True)
+        applied_versions = await migration_manager.migrate_to_latest(
+            dry_run=True
+        )
         assert len(applied_versions) >= 0
 
         # Test actual migration
-        applied_versions = await migration_manager.migrate_to_latest(dry_run=False)
+        applied_versions = await migration_manager.migrate_to_latest(
+            dry_run=False
+        )
         assert len(applied_versions) >= 0
 
         # Check status after migration
         status = await migration_manager.get_migration_status()
-        assert status['is_up_to_date'] is True
+        assert status["is_up_to_date"] is True
 
     async def test_database_integrity_validation(self, temp_db):
         """Test database integrity validation."""
@@ -449,15 +492,15 @@ class TestMigrationSystem:
         await migration_manager.initialize_migration_system()
 
         integrity = await migration_manager.validate_database_integrity()
-        assert 'sqlite_integrity' in integrity
-        assert 'foreign_key_violations' in integrity
-        assert 'missing_tables' in integrity
-        assert 'is_healthy' in integrity
+        assert "sqlite_integrity" in integrity
+        assert "foreign_key_violations" in integrity
+        assert "missing_tables" in integrity
+        assert "is_healthy" in integrity
 
         # Should be healthy after initialization
-        assert integrity['is_healthy'] is True
-        assert integrity['sqlite_integrity'] == ['ok']
-        assert len(integrity['foreign_key_violations']) == 0
+        assert integrity["is_healthy"] is True
+        assert integrity["sqlite_integrity"] == ["ok"]
+        assert len(integrity["foreign_key_violations"]) == 0
 
 
 class TestBackupSystem:
@@ -470,12 +513,12 @@ class TestBackupSystem:
         # Test backup creation
         backup_path = await backup_manager.create_backup(compress=False)
         assert os.path.exists(backup_path)
-        assert backup_path.endswith('.db')
+        assert backup_path.endswith(".db")
 
         # Test compressed backup
         compressed_backup = await backup_manager.create_backup(compress=True)
         assert os.path.exists(compressed_backup)
-        assert compressed_backup.endswith('.gz')
+        assert compressed_backup.endswith(".gz")
 
         # Test backup listing
         backups = await backup_manager.list_backups()
@@ -483,15 +526,15 @@ class TestBackupSystem:
 
         # Verify backup properties
         backup_info = backups[0]
-        assert 'path' in backup_info
-        assert 'size_bytes' in backup_info
-        assert 'created_at' in backup_info
-        assert 'compressed' in backup_info
+        assert "path" in backup_info
+        assert "size_bytes" in backup_info
+        assert "created_at" in backup_info
+        assert "compressed" in backup_info
 
         # Cleanup
         for backup in backups:
-            if os.path.exists(backup['path']):
-                os.remove(backup['path'])
+            if os.path.exists(backup["path"]):
+                os.remove(backup["path"])
             metadata_path = f"{backup['path']}.metadata"
             if os.path.exists(metadata_path):
                 os.remove(metadata_path)
@@ -552,12 +595,12 @@ class TestBackupSystem:
 
         # Get statistics
         stats = await backup_manager.get_backup_statistics()
-        assert stats['total_backups'] >= 3
-        assert stats['total_size_bytes'] > 0
-        assert stats['compressed_backups'] >= 1
-        assert stats['uncompressed_backups'] >= 1
-        assert stats['oldest_backup'] is not None
-        assert stats['newest_backup'] is not None
+        assert stats["total_backups"] >= 3
+        assert stats["total_size_bytes"] > 0
+        assert stats["compressed_backups"] >= 1
+        assert stats["uncompressed_backups"] >= 1
+        assert stats["oldest_backup"] is not None
+        assert stats["newest_backup"] is not None
 
         # Cleanup
         for backup_path in backup_paths:
@@ -599,8 +642,8 @@ class TestBackupSystem:
 
         # Cleanup remaining
         for backup in remaining_backups:
-            if os.path.exists(backup['path']):
-                os.remove(backup['path'])
+            if os.path.exists(backup["path"]):
+                os.remove(backup["path"])
 
 
 class TestPerformanceAndIntegration:
@@ -619,7 +662,7 @@ class TestPerformanceAndIntegration:
                 title="Performance Test API",
                 version="1.0.0",
                 openapi_version="3.0.0",
-                description="Large API for performance testing"
+                description="Large API for performance testing",
             )
             api = await metadata_repo.create(api)
             await session.flush()
@@ -636,7 +679,7 @@ class TestPerformanceAndIntegration:
                     operation_id=f"getResource{i}",
                     summary=f"Get resource {i}",
                     description=f"Retrieve resource number {i}",
-                    searchable_text=f"get resource {i} retrieve"
+                    searchable_text=f"get resource {i} retrieve",
                 )
                 endpoints.append(endpoint)
 
@@ -659,13 +702,14 @@ class TestPerformanceAndIntegration:
 
     async def test_concurrent_access(self, temp_db):
         """Test concurrent database access."""
+
         async def create_api(session_manager, title_suffix):
             async with session_manager.get_session() as session:
                 metadata_repo = MetadataRepository(session)
                 api = APIMetadata(
                     title=f"Concurrent API {title_suffix}",
                     version="1.0.0",
-                    openapi_version="3.0.0"
+                    openapi_version="3.0.0",
                 )
                 created_api = await metadata_repo.create(api)
                 await session.commit()
@@ -710,7 +754,7 @@ class TestPerformanceAndIntegration:
                 title="Integration Test API",
                 version="1.0.0",
                 openapi_version="3.0.0",
-                description="Full integration test API"
+                description="Full integration test API",
             )
             api = await metadata_repo.create(api)
             await session.flush()
@@ -721,7 +765,7 @@ class TestPerformanceAndIntegration:
                 name="bearerAuth",
                 type="http",
                 http_scheme="bearer",
-                bearer_format="JWT"
+                bearer_format="JWT",
             )
             security_scheme = await security_repo.create(security_scheme)
 
@@ -732,9 +776,9 @@ class TestPerformanceAndIntegration:
                 type="object",
                 properties={
                     "id": {"type": "string"},
-                    "name": {"type": "string"}
+                    "name": {"type": "string"},
                 },
-                required=["id", "name"]
+                required=["id", "name"],
             )
             user_schema = await schema_repo.create(user_schema)
 
@@ -746,7 +790,7 @@ class TestPerformanceAndIntegration:
                 operation_id="getUserById",
                 summary="Get user by ID",
                 schema_dependencies=["User"],
-                security_dependencies=["bearerAuth"]
+                security_dependencies=["bearerAuth"],
             )
             endpoint = await endpoint_repo.create(endpoint)
 
@@ -778,16 +822,16 @@ class TestPerformanceAndIntegration:
 
         # Validate final state
         integrity = await migration_manager.validate_database_integrity()
-        assert integrity['is_healthy'] is True
+        assert integrity["is_healthy"] is True
 
         # Get comprehensive statistics
         async with temp_db.get_session() as session:
             metadata_repo = MetadataRepository(session)
             api_summary = await metadata_repo.get_api_summary(api.id)
 
-            assert api_summary['counts']['endpoints'] == 1
-            assert api_summary['counts']['schemas'] == 1
-            assert api_summary['counts']['security_schemes'] == 1
+            assert api_summary["counts"]["endpoints"] == 1
+            assert api_summary["counts"]["schemas"] == 1
+            assert api_summary["counts"]["security_schemes"] == 1
 
 
 @pytest.mark.asyncio
@@ -801,10 +845,14 @@ class TestAsyncFixtures:
 
         # Test basic database operations
         health = await temp_db.health_check()
-        assert health['status'] == 'healthy'
+        assert health["status"] == "healthy"
 
     async def test_sample_data_fixtures(
-        self, sample_api_metadata, sample_endpoint, sample_schema, sample_security_scheme
+        self,
+        sample_api_metadata,
+        sample_endpoint,
+        sample_schema,
+        sample_security_scheme,
     ):
         """Test that sample data fixtures are correctly configured."""
         assert sample_api_metadata.title == "Test API"
@@ -835,7 +883,7 @@ class TestPerformanceBenchmarks:
             api = APIMetadata(
                 title="Performance API",
                 version="1.0.0",
-                openapi_version="3.0.0"
+                openapi_version="3.0.0",
             )
             api = await metadata_repo.create(api)
 
@@ -847,7 +895,7 @@ class TestPerformanceBenchmarks:
                     path=f"/api/v1/resource{i}",
                     method="get",
                     operation_id=f"getResource{i}",
-                    searchable_text=f"get resource {i} endpoint"
+                    searchable_text=f"get resource {i} endpoint",
                 )
                 endpoints.append(endpoint)
 
@@ -857,14 +905,18 @@ class TestPerformanceBenchmarks:
             # Test search query performance
             start_time = time.time()
             results = await endpoint_repo.search_endpoints("resource")
-            query_time = (time.time() - start_time) * 1000  # Convert to milliseconds
+            query_time = (
+                time.time() - start_time
+            ) * 1000  # Convert to milliseconds
 
             assert len(results) > 0
             assert query_time < 200  # Must be under 200ms
 
             # Test individual lookups
             start_time = time.time()
-            endpoint = await endpoint_repo.get_by_operation_id("getResource0", api.id)
+            endpoint = await endpoint_repo.get_by_operation_id(
+                "getResource0", api.id
+            )
             lookup_time = (time.time() - start_time) * 1000
 
             assert endpoint is not None
@@ -882,7 +934,7 @@ class TestPerformanceBenchmarks:
             api = APIMetadata(
                 title="Batch Performance API",
                 version="1.0.0",
-                openapi_version="3.0.0"
+                openapi_version="3.0.0",
             )
             api = await metadata_repo.create(api)
 
@@ -893,7 +945,7 @@ class TestPerformanceBenchmarks:
                     api_id=api.id,
                     path=f"/batch/resource{i}",
                     method="get",
-                    operation_id=f"getBatchResource{i}"
+                    operation_id=f"getBatchResource{i}",
                 )
                 endpoints.append(endpoint)
 

@@ -4,21 +4,22 @@ This module provides advanced analytics for search usage patterns, user behavior
 and search effectiveness optimization as specified in Story 3.6.
 """
 
-import re
 import asyncio
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Any, Tuple, Set
-from datetime import datetime, timedelta
-from collections import defaultdict, Counter
-from enum import Enum
-import statistics
 import json
+import re
+import statistics
+from collections import Counter, defaultdict
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from enum import Enum
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from .performance_monitor import SearchAnalytics
 
 
 class QueryPatternType(Enum):
     """Types of query patterns identified in search analytics."""
+
     EXACT_MATCH = "exact_match"
     PARTIAL_MATCH = "partial_match"
     WILDCARD = "wildcard"
@@ -30,16 +31,18 @@ class QueryPatternType(Enum):
 
 class UserBehaviorPattern(Enum):
     """User behavior patterns identified from search analytics."""
-    EXPLORER = "explorer"          # Diverse queries, many filters
-    SEARCHER = "searcher"          # Specific searches, few results clicked
-    BROWSER = "browser"            # General queries, many results viewed
-    FOCUSED = "focused"            # Specific domain, repeated patterns
-    ITERATIVE = "iterative"        # Query refinement patterns
+
+    EXPLORER = "explorer"  # Diverse queries, many filters
+    SEARCHER = "searcher"  # Specific searches, few results clicked
+    BROWSER = "browser"  # General queries, many results viewed
+    FOCUSED = "focused"  # Specific domain, repeated patterns
+    ITERATIVE = "iterative"  # Query refinement patterns
 
 
 @dataclass
 class QueryPattern:
     """Represents an identified query pattern."""
+
     pattern_type: QueryPatternType
     pattern_text: str
     frequency: int
@@ -53,6 +56,7 @@ class QueryPattern:
 @dataclass
 class UserSession:
     """Represents a user search session."""
+
     session_id: str
     start_time: datetime
     end_time: Optional[datetime]
@@ -65,6 +69,7 @@ class UserSession:
 @dataclass
 class SearchEffectivenessMetrics:
     """Metrics for measuring search effectiveness."""
+
     relevance_score: float
     user_engagement: float
     query_success_rate: float
@@ -86,11 +91,31 @@ class SearchAnalyticsEngine:
         self.min_pattern_frequency = 3
         self.session_timeout = timedelta(minutes=30)
         self.common_stop_words = {
-            'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
-            'of', 'with', 'by', 'from', 'up', 'about', 'into', 'through', 'during'
+            "the",
+            "a",
+            "an",
+            "and",
+            "or",
+            "but",
+            "in",
+            "on",
+            "at",
+            "to",
+            "for",
+            "of",
+            "with",
+            "by",
+            "from",
+            "up",
+            "about",
+            "into",
+            "through",
+            "during",
         }
 
-    async def analyze_search_patterns(self, analytics_data: List[SearchAnalytics]) -> Dict[str, Any]:
+    async def analyze_search_patterns(
+        self, analytics_data: List[SearchAnalytics]
+    ) -> Dict[str, Any]:
         """Analyze search patterns from analytics data.
 
         Args:
@@ -109,24 +134,36 @@ class SearchAnalyticsEngine:
         user_sessions = await self._analyze_user_sessions(analytics_data)
 
         # Calculate search effectiveness
-        effectiveness = await self._calculate_search_effectiveness(analytics_data)
+        effectiveness = await self._calculate_search_effectiveness(
+            analytics_data
+        )
 
         # Generate insights
-        insights = await self._generate_pattern_insights(query_patterns, user_sessions, effectiveness)
+        insights = await self._generate_pattern_insights(
+            query_patterns, user_sessions, effectiveness
+        )
 
         # Generate optimization recommendations
-        recommendations = await self._generate_pattern_recommendations(insights)
+        recommendations = await self._generate_pattern_recommendations(
+            insights
+        )
 
         return {
-            "query_patterns": [self._pattern_to_dict(p) for p in query_patterns],
+            "query_patterns": [
+                self._pattern_to_dict(p) for p in query_patterns
+            ],
             "user_behavior": self._sessions_to_summary(user_sessions),
-            "effectiveness_metrics": self._effectiveness_to_dict(effectiveness),
+            "effectiveness_metrics": self._effectiveness_to_dict(
+                effectiveness
+            ),
             "insights": insights,
             "recommendations": recommendations,
-            "analysis_timestamp": datetime.now().isoformat()
+            "analysis_timestamp": datetime.now().isoformat(),
         }
 
-    async def _identify_query_patterns(self, analytics_data: List[SearchAnalytics]) -> List[QueryPattern]:
+    async def _identify_query_patterns(
+        self, analytics_data: List[SearchAnalytics]
+    ) -> List[QueryPattern]:
         """Identify common query patterns from search data."""
         patterns = []
 
@@ -139,24 +176,34 @@ class SearchAnalyticsEngine:
         # Analyze each query group
         for query_text, query_analytics in query_groups.items():
             if len(query_analytics) >= self.min_pattern_frequency:
-                pattern = await self._analyze_query_group(query_text, query_analytics)
+                pattern = await self._analyze_query_group(
+                    query_text, query_analytics
+                )
                 if pattern:
                     patterns.append(pattern)
 
         # Sort by frequency and success rate
-        patterns.sort(key=lambda p: (p.frequency, p.success_rate), reverse=True)
+        patterns.sort(
+            key=lambda p: (p.frequency, p.success_rate), reverse=True
+        )
 
         return patterns
 
-    async def _analyze_query_group(self, query_text: str, analytics_list: List[SearchAnalytics]) -> Optional[QueryPattern]:
+    async def _analyze_query_group(
+        self, query_text: str, analytics_list: List[SearchAnalytics]
+    ) -> Optional[QueryPattern]:
         """Analyze a group of similar queries to identify patterns."""
         if not analytics_list:
             return None
 
         # Calculate metrics
         frequency = len(analytics_list)
-        avg_response_time = statistics.mean([a.total_response_time for a in analytics_list])
-        success_rate = len([a for a in analytics_list if a.result_count > 0]) / frequency
+        avg_response_time = statistics.mean(
+            [a.total_response_time for a in analytics_list]
+        )
+        success_rate = (
+            len([a for a in analytics_list if a.result_count > 0]) / frequency
+        )
 
         # Classify pattern type
         pattern_type = self._classify_query_pattern(query_text, analytics_list)
@@ -183,18 +230,24 @@ class SearchAnalyticsEngine:
             success_rate=success_rate,
             common_variations=variations,
             associated_filters=dict(filter_usage),
-            optimization_potential=optimization_potential
+            optimization_potential=optimization_potential,
         )
 
-    def _classify_query_pattern(self, query_text: str, analytics_list: List[SearchAnalytics]) -> QueryPatternType:
+    def _classify_query_pattern(
+        self, query_text: str, analytics_list: List[SearchAnalytics]
+    ) -> QueryPatternType:
         """Classify the type of query pattern."""
         # Analyze query characteristics
-        has_wildcards = '*' in query_text or '?' in query_text
-        has_boolean = any(op in query_text.lower() for op in ['and', 'or', 'not'])
+        has_wildcards = "*" in query_text or "?" in query_text
+        has_boolean = any(
+            op in query_text.lower() for op in ["and", "or", "not"]
+        )
         word_count = len(query_text.split())
 
         # Analyze filter usage
-        avg_filters = statistics.mean([len(a.filters_applied) for a in analytics_list])
+        avg_filters = statistics.mean(
+            [len(a.filters_applied) for a in analytics_list]
+        )
 
         # Classify based on characteristics
         if has_wildcards:
@@ -209,13 +262,17 @@ class SearchAnalyticsEngine:
             return QueryPatternType.SIMPLE_QUERY
         else:
             # Check for exact vs partial matching based on results
-            avg_results = statistics.mean([a.result_count for a in analytics_list])
+            avg_results = statistics.mean(
+                [a.result_count for a in analytics_list]
+            )
             if avg_results < 5:
                 return QueryPatternType.EXACT_MATCH
             else:
                 return QueryPatternType.PARTIAL_MATCH
 
-    def _find_query_variations(self, analytics_list: List[SearchAnalytics]) -> List[str]:
+    def _find_query_variations(
+        self, analytics_list: List[SearchAnalytics]
+    ) -> List[str]:
         """Find common variations of the query."""
         query_texts = [a.query_text for a in analytics_list]
         unique_queries = list(set(query_texts))
@@ -226,7 +283,9 @@ class SearchAnalyticsEngine:
 
         # Return most common variations (up to 5)
         query_counter = Counter(query_texts)
-        common_variations = [query for query, count in query_counter.most_common(5) if count > 1]
+        common_variations = [
+            query for query, count in query_counter.most_common(5) if count > 1
+        ]
 
         return common_variations
 
@@ -235,7 +294,7 @@ class SearchAnalyticsEngine:
         pattern_type: QueryPatternType,
         avg_response_time: float,
         success_rate: float,
-        frequency: int
+        frequency: int,
     ) -> str:
         """Assess optimization potential for a query pattern."""
         # High potential: frequent queries with poor performance or low success
@@ -247,24 +306,32 @@ class SearchAnalyticsEngine:
             return "medium"
 
         # High potential for specific pattern types
-        if pattern_type in [QueryPatternType.COMPLEX_QUERY, QueryPatternType.FILTER_HEAVY]:
+        if pattern_type in [
+            QueryPatternType.COMPLEX_QUERY,
+            QueryPatternType.FILTER_HEAVY,
+        ]:
             return "medium"
 
         return "low"
 
-    async def _analyze_user_sessions(self, analytics_data: List[SearchAnalytics]) -> List[UserSession]:
+    async def _analyze_user_sessions(
+        self, analytics_data: List[SearchAnalytics]
+    ) -> List[UserSession]:
         """Analyze user sessions from search analytics."""
         sessions = {}
 
         # Group analytics by session
         for analytics in analytics_data:
-            session_id = analytics.user_session or f"anonymous_{analytics.correlation_id[:8]}"
+            session_id = (
+                analytics.user_session
+                or f"anonymous_{analytics.correlation_id[:8]}"
+            )
 
             if session_id not in sessions:
                 sessions[session_id] = UserSession(
                     session_id=session_id,
                     start_time=analytics.timestamp,
-                    end_time=analytics.timestamp
+                    end_time=analytics.timestamp,
                 )
 
             session = sessions[session_id]
@@ -280,14 +347,22 @@ class SearchAnalyticsEngine:
         analyzed_sessions = []
         for session in sessions.values():
             if len(session.queries) > 0:  # Only include sessions with queries
-                session.behavior_pattern = self._classify_user_behavior(session)
-                session.satisfaction_score = self._calculate_session_satisfaction(session)
-                session.conversion_achieved = self._assess_session_conversion(session)
+                session.behavior_pattern = self._classify_user_behavior(
+                    session
+                )
+                session.satisfaction_score = (
+                    self._calculate_session_satisfaction(session)
+                )
+                session.conversion_achieved = self._assess_session_conversion(
+                    session
+                )
                 analyzed_sessions.append(session)
 
         return analyzed_sessions
 
-    def _classify_user_behavior(self, session: UserSession) -> UserBehaviorPattern:
+    def _classify_user_behavior(
+        self, session: UserSession
+    ) -> UserBehaviorPattern:
         """Classify user behavior pattern from session data."""
         queries = session.queries
 
@@ -295,14 +370,22 @@ class SearchAnalyticsEngine:
             return UserBehaviorPattern.BROWSER
 
         # Calculate behavior metrics
-        query_diversity = len(set(q.query_text for q in queries)) / len(queries)
-        avg_filters = statistics.mean([len(q.filters_applied) for q in queries])
-        avg_results_clicked = statistics.mean([len(q.results_clicked) for q in queries])
+        query_diversity = len(set(q.query_text for q in queries)) / len(
+            queries
+        )
+        avg_filters = statistics.mean(
+            [len(q.filters_applied) for q in queries]
+        )
+        avg_results_clicked = statistics.mean(
+            [len(q.results_clicked) for q in queries]
+        )
 
         # Query refinement pattern (similar queries with variations)
         refinement_count = 0
         for i in range(1, len(queries)):
-            if self._are_queries_similar(queries[i-1].query_text, queries[i].query_text):
+            if self._are_queries_similar(
+                queries[i - 1].query_text, queries[i].query_text
+            ):
                 refinement_count += 1
         refinement_rate = refinement_count / max(len(queries) - 1, 1)
 
@@ -356,13 +439,19 @@ class SearchAnalyticsEngine:
         satisfaction_factors.append(click_factor * 0.3)  # 30% weight
 
         # Factor 3: Query abandonment (inverse)
-        abandonment_rate = len([q for q in queries if q.query_abandoned]) / len(queries)
+        abandonment_rate = len(
+            [q for q in queries if q.query_abandoned]
+        ) / len(queries)
         abandonment_factor = 1.0 - abandonment_rate
         satisfaction_factors.append(abandonment_factor * 0.2)  # 20% weight
 
         # Factor 4: Response time satisfaction
-        avg_response_time = statistics.mean([q.total_response_time for q in queries])
-        time_factor = max(0, 1.0 - (avg_response_time - 100) / 300)  # Good < 100ms, Poor > 400ms
+        avg_response_time = statistics.mean(
+            [q.total_response_time for q in queries]
+        )
+        time_factor = max(
+            0, 1.0 - (avg_response_time - 100) / 300
+        )  # Good < 100ms, Poor > 400ms
         satisfaction_factors.append(time_factor * 0.1)  # 10% weight
 
         return sum(satisfaction_factors)
@@ -379,7 +468,10 @@ class SearchAnalyticsEngine:
 
         # 1. Final query had results and user clicked on them
         final_query = queries[-1]
-        if final_query.result_count > 0 and len(final_query.results_clicked) > 0:
+        if (
+            final_query.result_count > 0
+            and len(final_query.results_clicked) > 0
+        ):
             indicators.append(True)
         else:
             indicators.append(False)
@@ -391,7 +483,7 @@ class SearchAnalyticsEngine:
         if len(queries) > 1:
             progression_score = 0
             for i in range(1, len(queries)):
-                if queries[i].result_count > queries[i-1].result_count:
+                if queries[i].result_count > queries[i - 1].result_count:
                     progression_score += 1
             progression_indicator = progression_score > 0
             indicators.append(progression_indicator)
@@ -399,7 +491,9 @@ class SearchAnalyticsEngine:
         # Conversion achieved if majority of indicators are positive
         return sum(indicators) > len(indicators) / 2
 
-    async def _calculate_search_effectiveness(self, analytics_data: List[SearchAnalytics]) -> SearchEffectivenessMetrics:
+    async def _calculate_search_effectiveness(
+        self, analytics_data: List[SearchAnalytics]
+    ) -> SearchEffectivenessMetrics:
         """Calculate overall search effectiveness metrics."""
         if not analytics_data:
             return SearchEffectivenessMetrics(
@@ -408,7 +502,7 @@ class SearchAnalyticsEngine:
                 query_success_rate=0,
                 time_to_success=None,
                 abandonment_rate=0,
-                refinement_rate=0
+                refinement_rate=0,
             )
 
         # Relevance score (based on result interaction)
@@ -420,15 +514,23 @@ class SearchAnalyticsEngine:
         user_engagement = total_clicks / len(analytics_data)
 
         # Query success rate
-        successful_queries = len([a for a in analytics_data if a.result_count > 0])
+        successful_queries = len(
+            [a for a in analytics_data if a.result_count > 0]
+        )
         query_success_rate = successful_queries / len(analytics_data)
 
         # Time to success (average time for successful queries)
-        successful_times = [a.total_response_time for a in analytics_data if a.result_count > 0]
-        time_to_success = statistics.mean(successful_times) if successful_times else None
+        successful_times = [
+            a.total_response_time for a in analytics_data if a.result_count > 0
+        ]
+        time_to_success = (
+            statistics.mean(successful_times) if successful_times else None
+        )
 
         # Abandonment rate
-        abandoned_queries = len([a for a in analytics_data if a.query_abandoned])
+        abandoned_queries = len(
+            [a for a in analytics_data if a.query_abandoned]
+        )
         abandonment_rate = abandoned_queries / len(analytics_data)
 
         # Refinement rate (estimated from query patterns)
@@ -440,15 +542,20 @@ class SearchAnalyticsEngine:
             query_success_rate=query_success_rate,
             time_to_success=time_to_success,
             abandonment_rate=abandonment_rate,
-            refinement_rate=refinement_rate
+            refinement_rate=refinement_rate,
         )
 
-    def _calculate_refinement_rate(self, analytics_data: List[SearchAnalytics]) -> float:
+    def _calculate_refinement_rate(
+        self, analytics_data: List[SearchAnalytics]
+    ) -> float:
         """Calculate the rate at which users refine their queries."""
         # Group by session and look for query refinements
         session_groups = defaultdict(list)
         for analytics in analytics_data:
-            session_id = analytics.user_session or f"anonymous_{analytics.correlation_id[:8]}"
+            session_id = (
+                analytics.user_session
+                or f"anonymous_{analytics.correlation_id[:8]}"
+            )
             session_groups[session_id].append(analytics)
 
         refinement_sessions = 0
@@ -458,13 +565,15 @@ class SearchAnalyticsEngine:
             if len(session_queries) > 1:
                 total_sessions += 1
                 # Sort by timestamp
-                sorted_queries = sorted(session_queries, key=lambda x: x.timestamp)
+                sorted_queries = sorted(
+                    session_queries, key=lambda x: x.timestamp
+                )
 
                 # Check for refinements
                 for i in range(1, len(sorted_queries)):
                     if self._are_queries_similar(
-                        sorted_queries[i-1].query_text,
-                        sorted_queries[i].query_text
+                        sorted_queries[i - 1].query_text,
+                        sorted_queries[i].query_text,
                     ):
                         refinement_sessions += 1
                         break
@@ -475,7 +584,7 @@ class SearchAnalyticsEngine:
         self,
         query_patterns: List[QueryPattern],
         user_sessions: List[UserSession],
-        effectiveness: SearchEffectivenessMetrics
+        effectiveness: SearchEffectivenessMetrics,
     ) -> Dict[str, Any]:
         """Generate insights from pattern analysis."""
         insights = {
@@ -483,18 +592,26 @@ class SearchAnalyticsEngine:
             "user_behavior_distribution": {},
             "effectiveness_assessment": "",
             "key_findings": [],
-            "improvement_opportunities": []
+            "improvement_opportunities": [],
         }
 
         # Top patterns by frequency and optimization potential
         high_value_patterns = [
-            p for p in query_patterns
-            if p.optimization_potential in ["high", "medium"] or p.frequency > 10
+            p
+            for p in query_patterns
+            if p.optimization_potential in ["high", "medium"]
+            or p.frequency > 10
         ]
-        insights["top_patterns"] = [self._pattern_to_dict(p) for p in high_value_patterns[:10]]
+        insights["top_patterns"] = [
+            self._pattern_to_dict(p) for p in high_value_patterns[:10]
+        ]
 
         # User behavior distribution
-        behavior_counts = Counter(s.behavior_pattern.value for s in user_sessions if s.behavior_pattern)
+        behavior_counts = Counter(
+            s.behavior_pattern.value
+            for s in user_sessions
+            if s.behavior_pattern
+        )
         insights["user_behavior_distribution"] = dict(behavior_counts)
 
         # Effectiveness assessment
@@ -511,16 +628,27 @@ class SearchAnalyticsEngine:
         findings = []
 
         if effectiveness.abandonment_rate > 0.3:
-            findings.append(f"High abandonment rate ({effectiveness.abandonment_rate:.1%}) indicates search frustration")
+            findings.append(
+                f"High abandonment rate ({effectiveness.abandonment_rate:.1%}) indicates search frustration"
+            )
 
         if effectiveness.refinement_rate > 0.4:
-            findings.append(f"High refinement rate ({effectiveness.refinement_rate:.1%}) suggests initial queries are not effective")
+            findings.append(
+                f"High refinement rate ({effectiveness.refinement_rate:.1%}) suggests initial queries are not effective"
+            )
 
-        if len([p for p in query_patterns if p.success_rate < 0.5]) > len(query_patterns) * 0.2:
-            findings.append("Multiple query patterns have low success rates, indicating relevance issues")
+        if (
+            len([p for p in query_patterns if p.success_rate < 0.5])
+            > len(query_patterns) * 0.2
+        ):
+            findings.append(
+                "Multiple query patterns have low success rates, indicating relevance issues"
+            )
 
         if effectiveness.user_engagement < 0.5:
-            findings.append(f"Low user engagement ({effectiveness.user_engagement:.1f} clicks/query) suggests poor result relevance")
+            findings.append(
+                f"Low user engagement ({effectiveness.user_engagement:.1f} clicks/query) suggests poor result relevance"
+            )
 
         insights["key_findings"] = findings
 
@@ -528,30 +656,44 @@ class SearchAnalyticsEngine:
         opportunities = []
 
         # High-frequency, low-success patterns
-        problem_patterns = [p for p in query_patterns if p.frequency > 5 and p.success_rate < 0.6]
+        problem_patterns = [
+            p
+            for p in query_patterns
+            if p.frequency > 5 and p.success_rate < 0.6
+        ]
         if problem_patterns:
-            opportunities.append({
-                "type": "query_optimization",
-                "description": f"Optimize {len(problem_patterns)} high-frequency patterns with low success rates",
-                "impact": "high",
-                "patterns": [p.pattern_text for p in problem_patterns[:3]]
-            })
+            opportunities.append(
+                {
+                    "type": "query_optimization",
+                    "description": f"Optimize {len(problem_patterns)} high-frequency patterns with low success rates",
+                    "impact": "high",
+                    "patterns": [p.pattern_text for p in problem_patterns[:3]],
+                }
+            )
 
         # Slow patterns
-        slow_patterns = [p for p in query_patterns if p.avg_response_time > 200]
+        slow_patterns = [
+            p for p in query_patterns if p.avg_response_time > 200
+        ]
         if slow_patterns:
-            opportunities.append({
-                "type": "performance_optimization",
-                "description": f"Improve performance for {len(slow_patterns)} slow query patterns",
-                "impact": "medium",
-                "avg_time": statistics.mean([p.avg_response_time for p in slow_patterns])
-            })
+            opportunities.append(
+                {
+                    "type": "performance_optimization",
+                    "description": f"Improve performance for {len(slow_patterns)} slow query patterns",
+                    "impact": "medium",
+                    "avg_time": statistics.mean(
+                        [p.avg_response_time for p in slow_patterns]
+                    ),
+                }
+            )
 
         insights["improvement_opportunities"] = opportunities
 
         return insights
 
-    async def _generate_pattern_recommendations(self, insights: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def _generate_pattern_recommendations(
+        self, insights: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:
         """Generate actionable recommendations based on pattern insights."""
         recommendations = []
 
@@ -559,73 +701,83 @@ class SearchAnalyticsEngine:
         effectiveness = insights.get("effectiveness_assessment", "fair")
 
         if effectiveness == "poor":
-            recommendations.append({
-                "priority": "critical",
-                "category": "search_relevance",
-                "title": "Improve Search Algorithm",
-                "description": "Low success rate indicates fundamental search algorithm issues",
-                "actions": [
-                    "Review and improve search indexing strategy",
-                    "Implement better query processing and matching algorithms",
-                    "Add spell checking and query suggestion features"
-                ],
-                "expected_impact": "40-60% improvement in success rate"
-            })
+            recommendations.append(
+                {
+                    "priority": "critical",
+                    "category": "search_relevance",
+                    "title": "Improve Search Algorithm",
+                    "description": "Low success rate indicates fundamental search algorithm issues",
+                    "actions": [
+                        "Review and improve search indexing strategy",
+                        "Implement better query processing and matching algorithms",
+                        "Add spell checking and query suggestion features",
+                    ],
+                    "expected_impact": "40-60% improvement in success rate",
+                }
+            )
 
         # Recommendations based on key findings
         findings = insights.get("key_findings", [])
 
         for finding in findings:
             if "abandonment" in finding.lower():
-                recommendations.append({
-                    "priority": "high",
-                    "category": "user_experience",
-                    "title": "Reduce Query Abandonment",
-                    "description": "High abandonment rate indicates user frustration",
-                    "actions": [
-                        "Implement progressive search with instant results",
-                        "Add search suggestions and auto-complete",
-                        "Improve result presentation and relevance"
-                    ],
-                    "expected_impact": "20-30% reduction in abandonment rate"
-                })
+                recommendations.append(
+                    {
+                        "priority": "high",
+                        "category": "user_experience",
+                        "title": "Reduce Query Abandonment",
+                        "description": "High abandonment rate indicates user frustration",
+                        "actions": [
+                            "Implement progressive search with instant results",
+                            "Add search suggestions and auto-complete",
+                            "Improve result presentation and relevance",
+                        ],
+                        "expected_impact": "20-30% reduction in abandonment rate",
+                    }
+                )
 
             elif "refinement" in finding.lower():
-                recommendations.append({
-                    "priority": "medium",
-                    "category": "query_processing",
-                    "title": "Improve Initial Query Effectiveness",
-                    "description": "High refinement rate suggests poor initial query understanding",
-                    "actions": [
-                        "Implement query expansion and synonym handling",
-                        "Add context-aware search suggestions",
-                        "Improve natural language query processing"
-                    ],
-                    "expected_impact": "15-25% reduction in refinement rate"
-                })
+                recommendations.append(
+                    {
+                        "priority": "medium",
+                        "category": "query_processing",
+                        "title": "Improve Initial Query Effectiveness",
+                        "description": "High refinement rate suggests poor initial query understanding",
+                        "actions": [
+                            "Implement query expansion and synonym handling",
+                            "Add context-aware search suggestions",
+                            "Improve natural language query processing",
+                        ],
+                        "expected_impact": "15-25% reduction in refinement rate",
+                    }
+                )
 
         # Recommendations based on improvement opportunities
         opportunities = insights.get("improvement_opportunities", [])
 
         for opportunity in opportunities:
             if opportunity["type"] == "query_optimization":
-                recommendations.append({
-                    "priority": "high",
-                    "category": "pattern_optimization",
-                    "title": "Optimize High-Frequency Query Patterns",
-                    "description": f"Focus on {len(opportunity.get('patterns', []))} specific patterns",
-                    "actions": [
-                        "Create specialized indexes for common patterns",
-                        "Implement caching for frequent queries",
-                        "Optimize query processing for identified patterns"
-                    ],
-                    "patterns": opportunity.get("patterns", []),
-                    "expected_impact": "30-50% improvement for targeted patterns"
-                })
+                recommendations.append(
+                    {
+                        "priority": "high",
+                        "category": "pattern_optimization",
+                        "title": "Optimize High-Frequency Query Patterns",
+                        "description": f"Focus on {len(opportunity.get('patterns', []))} specific patterns",
+                        "actions": [
+                            "Create specialized indexes for common patterns",
+                            "Implement caching for frequent queries",
+                            "Optimize query processing for identified patterns",
+                        ],
+                        "patterns": opportunity.get("patterns", []),
+                        "expected_impact": "30-50% improvement for targeted patterns",
+                    }
+                )
 
         # Sort by priority
         priority_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
-        recommendations.sort(key=lambda r: priority_order.get(r["priority"], 3))
+        recommendations.sort(
+            key=lambda r: priority_order.get(r["priority"], 3)
+        )
 
         return recommendations
 
@@ -635,10 +787,10 @@ class SearchAnalyticsEngine:
         normalized = query_text.lower().strip()
 
         # Remove special characters except wildcards
-        normalized = re.sub(r'[^\w\s*?]', ' ', normalized)
+        normalized = re.sub(r"[^\w\s*?]", " ", normalized)
 
         # Collapse multiple spaces
-        normalized = re.sub(r'\s+', ' ', normalized)
+        normalized = re.sub(r"\s+", " ", normalized)
 
         return normalized
 
@@ -652,18 +804,32 @@ class SearchAnalyticsEngine:
             "success_rate": pattern.success_rate,
             "common_variations": pattern.common_variations,
             "associated_filters": pattern.associated_filters,
-            "optimization_potential": pattern.optimization_potential
+            "optimization_potential": pattern.optimization_potential,
         }
 
-    def _sessions_to_summary(self, sessions: List[UserSession]) -> Dict[str, Any]:
+    def _sessions_to_summary(
+        self, sessions: List[UserSession]
+    ) -> Dict[str, Any]:
         """Convert user sessions to summary statistics."""
         if not sessions:
             return {"total_sessions": 0}
 
-        behavior_distribution = Counter(s.behavior_pattern.value for s in sessions if s.behavior_pattern)
-        avg_satisfaction = statistics.mean([s.satisfaction_score for s in sessions if s.satisfaction_score is not None])
-        conversion_rate = len([s for s in sessions if s.conversion_achieved]) / len(sessions)
-        avg_queries_per_session = statistics.mean([len(s.queries) for s in sessions])
+        behavior_distribution = Counter(
+            s.behavior_pattern.value for s in sessions if s.behavior_pattern
+        )
+        avg_satisfaction = statistics.mean(
+            [
+                s.satisfaction_score
+                for s in sessions
+                if s.satisfaction_score is not None
+            ]
+        )
+        conversion_rate = len(
+            [s for s in sessions if s.conversion_achieved]
+        ) / len(sessions)
+        avg_queries_per_session = statistics.mean(
+            [len(s.queries) for s in sessions]
+        )
 
         return {
             "total_sessions": len(sessions),
@@ -671,20 +837,28 @@ class SearchAnalyticsEngine:
             "avg_satisfaction_score": avg_satisfaction,
             "conversion_rate": conversion_rate,
             "avg_queries_per_session": avg_queries_per_session,
-            "session_duration_avg": self._calculate_avg_session_duration(sessions)
+            "session_duration_avg": self._calculate_avg_session_duration(
+                sessions
+            ),
         }
 
-    def _calculate_avg_session_duration(self, sessions: List[UserSession]) -> float:
+    def _calculate_avg_session_duration(
+        self, sessions: List[UserSession]
+    ) -> float:
         """Calculate average session duration in seconds."""
         durations = []
         for session in sessions:
             if session.end_time and session.start_time:
-                duration = (session.end_time - session.start_time).total_seconds()
+                duration = (
+                    session.end_time - session.start_time
+                ).total_seconds()
                 durations.append(duration)
 
         return statistics.mean(durations) if durations else 0
 
-    def _effectiveness_to_dict(self, effectiveness: SearchEffectivenessMetrics) -> Dict[str, Any]:
+    def _effectiveness_to_dict(
+        self, effectiveness: SearchEffectivenessMetrics
+    ) -> Dict[str, Any]:
         """Convert SearchEffectivenessMetrics to dictionary."""
         return {
             "relevance_score": effectiveness.relevance_score,
@@ -692,5 +866,5 @@ class SearchAnalyticsEngine:
             "query_success_rate": effectiveness.query_success_rate,
             "time_to_success": effectiveness.time_to_success,
             "abandonment_rate": effectiveness.abandonment_rate,
-            "refinement_rate": effectiveness.refinement_rate
+            "refinement_rate": effectiveness.refinement_rate,
         }

@@ -1,12 +1,13 @@
 """Configuration management system for the CLI - Compatibility Layer."""
 
+import json
 import os
 import sys
-from typing import Dict, Any, Optional, Union
 from pathlib import Path
-import json
+from typing import Any, Dict, Optional, Union
 
 import click
+
 from .utils import get_config_directories, safe_file_operation
 
 
@@ -99,7 +100,10 @@ class ConfigurationManager:
             )
             return {}
         except Exception as e:
-            click.echo(f"Warning: Could not load config file {file_path}: {e}", err=True)
+            click.echo(
+                f"Warning: Could not load config file {file_path}: {e}",
+                err=True,
+            )
             return {}
 
     def _load_env_config(self) -> Dict[str, Any]:
@@ -110,13 +114,32 @@ class ConfigurationManager:
             if env_var in os.environ:
                 value = os.environ[env_var]
                 # Type conversion
-                if config_key.endswith((".port", ".timeout", ".max_connections", ".index_size", ".cache_size")):
+                if config_key.endswith(
+                    (
+                        ".port",
+                        ".timeout",
+                        ".max_connections",
+                        ".index_size",
+                        ".cache_size",
+                    )
+                ):
                     try:
                         value = int(value)
                     except ValueError:
-                        click.echo(f"Warning: Invalid integer value for {env_var}: {value}", err=True)
+                        click.echo(
+                            f"Warning: Invalid integer value for {env_var}: {value}",
+                            err=True,
+                        )
                         continue
-                elif config_key.endswith((".enable_auth", ".force_overwrite", ".create_directories", ".enable_fuzzy", ".enable_metrics")):
+                elif config_key.endswith(
+                    (
+                        ".enable_auth",
+                        ".force_overwrite",
+                        ".create_directories",
+                        ".enable_fuzzy",
+                        ".enable_metrics",
+                    )
+                ):
                     value = value.lower() in ("true", "1", "yes", "on")
 
                 self._set_nested_config(config, config_key, value)
@@ -152,7 +175,11 @@ class ConfigurationManager:
         result = self._deep_copy_dict(base)
 
         for key, value in override.items():
-            if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+            if (
+                key in result
+                and isinstance(result[key], dict)
+                and isinstance(value, dict)
+            ):
                 result[key] = self._merge_configs(result[key], value)
             else:
                 result[key] = value
@@ -225,7 +252,9 @@ class ConfigurationManager:
             click.echo(f"Error resetting configuration: {e}", err=True)
             return False
 
-    def _save_config_file(self, file_path: Path, config: Dict[str, Any]) -> bool:
+    def _save_config_file(
+        self, file_path: Path, config: Dict[str, Any]
+    ) -> bool:
         """Save configuration to YAML file."""
         try:
             import yaml
@@ -241,7 +270,10 @@ class ConfigurationManager:
             return safe_file_operation(save_operation, str(file_path))
 
         except ImportError:
-            click.echo("Error: PyYAML not installed, cannot save configuration", err=True)
+            click.echo(
+                "Error: PyYAML not installed, cannot save configuration",
+                err=True,
+            )
             return False
         except Exception as e:
             click.echo(f"Error saving configuration: {e}", err=True)
@@ -264,7 +296,9 @@ class ConfigurationManager:
         log_level = self.get("logging.level")
         valid_levels = ["debug", "info", "warning", "error"]
         if log_level not in valid_levels:
-            errors.append(f"Invalid log level: {log_level} (must be one of {valid_levels})")
+            errors.append(
+                f"Invalid log level: {log_level} (must be one of {valid_levels})"
+            )
 
         # Validate output configuration
         output_dir = self.get("output.directory")
@@ -274,16 +308,22 @@ class ConfigurationManager:
         # Validate performance configuration
         timeout = self.get("performance.timeout")
         if not isinstance(timeout, int) or timeout <= 0:
-            errors.append(f"Invalid timeout: {timeout} (must be positive integer)")
+            errors.append(
+                f"Invalid timeout: {timeout} (must be positive integer)"
+            )
 
         max_connections = self.get("performance.max_connections")
         if not isinstance(max_connections, int) or max_connections <= 0:
-            errors.append(f"Invalid max_connections: {max_connections} (must be positive integer)")
+            errors.append(
+                f"Invalid max_connections: {max_connections} (must be positive integer)"
+            )
 
         # Validate search configuration
         index_size = self.get("search.index_size")
         if not isinstance(index_size, int) or index_size <= 0:
-            errors.append(f"Invalid search index_size: {index_size} (must be positive integer)")
+            errors.append(
+                f"Invalid search index_size: {index_size} (must be positive integer)"
+            )
 
         return len(errors) == 0, errors
 
@@ -327,7 +367,10 @@ class ConfigurationManager:
         elif format.lower() == "yaml":
             try:
                 import yaml
-                return yaml.dump(self.config, default_flow_style=False, indent=2)
+
+                return yaml.dump(
+                    self.config, default_flow_style=False, indent=2
+                )
             except ImportError:
                 return json.dumps(self.config, indent=2)
         else:

@@ -1,13 +1,14 @@
 """Main configuration manager orchestrating all configuration operations."""
 
-import os
-import json
-import yaml
-import shutil
-from pathlib import Path
-from typing import Dict, Any, Optional, List
-from datetime import datetime
 import copy
+import json
+import os
+import shutil
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+import yaml
 
 from .config_schema import ConfigurationSchema
 from .env_extractor import EnvironmentConfigExtractor
@@ -45,7 +46,9 @@ class ConfigurationManager:
         self.config_dir.mkdir(exist_ok=True)
         self.backup_dir.mkdir(exist_ok=True)
 
-    async def load_configuration(self, config_file: Optional[str] = None) -> Dict[str, Any]:
+    async def load_configuration(
+        self, config_file: Optional[str] = None
+    ) -> Dict[str, Any]:
         """Load configuration with hierarchy: defaults < file < environment.
 
         Args:
@@ -77,7 +80,7 @@ class ConfigurationManager:
             if errors:
                 raise ConfigurationError(
                     "Configuration validation failed",
-                    {"validation_errors": errors}
+                    {"validation_errors": errors},
                 )
 
             return config
@@ -86,18 +89,20 @@ class ConfigurationManager:
             if isinstance(e, ConfigurationError):
                 raise
             else:
-                raise ConfigurationError(f"Failed to load configuration: {str(e)}")
+                raise ConfigurationError(
+                    f"Failed to load configuration: {str(e)}"
+                )
 
     def _load_config_file(self, file_path: Path) -> Dict[str, Any]:
         """Load configuration from YAML or JSON file."""
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, "r", encoding="utf-8") as f:
                 content = f.read()
 
             # Try YAML first, then JSON
-            if file_path.suffix.lower() in ['.yaml', '.yml']:
+            if file_path.suffix.lower() in [".yaml", ".yml"]:
                 return yaml.safe_load(content) or {}
-            elif file_path.suffix.lower() == '.json':
+            elif file_path.suffix.lower() == ".json":
                 return json.loads(content)
             else:
                 # Auto-detect format
@@ -111,27 +116,35 @@ class ConfigurationManager:
         except (yaml.YAMLError, json.JSONDecodeError) as e:
             raise ConfigurationError(
                 f"Invalid configuration file format: {file_path}",
-                {"parse_error": str(e)}
+                {"parse_error": str(e)},
             )
         except Exception as e:
             raise ConfigurationError(
                 f"Failed to read configuration file: {file_path}",
-                {"error": str(e)}
+                {"error": str(e)},
             )
 
-    def _merge_configurations(self, base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
+    def _merge_configurations(
+        self, base: Dict[str, Any], override: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Deep merge two configuration dictionaries."""
         result = copy.deepcopy(base)
 
         for key, value in override.items():
-            if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+            if (
+                key in result
+                and isinstance(result[key], dict)
+                and isinstance(value, dict)
+            ):
                 result[key] = self._merge_configurations(result[key], value)
             else:
                 result[key] = copy.deepcopy(value)
 
         return result
 
-    def _validate_complete_configuration(self, config: Dict[str, Any]) -> List[str]:
+    def _validate_complete_configuration(
+        self, config: Dict[str, Any]
+    ) -> List[str]:
         """Validate complete configuration and return list of errors."""
         errors = []
 
@@ -139,7 +152,9 @@ class ConfigurationManager:
         for key in self.schema.get_all_configuration_keys():
             value = self.env_extractor.get_nested_config_value(config, key)
             if value is not None:
-                is_valid, error_msg = self.schema.validate_configuration_value(key, value)
+                is_valid, error_msg = self.schema.validate_configuration_value(
+                    key, value
+                )
                 if not is_valid:
                     errors.append(error_msg)
 
@@ -148,20 +163,30 @@ class ConfigurationManager:
 
         return errors
 
-    def _validate_cross_field_constraints(self, config: Dict[str, Any]) -> List[str]:
+    def _validate_cross_field_constraints(
+        self, config: Dict[str, Any]
+    ) -> List[str]:
         """Validate constraints that span multiple configuration fields."""
         errors = []
 
         # SSL configuration validation
-        ssl_config = self.env_extractor.get_nested_config_value(config, "server.ssl")
+        ssl_config = self.env_extractor.get_nested_config_value(
+            config, "server.ssl"
+        )
         if ssl_config and ssl_config.get("enabled"):
             if not ssl_config.get("cert_file"):
-                errors.append("SSL certificate file is required when SSL is enabled")
+                errors.append(
+                    "SSL certificate file is required when SSL is enabled"
+                )
             if not ssl_config.get("key_file"):
-                errors.append("SSL private key file is required when SSL is enabled")
+                errors.append(
+                    "SSL private key file is required when SSL is enabled"
+                )
 
         # File path validation
-        log_file = self.env_extractor.get_nested_config_value(config, "logging.file")
+        log_file = self.env_extractor.get_nested_config_value(
+            config, "logging.file"
+        )
         if log_file:
             log_dir = Path(log_file).parent
             if not log_dir.exists():
@@ -171,18 +196,24 @@ class ConfigurationManager:
                     errors.append(f"Cannot create log directory: {log_dir}")
 
         # Database path validation
-        db_path = self.env_extractor.get_nested_config_value(config, "database.path")
+        db_path = self.env_extractor.get_nested_config_value(
+            config, "database.path"
+        )
         if db_path:
             db_dir = Path(db_path).parent
             if not db_dir.exists():
                 try:
                     db_dir.mkdir(parents=True, exist_ok=True)
                 except OSError:
-                    errors.append(f"Cannot create database directory: {db_dir}")
+                    errors.append(
+                        f"Cannot create database directory: {db_dir}"
+                    )
 
         return errors
 
-    async def save_configuration(self, config: Dict[str, Any], config_file: Optional[str] = None) -> None:
+    async def save_configuration(
+        self, config: Dict[str, Any], config_file: Optional[str] = None
+    ) -> None:
         """Save configuration to file.
 
         Args:
@@ -203,21 +234,25 @@ class ConfigurationManager:
             file_path.parent.mkdir(parents=True, exist_ok=True)
 
             # Save configuration
-            if file_path.suffix.lower() == '.json':
-                with open(file_path, 'w', encoding='utf-8') as f:
+            if file_path.suffix.lower() == ".json":
+                with open(file_path, "w", encoding="utf-8") as f:
                     json.dump(config, f, indent=2)
             else:
                 # Default to YAML
-                with open(file_path, 'w', encoding='utf-8') as f:
+                with open(file_path, "w", encoding="utf-8") as f:
                     f.write(f"# MCP Server Configuration\n")
                     f.write(f"# Generated on: {datetime.now().isoformat()}\n")
                     f.write(f"# File: {file_path}\n\n")
-                    yaml.dump(config, f, default_flow_style=False, sort_keys=False)
+                    yaml.dump(
+                        config, f, default_flow_style=False, sort_keys=False
+                    )
 
         except Exception as e:
             raise ConfigurationError(f"Failed to save configuration: {str(e)}")
 
-    async def get_configuration_value(self, key: str, config_file: Optional[str] = None) -> Any:
+    async def get_configuration_value(
+        self, key: str, config_file: Optional[str] = None
+    ) -> Any:
         """Get a specific configuration value.
 
         Args:
@@ -230,7 +265,9 @@ class ConfigurationManager:
         config = await self.load_configuration(config_file)
         return self.env_extractor.get_nested_config_value(config, key)
 
-    async def set_configuration_value(self, key: str, value: Any, config_file: Optional[str] = None) -> None:
+    async def set_configuration_value(
+        self, key: str, value: Any, config_file: Optional[str] = None
+    ) -> None:
         """Set a specific configuration value.
 
         Args:
@@ -242,9 +279,13 @@ class ConfigurationManager:
             ConfigurationError: If validation fails or save fails
         """
         # Validate the value first
-        is_valid, error_msg = self.schema.validate_configuration_value(key, value)
+        is_valid, error_msg = self.schema.validate_configuration_value(
+            key, value
+        )
         if not is_valid:
-            raise ConfigurationError(f"Invalid configuration value: {error_msg}")
+            raise ConfigurationError(
+                f"Invalid configuration value: {error_msg}"
+            )
 
         # Load current configuration
         config = await self.load_configuration(config_file)
@@ -255,8 +296,9 @@ class ConfigurationManager:
         # Save updated configuration
         await self.save_configuration(config, config_file)
 
-    async def reset_configuration(self, config_file: Optional[str] = None,
-                                 template: str = "development") -> None:
+    async def reset_configuration(
+        self, config_file: Optional[str] = None, template: str = "development"
+    ) -> None:
         """Reset configuration to defaults or template.
 
         Args:
@@ -277,11 +319,16 @@ class ConfigurationManager:
             await self.save_configuration(config, config_file)
 
         except Exception as e:
-            raise ConfigurationError(f"Failed to reset configuration: {str(e)}")
+            raise ConfigurationError(
+                f"Failed to reset configuration: {str(e)}"
+            )
 
-    async def initialize_configuration(self, template: str = "development",
-                                     config_file: Optional[str] = None,
-                                     overwrite: bool = False) -> None:
+    async def initialize_configuration(
+        self,
+        template: str = "development",
+        config_file: Optional[str] = None,
+        overwrite: bool = False,
+    ) -> None:
         """Initialize configuration file with template.
 
         Args:
@@ -299,7 +346,9 @@ class ConfigurationManager:
             if file_path.exists() and not overwrite:
                 raise ConfigurationError(
                     f"Configuration file already exists: {file_path}",
-                    {"suggestion": "Use --force to overwrite or choose a different path"}
+                    {
+                        "suggestion": "Use --force to overwrite or choose a different path"
+                    },
                 )
 
             # Get template configuration
@@ -310,7 +359,7 @@ class ConfigurationManager:
             if not is_valid:
                 raise ConfigurationError(
                     f"Template '{template}' is invalid",
-                    {"validation_errors": errors}
+                    {"validation_errors": errors},
                 )
 
             # Save configuration
@@ -320,9 +369,13 @@ class ConfigurationManager:
             if isinstance(e, ConfigurationError):
                 raise
             else:
-                raise ConfigurationError(f"Failed to initialize configuration: {str(e)}")
+                raise ConfigurationError(
+                    f"Failed to initialize configuration: {str(e)}"
+                )
 
-    async def validate_configuration(self, config_file: Optional[str] = None) -> tuple[bool, List[str], List[str]]:
+    async def validate_configuration(
+        self, config_file: Optional[str] = None
+    ) -> tuple[bool, List[str], List[str]]:
         """Validate configuration file.
 
         Args:
@@ -346,24 +399,42 @@ class ConfigurationManager:
         warnings = []
 
         # Performance warnings
-        cache_size = self.env_extractor.get_nested_config_value(config, "search.performance.cache_size_mb")
+        cache_size = self.env_extractor.get_nested_config_value(
+            config, "search.performance.cache_size_mb"
+        )
         if cache_size and cache_size < 32:
-            warnings.append("Search cache size is quite small, consider increasing for better performance")
+            warnings.append(
+                "Search cache size is quite small, consider increasing for better performance"
+            )
 
-        max_connections = self.env_extractor.get_nested_config_value(config, "server.max_connections")
+        max_connections = self.env_extractor.get_nested_config_value(
+            config, "server.max_connections"
+        )
         if max_connections and max_connections > 500:
-            warnings.append("High connection limit may impact system resources")
+            warnings.append(
+                "High connection limit may impact system resources"
+            )
 
         # Security warnings
-        ssl_enabled = self.env_extractor.get_nested_config_value(config, "server.ssl.enabled")
-        host = self.env_extractor.get_nested_config_value(config, "server.host")
+        ssl_enabled = self.env_extractor.get_nested_config_value(
+            config, "server.ssl.enabled"
+        )
+        host = self.env_extractor.get_nested_config_value(
+            config, "server.host"
+        )
         if host == "0.0.0.0" and not ssl_enabled:
-            warnings.append("Server accepting external connections without SSL encryption")
+            warnings.append(
+                "Server accepting external connections without SSL encryption"
+            )
 
         # Logging warnings
-        log_level = self.env_extractor.get_nested_config_value(config, "logging.level")
+        log_level = self.env_extractor.get_nested_config_value(
+            config, "logging.level"
+        )
         if log_level == "DEBUG":
-            warnings.append("Debug logging may impact performance and expose sensitive information")
+            warnings.append(
+                "Debug logging may impact performance and expose sensitive information"
+            )
 
         return warnings
 
@@ -377,7 +448,9 @@ class ConfigurationManager:
             shutil.copy2(file_path, backup_path)
 
             # Clean up old backups (keep last 10)
-            backups = sorted(self.backup_dir.glob(f"{file_path.stem}_*{file_path.suffix}"))
+            backups = sorted(
+                self.backup_dir.glob(f"{file_path.stem}_*{file_path.suffix}")
+            )
             for old_backup in backups[:-10]:
                 old_backup.unlink()
 
@@ -397,7 +470,9 @@ class ConfigurationManager:
         if key:
             help_text = self.schema.get_configuration_help(key)
             if help_text:
-                env_var = self.env_extractor.get_environment_variable_for_path(key)
+                env_var = self.env_extractor.get_environment_variable_for_path(
+                    key
+                )
                 if env_var:
                     help_text += f"\n\nEnvironment variable: {env_var}"
                 return help_text

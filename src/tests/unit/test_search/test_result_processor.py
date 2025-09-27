@@ -8,29 +8,33 @@ Tests cover all aspects of result optimization and filtering including:
 - Result caching and performance optimization
 """
 
-import pytest
 import asyncio
 import time
+from typing import Any, Dict, List
 from unittest.mock import Mock, patch
-from typing import Dict, List, Any
 
+import pytest
+
+from swagger_mcp_server.config.settings import (
+    SearchConfig,
+    SearchPerformanceConfig,
+)
 from swagger_mcp_server.search.result_processor import (
-    ResultProcessor,
+    AuthenticationInfo,
+    AuthenticationType,
+    ComplexityLevel,
+    EnhancedSearchResult,
+    MetadataEnhancer,
+    OperationType,
+    PaginationInfo,
+    ParameterSummary,
+    ResponseInfo,
+    ResultCache,
     ResultFilter,
     ResultOrganizer,
-    MetadataEnhancer,
-    ResultCache,
-    EnhancedSearchResult,
-    ComplexityLevel,
-    AuthenticationType,
-    OperationType,
-    ParameterSummary,
-    AuthenticationInfo,
-    ResponseInfo,
+    ResultProcessor,
     ResultSummary,
-    PaginationInfo
 )
-from swagger_mcp_server.config.settings import SearchConfig, SearchPerformanceConfig
 
 
 @pytest.fixture
@@ -42,7 +46,7 @@ def search_config():
             search_timeout=5.0,
             index_batch_size=1000,
             cache_size=500,
-            cache_ttl=300
+            cache_ttl=300,
         )
     )
 
@@ -62,7 +66,7 @@ def sample_raw_results():
             "deprecated": False,
             "parameters": "limit,offset,filter",
             "security": {"bearer": []},
-            "responses": {"200": {"content": {"application/json": {}}}}
+            "responses": {"200": {"content": {"application/json": {}}}},
         },
         {
             "endpoint_id": "create_user",
@@ -75,7 +79,7 @@ def sample_raw_results():
             "deprecated": False,
             "parameters": "email,password,name,profile",
             "security": {"bearer": []},
-            "responses": {"201": {"content": {"application/json": {}}}}
+            "responses": {"201": {"content": {"application/json": {}}}},
         },
         {
             "endpoint_id": "get_user",
@@ -88,7 +92,7 @@ def sample_raw_results():
             "deprecated": False,
             "parameters": "user_id",
             "security": {"bearer": []},
-            "responses": {"200": {"content": {"application/json": {}}}}
+            "responses": {"200": {"content": {"application/json": {}}}},
         },
         {
             "endpoint_id": "authenticate",
@@ -101,7 +105,7 @@ def sample_raw_results():
             "deprecated": False,
             "parameters": "email,password",
             "security": {},
-            "responses": {"200": {"content": {"application/json": {}}}}
+            "responses": {"200": {"content": {"application/json": {}}}},
         },
         {
             "endpoint_id": "upload_avatar",
@@ -114,7 +118,7 @@ def sample_raw_results():
             "deprecated": False,
             "parameters": "image_file",
             "security": {"bearer": []},
-            "responses": {"200": {"content": {"multipart/form-data": {}}}}
+            "responses": {"200": {"content": {"multipart/form-data": {}}}},
         },
         {
             "endpoint_id": "oauth_authorize",
@@ -127,8 +131,8 @@ def sample_raw_results():
             "deprecated": True,
             "parameters": "client_id,redirect_uri,scope,state",
             "security": {"oauth2": ["read", "write"]},
-            "responses": {"302": {"content": {}}}
-        }
+            "responses": {"302": {"content": {}}},
+        },
     ]
 
 
@@ -149,15 +153,21 @@ class TestResultFilter:
         assert len(filtered) == 2  # get_users and get_user
         assert all(result["http_method"] == "GET" for result in filtered)
 
-    def test_filter_by_multiple_methods(self, result_filter, sample_raw_results):
+    def test_filter_by_multiple_methods(
+        self, result_filter, sample_raw_results
+    ):
         """Test filtering by multiple HTTP methods."""
         filters = {"methods": ["GET", "POST"]}
         filtered = result_filter.apply_filters(sample_raw_results, filters)
 
         assert len(filtered) == 6  # All results
-        assert all(result["http_method"] in ["GET", "POST"] for result in filtered)
+        assert all(
+            result["http_method"] in ["GET", "POST"] for result in filtered
+        )
 
-    def test_filter_by_authentication_required(self, result_filter, sample_raw_results):
+    def test_filter_by_authentication_required(
+        self, result_filter, sample_raw_results
+    ):
         """Test filtering by authentication requirement."""
         # Filter for endpoints requiring authentication
         filters = {"authentication": {"required": True}}
@@ -167,7 +177,9 @@ class TestResultFilter:
         assert len(filtered) == 5
         assert all(result["security"] for result in filtered)
 
-    def test_filter_by_authentication_not_required(self, result_filter, sample_raw_results):
+    def test_filter_by_authentication_not_required(
+        self, result_filter, sample_raw_results
+    ):
         """Test filtering for endpoints not requiring authentication."""
         filters = {"authentication": {"required": False}}
         filtered = result_filter.apply_filters(sample_raw_results, filters)
@@ -176,13 +188,17 @@ class TestResultFilter:
         assert len(filtered) == 1
         assert filtered[0]["endpoint_id"] == "authenticate"
 
-    def test_filter_by_authentication_schemes(self, result_filter, sample_raw_results):
+    def test_filter_by_authentication_schemes(
+        self, result_filter, sample_raw_results
+    ):
         """Test filtering by specific authentication schemes."""
         filters = {"authentication": {"schemes": ["bearer"]}}
         filtered = result_filter.apply_filters(sample_raw_results, filtered)
 
         # Should include endpoints with bearer auth
-        bearer_results = [r for r in filtered if "bearer" in r.get("security", {})]
+        bearer_results = [
+            r for r in filtered if "bearer" in r.get("security", {})
+        ]
         assert len(bearer_results) >= 0
 
     def test_filter_by_tags(self, result_filter, sample_raw_results):
@@ -194,7 +210,9 @@ class TestResultFilter:
         assert len(filtered) >= 3
         assert all("users" in result.get("tags", "") for result in filtered)
 
-    def test_filter_exclude_deprecated(self, result_filter, sample_raw_results):
+    def test_filter_exclude_deprecated(
+        self, result_filter, sample_raw_results
+    ):
         """Test filtering to exclude deprecated endpoints."""
         filters = {"include_deprecated": False}
         filtered = result_filter.apply_filters(sample_raw_results, filters)
@@ -203,12 +221,14 @@ class TestResultFilter:
         assert len(filtered) == 5
         assert all(not result.get("deprecated", False) for result in filtered)
 
-    def test_filter_complex_combination(self, result_filter, sample_raw_results):
+    def test_filter_complex_combination(
+        self, result_filter, sample_raw_results
+    ):
         """Test complex filter combinations."""
         filters = {
             "methods": ["POST"],
             "tags": ["users"],
-            "include_deprecated": False
+            "include_deprecated": False,
         }
         filtered = result_filter.apply_filters(sample_raw_results, filters)
 
@@ -223,7 +243,9 @@ class TestResultFilter:
         filtered = result_filter.apply_filters(sample_raw_results, {})
         assert len(filtered) == len(sample_raw_results)
 
-    def test_invalid_filters_graceful_handling(self, result_filter, sample_raw_results):
+    def test_invalid_filters_graceful_handling(
+        self, result_filter, sample_raw_results
+    ):
         """Test graceful handling of invalid filter values."""
         filters = {"methods": None, "invalid_filter": "invalid_value"}
         filtered = result_filter.apply_filters(sample_raw_results, filters)
@@ -254,15 +276,26 @@ class TestResultOrganizer:
                 rank_position=1,
                 ranking_factors=["high_relevance"],
                 complexity_level=ComplexityLevel.SIMPLE,
-                parameter_summary=ParameterSummary(2, 0, 2, {"string": 2}, False, False, ["limit", "offset"]),
-                authentication_info=AuthenticationInfo(True, [AuthenticationType.BEARER], [], "Bearer required"),
-                response_info=ResponseInfo([200], ["application/json"], True, False, ComplexityLevel.SIMPLE, ["200"]),
+                parameter_summary=ParameterSummary(
+                    2, 0, 2, {"string": 2}, False, False, ["limit", "offset"]
+                ),
+                authentication_info=AuthenticationInfo(
+                    True, [AuthenticationType.BEARER], [], "Bearer required"
+                ),
+                response_info=ResponseInfo(
+                    [200],
+                    ["application/json"],
+                    True,
+                    False,
+                    ComplexityLevel.SIMPLE,
+                    ["200"],
+                ),
                 tags=["users", "list"],
                 resource_group="users",
                 operation_type=OperationType.LIST,
                 deprecated=False,
                 version="v1",
-                stability="stable"
+                stability="stable",
             ),
             EnhancedSearchResult(
                 endpoint_id="create_user",
@@ -274,15 +307,32 @@ class TestResultOrganizer:
                 rank_position=2,
                 ranking_factors=["medium_relevance"],
                 complexity_level=ComplexityLevel.MODERATE,
-                parameter_summary=ParameterSummary(4, 3, 1, {"string": 4}, False, False, ["email", "password", "name"]),
-                authentication_info=AuthenticationInfo(True, [AuthenticationType.BEARER], [], "Bearer required"),
-                response_info=ResponseInfo([201], ["application/json"], True, False, ComplexityLevel.SIMPLE, ["201"]),
+                parameter_summary=ParameterSummary(
+                    4,
+                    3,
+                    1,
+                    {"string": 4},
+                    False,
+                    False,
+                    ["email", "password", "name"],
+                ),
+                authentication_info=AuthenticationInfo(
+                    True, [AuthenticationType.BEARER], [], "Bearer required"
+                ),
+                response_info=ResponseInfo(
+                    [201],
+                    ["application/json"],
+                    True,
+                    False,
+                    ComplexityLevel.SIMPLE,
+                    ["201"],
+                ),
                 tags=["users", "create"],
                 resource_group="users",
                 operation_type=OperationType.CREATE,
                 deprecated=False,
                 version="v1",
-                stability="stable"
+                stability="stable",
             ),
             EnhancedSearchResult(
                 endpoint_id="authenticate",
@@ -294,16 +344,27 @@ class TestResultOrganizer:
                 rank_position=3,
                 ranking_factors=["medium_relevance"],
                 complexity_level=ComplexityLevel.SIMPLE,
-                parameter_summary=ParameterSummary(2, 2, 0, {"string": 2}, False, False, ["email", "password"]),
-                authentication_info=AuthenticationInfo(False, [AuthenticationType.NONE], [], "No auth required"),
-                response_info=ResponseInfo([200], ["application/json"], True, False, ComplexityLevel.SIMPLE, ["200"]),
+                parameter_summary=ParameterSummary(
+                    2, 2, 0, {"string": 2}, False, False, ["email", "password"]
+                ),
+                authentication_info=AuthenticationInfo(
+                    False, [AuthenticationType.NONE], [], "No auth required"
+                ),
+                response_info=ResponseInfo(
+                    [200],
+                    ["application/json"],
+                    True,
+                    False,
+                    ComplexityLevel.SIMPLE,
+                    ["200"],
+                ),
                 tags=["authentication", "login"],
                 resource_group="auth",
                 operation_type=OperationType.ACTION,
                 deprecated=False,
                 version="v1",
-                stability="stable"
-            )
+                stability="stable",
+            ),
         ]
 
     def test_cluster_by_tags(self, result_organizer, enhanced_results):
@@ -346,7 +407,9 @@ class TestResultOrganizer:
         assert len(by_method["GET"]) == 1
         assert len(by_method["POST"]) == 2
 
-    def test_cluster_by_operation_type(self, result_organizer, enhanced_results):
+    def test_cluster_by_operation_type(
+        self, result_organizer, enhanced_results
+    ):
         """Test clustering results by operation type."""
         organization = result_organizer.organize_results(enhanced_results)
 
@@ -355,7 +418,9 @@ class TestResultOrganizer:
         assert "create" in by_operation
         assert "action" in by_operation
 
-    def test_cluster_by_auth_requirement(self, result_organizer, enhanced_results):
+    def test_cluster_by_auth_requirement(
+        self, result_organizer, enhanced_results
+    ):
         """Test clustering results by authentication requirements."""
         organization = result_organizer.organize_results(enhanced_results)
 
@@ -380,23 +445,35 @@ class TestMetadataEnhancer:
         return MetadataEnhancer(search_config)
 
     @pytest.mark.asyncio
-    async def test_enhance_with_metadata(self, metadata_enhancer, sample_raw_results):
+    async def test_enhance_with_metadata(
+        self, metadata_enhancer, sample_raw_results
+    ):
         """Test basic metadata enhancement."""
-        enhanced = await metadata_enhancer.enhance_with_metadata(sample_raw_results[:2])
+        enhanced = await metadata_enhancer.enhance_with_metadata(
+            sample_raw_results[:2]
+        )
 
         assert len(enhanced) == 2
-        assert all(isinstance(result, EnhancedSearchResult) for result in enhanced)
+        assert all(
+            isinstance(result, EnhancedSearchResult) for result in enhanced
+        )
         assert all(result.parameter_summary is not None for result in enhanced)
-        assert all(result.authentication_info is not None for result in enhanced)
+        assert all(
+            result.authentication_info is not None for result in enhanced
+        )
         assert all(result.response_info is not None for result in enhanced)
 
     @pytest.mark.asyncio
     async def test_parameter_analysis(self, metadata_enhancer):
         """Test parameter analysis functionality."""
         # Test string parameters
-        param_summary = metadata_enhancer._analyze_parameters("email,password,name")
+        param_summary = metadata_enhancer._analyze_parameters(
+            "email,password,name"
+        )
         assert param_summary.total_count == 3
-        assert param_summary.required_count == 3  # Assumes all required for string format
+        assert (
+            param_summary.required_count == 3
+        )  # Assumes all required for string format
 
         # Test empty parameters
         param_summary = metadata_enhancer._analyze_parameters("")
@@ -406,7 +483,9 @@ class TestMetadataEnhancer:
     async def test_authentication_info_extraction(self, metadata_enhancer):
         """Test authentication information extraction."""
         # Test bearer authentication
-        auth_info = metadata_enhancer._extract_authentication_info({"bearer": []})
+        auth_info = metadata_enhancer._extract_authentication_info(
+            {"bearer": []}
+        )
         assert auth_info.required == True
         assert AuthenticationType.BEARER in auth_info.schemes
 
@@ -420,7 +499,7 @@ class TestMetadataEnhancer:
         """Test response characteristics analysis."""
         responses = {
             "200": {"content": {"application/json": {}}},
-            "400": {"content": {"application/json": {}}}
+            "400": {"content": {"application/json": {}}},
         }
         response_info = metadata_enhancer._analyze_responses(responses)
 
@@ -433,42 +512,76 @@ class TestMetadataEnhancer:
     async def test_complexity_determination(self, metadata_enhancer):
         """Test endpoint complexity determination."""
         # Simple endpoint
-        simple_params = ParameterSummary(2, 1, 1, {"string": 2}, False, False, ["id", "name"])
-        simple_response = ResponseInfo([200], ["application/json"], True, False, ComplexityLevel.SIMPLE, ["200"])
-        complexity = metadata_enhancer._determine_complexity(simple_params, simple_response)
+        simple_params = ParameterSummary(
+            2, 1, 1, {"string": 2}, False, False, ["id", "name"]
+        )
+        simple_response = ResponseInfo(
+            [200],
+            ["application/json"],
+            True,
+            False,
+            ComplexityLevel.SIMPLE,
+            ["200"],
+        )
+        complexity = metadata_enhancer._determine_complexity(
+            simple_params, simple_response
+        )
         assert complexity == ComplexityLevel.SIMPLE
 
         # Complex endpoint
-        complex_params = ParameterSummary(10, 8, 2, {"string": 6, "object": 4}, True, True, [])
-        complex_response = ResponseInfo([200, 201, 400, 401, 500], ["application/json", "application/xml"], True, False, ComplexityLevel.COMPLEX, [])
-        complexity = metadata_enhancer._determine_complexity(complex_params, complex_response)
+        complex_params = ParameterSummary(
+            10, 8, 2, {"string": 6, "object": 4}, True, True, []
+        )
+        complex_response = ResponseInfo(
+            [200, 201, 400, 401, 500],
+            ["application/json", "application/xml"],
+            True,
+            False,
+            ComplexityLevel.COMPLEX,
+            [],
+        )
+        complexity = metadata_enhancer._determine_complexity(
+            complex_params, complex_response
+        )
         assert complexity == ComplexityLevel.COMPLEX
 
     @pytest.mark.asyncio
     async def test_operation_type_determination(self, metadata_enhancer):
         """Test operation type determination from method and path."""
         # Test CREATE operation
-        op_type = metadata_enhancer._determine_operation_type("POST", "/api/v1/users")
+        op_type = metadata_enhancer._determine_operation_type(
+            "POST", "/api/v1/users"
+        )
         assert op_type == OperationType.CREATE
 
         # Test READ operation
-        op_type = metadata_enhancer._determine_operation_type("GET", "/api/v1/users/{id}")
+        op_type = metadata_enhancer._determine_operation_type(
+            "GET", "/api/v1/users/{id}"
+        )
         assert op_type == OperationType.READ
 
         # Test LIST operation
-        op_type = metadata_enhancer._determine_operation_type("GET", "/api/v1/users")
+        op_type = metadata_enhancer._determine_operation_type(
+            "GET", "/api/v1/users"
+        )
         assert op_type == OperationType.LIST
 
         # Test UPDATE operation
-        op_type = metadata_enhancer._determine_operation_type("PUT", "/api/v1/users/{id}")
+        op_type = metadata_enhancer._determine_operation_type(
+            "PUT", "/api/v1/users/{id}"
+        )
         assert op_type == OperationType.UPDATE
 
         # Test DELETE operation
-        op_type = metadata_enhancer._determine_operation_type("DELETE", "/api/v1/users/{id}")
+        op_type = metadata_enhancer._determine_operation_type(
+            "DELETE", "/api/v1/users/{id}"
+        )
         assert op_type == OperationType.DELETE
 
         # Test UPLOAD operation
-        op_type = metadata_enhancer._determine_operation_type("POST", "/api/v1/upload")
+        op_type = metadata_enhancer._determine_operation_type(
+            "POST", "/api/v1/upload"
+        )
         assert op_type == OperationType.UPLOAD
 
     @pytest.mark.asyncio
@@ -476,7 +589,9 @@ class TestMetadataEnhancer:
         """Test graceful error handling with fallback results."""
         # Test with malformed data
         malformed_results = [{"invalid": "data"}]
-        enhanced = await metadata_enhancer.enhance_with_metadata(malformed_results)
+        enhanced = await metadata_enhancer.enhance_with_metadata(
+            malformed_results
+        )
 
         assert len(enhanced) == 1
         assert isinstance(enhanced[0], EnhancedSearchResult)
@@ -494,9 +609,15 @@ class TestResultCache:
     @pytest.mark.asyncio
     async def test_cache_key_generation(self, result_cache):
         """Test cache key generation."""
-        key1 = result_cache.get_cache_key("query", {"filter": "value"}, {"page": 1})
-        key2 = result_cache.get_cache_key("query", {"filter": "value"}, {"page": 1})
-        key3 = result_cache.get_cache_key("different", {"filter": "value"}, {"page": 1})
+        key1 = result_cache.get_cache_key(
+            "query", {"filter": "value"}, {"page": 1}
+        )
+        key2 = result_cache.get_cache_key(
+            "query", {"filter": "value"}, {"page": 1}
+        )
+        key3 = result_cache.get_cache_key(
+            "different", {"filter": "value"}, {"page": 1}
+        )
 
         assert key1 == key2  # Same inputs should generate same key
         assert key1 != key3  # Different inputs should generate different keys
@@ -577,7 +698,9 @@ class TestResultProcessor:
         return ResultProcessor(search_config)
 
     @pytest.mark.asyncio
-    async def test_complete_processing_pipeline(self, result_processor, sample_raw_results):
+    async def test_complete_processing_pipeline(
+        self, result_processor, sample_raw_results
+    ):
         """Test the complete result processing pipeline."""
         filters = {"methods": ["GET", "POST"]}
         pagination = {"page": 1, "per_page": 3}
@@ -599,7 +722,9 @@ class TestResultProcessor:
         assert processed["pagination"]["per_page"] == 3
 
     @pytest.mark.asyncio
-    async def test_caching_integration(self, result_processor, sample_raw_results):
+    async def test_caching_integration(
+        self, result_processor, sample_raw_results
+    ):
         """Test caching integration in processing pipeline."""
         filters = {"methods": ["GET"]}
         pagination = {"page": 1, "per_page": 10}
@@ -645,7 +770,7 @@ class TestResultProcessor:
                 "deprecated": False,
                 "parameters": "id",
                 "security": {},
-                "responses": {"200": {"content": {"application/json": {}}}}
+                "responses": {"200": {"content": {"application/json": {}}}},
             }
             large_results.append(result)
 
@@ -671,7 +796,9 @@ class TestResultProcessor:
         assert processed["pagination"]["has_previous"] == True
 
     @pytest.mark.asyncio
-    async def test_performance_requirements(self, result_processor, sample_raw_results):
+    async def test_performance_requirements(
+        self, result_processor, sample_raw_results
+    ):
         """Test that processing meets <200ms performance requirement."""
         start_time = time.time()
 
@@ -701,19 +828,28 @@ class TestResultProcessor:
         assert "error" in processed or len(processed["results"]) >= 0
 
     @pytest.mark.asyncio
-    async def test_filter_combinations(self, result_processor, sample_raw_results):
+    async def test_filter_combinations(
+        self, result_processor, sample_raw_results
+    ):
         """Test various filter combinations."""
         test_cases = [
             {"methods": ["GET"]},
             {"tags": ["users"]},
             {"authentication": {"required": True}},
             {"include_deprecated": False},
-            {"methods": ["POST"], "tags": ["users"], "include_deprecated": False}
+            {
+                "methods": ["POST"],
+                "tags": ["users"],
+                "include_deprecated": False,
+            },
         ]
 
         for filters in test_cases:
             processed = await result_processor.process_search_results(
-                sample_raw_results, "test", filters, {"page": 1, "per_page": 10}
+                sample_raw_results,
+                "test",
+                filters,
+                {"page": 1, "per_page": 10},
             )
 
             assert "results" in processed
@@ -721,7 +857,9 @@ class TestResultProcessor:
             assert isinstance(processed["summary"]["filtered_results"], int)
 
     @pytest.mark.asyncio
-    async def test_organization_completeness(self, result_processor, sample_raw_results):
+    async def test_organization_completeness(
+        self, result_processor, sample_raw_results
+    ):
         """Test that result organization includes all expected categories."""
         processed = await result_processor.process_search_results(
             sample_raw_results, "test", {}, {"page": 1, "per_page": 10}
@@ -729,8 +867,12 @@ class TestResultProcessor:
 
         organization = processed["organization"]
         expected_categories = [
-            "by_tags", "by_resource", "by_complexity",
-            "by_method", "by_operation_type", "by_auth_requirement"
+            "by_tags",
+            "by_resource",
+            "by_complexity",
+            "by_method",
+            "by_operation_type",
+            "by_auth_requirement",
         ]
 
         for category in expected_categories:
@@ -738,7 +880,9 @@ class TestResultProcessor:
             assert isinstance(organization[category], dict)
 
     @pytest.mark.asyncio
-    async def test_metadata_accuracy(self, result_processor, sample_raw_results):
+    async def test_metadata_accuracy(
+        self, result_processor, sample_raw_results
+    ):
         """Test accuracy of enhanced metadata."""
         processed = await result_processor.process_search_results(
             sample_raw_results, "test", {}, {"page": 1, "per_page": 10}
@@ -759,4 +903,8 @@ class TestResultProcessor:
 
             # Verify data types
             assert isinstance(result["relevance_score"], (int, float))
-            assert result["complexity_level"] in ["simple", "moderate", "complex"]
+            assert result["complexity_level"] in [
+                "simple",
+                "moderate",
+                "complex",
+            ]

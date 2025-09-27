@@ -1,20 +1,27 @@
 """Unit tests for pipeline components."""
 
-import pytest
 import asyncio
-from unittest.mock import Mock, AsyncMock, patch
 from dataclasses import dataclass
-from typing import Dict, Any, List
+from typing import Any, Dict, List
+from unittest.mock import AsyncMock, Mock, patch
+
+import pytest
 
 from swagger_mcp_server.pipeline import (
-    ProcessingStage, PipelineContext, StageResult, ProcessingMetrics,
-    ProcessingResult, BatchProcessingResult, SwaggerProcessingPipeline
+    BatchProcessingResult,
+    PipelineContext,
+    ProcessingMetrics,
+    ProcessingResult,
+    ProcessingStage,
+    StageResult,
+    SwaggerProcessingPipeline,
 )
 
 
 @dataclass
 class MockStageResult:
     """Mock stage result for testing."""
+
     success: bool
     data: Any = None
     errors: List[str] = None
@@ -30,14 +37,18 @@ class MockStageResult:
 class MockStage(ProcessingStage):
     """Mock processing stage for testing."""
 
-    def __init__(self, name: str, should_succeed: bool = True, result_data: Any = None):
+    def __init__(
+        self, name: str, should_succeed: bool = True, result_data: Any = None
+    ):
         super().__init__(name)
         self.should_succeed = should_succeed
         self.result_data = result_data
         self.execute_called = False
         self.rollback_called = False
 
-    async def execute(self, input_data: Any, context: PipelineContext) -> StageResult:
+    async def execute(
+        self, input_data: Any, context: PipelineContext
+    ) -> StageResult:
         """Mock execute method."""
         self.execute_called = True
 
@@ -45,13 +56,13 @@ class MockStage(ProcessingStage):
             return StageResult(
                 success=True,
                 data=self.result_data or f"{self.name}_output",
-                stage_name=self.name
+                stage_name=self.name,
             )
         else:
             return StageResult(
                 success=False,
                 stage_name=self.name,
-                errors=[f"{self.name} failed"]
+                errors=[f"{self.name} failed"],
             )
 
     async def rollback(self, context: PipelineContext) -> None:
@@ -89,7 +100,7 @@ class TestPipelineComponents:
             data="test_data",
             stage_name="test_stage",
             errors=["error1"],
-            warnings=["warning1"]
+            warnings=["warning1"],
         )
 
         assert result.success is True
@@ -102,17 +113,25 @@ class TestPipelineComponents:
     async def test_successful_pipeline_execution(self):
         """Test successful pipeline execution with mock stages."""
         # Create mock stages
-        stage1 = MockStage("stage1", should_succeed=True, result_data="stage1_output")
-        stage2 = MockStage("stage2", should_succeed=True, result_data="stage2_output")
-        stage3 = MockStage("stage3", should_succeed=True, result_data="final_output")
+        stage1 = MockStage(
+            "stage1", should_succeed=True, result_data="stage1_output"
+        )
+        stage2 = MockStage(
+            "stage2", should_succeed=True, result_data="stage2_output"
+        )
+        stage3 = MockStage(
+            "stage3", should_succeed=True, result_data="final_output"
+        )
 
         # Create pipeline with mock stages
-        with patch('swagger_mcp_server.pipeline.get_db_manager'):
+        with patch("swagger_mcp_server.pipeline.get_db_manager"):
             pipeline = SwaggerProcessingPipeline()
             pipeline.stages = [stage1, stage2, stage3]
 
             # Mock the file hash calculation
-            with patch.object(pipeline, '_calculate_file_hash', return_value="mock_hash"):
+            with patch.object(
+                pipeline, "_calculate_file_hash", return_value="mock_hash"
+            ):
                 result = await pipeline.process_file("test_file.json")
 
             # Verify all stages were executed
@@ -138,12 +157,14 @@ class TestPipelineComponents:
         stage3 = MockStage("stage3", should_succeed=True)
 
         # Create pipeline with mock stages
-        with patch('swagger_mcp_server.pipeline.get_db_manager'):
+        with patch("swagger_mcp_server.pipeline.get_db_manager"):
             pipeline = SwaggerProcessingPipeline()
             pipeline.stages = [stage1, stage2, stage3]
 
             # Mock the file hash calculation
-            with patch.object(pipeline, '_calculate_file_hash', return_value="mock_hash"):
+            with patch.object(
+                pipeline, "_calculate_file_hash", return_value="mock_hash"
+            ):
                 result = await pipeline.process_file("test_file.json")
 
             # Verify execution pattern
@@ -166,20 +187,22 @@ class TestPipelineComponents:
         # Create a successful stage
         mock_stage = MockStage("mock_stage", should_succeed=True)
 
-        with patch('swagger_mcp_server.pipeline.get_db_manager'):
+        with patch("swagger_mcp_server.pipeline.get_db_manager"):
             pipeline = SwaggerProcessingPipeline()
             pipeline.stages = [mock_stage]
 
             # Mock individual file processing
             async def mock_process_file(file_path):
                 return ProcessingResult(
-                    success=True,
-                    file_path=file_path,
-                    api_id=1
+                    success=True, file_path=file_path, api_id=1
                 )
 
-            with patch.object(pipeline, 'process_file', side_effect=mock_process_file):
-                result = await pipeline.process_batch(["file1.json", "file2.json"])
+            with patch.object(
+                pipeline, "process_file", side_effect=mock_process_file
+            ):
+                result = await pipeline.process_batch(
+                    ["file1.json", "file2.json"]
+                )
 
             assert result.total_files == 2
             assert result.successful_files == 2
@@ -189,7 +212,7 @@ class TestPipelineComponents:
     @pytest.mark.asyncio
     async def test_batch_processing_with_failures(self):
         """Test batch processing with some file failures."""
-        with patch('swagger_mcp_server.pipeline.get_db_manager'):
+        with patch("swagger_mcp_server.pipeline.get_db_manager"):
             pipeline = SwaggerProcessingPipeline()
 
             # Mock individual file processing with mixed results
@@ -198,16 +221,18 @@ class TestPipelineComponents:
                     return ProcessingResult(
                         success=False,
                         file_path=file_path,
-                        errors=["Mock failure"]
+                        errors=["Mock failure"],
                     )
                 return ProcessingResult(
-                    success=True,
-                    file_path=file_path,
-                    api_id=1
+                    success=True, file_path=file_path, api_id=1
                 )
 
-            with patch.object(pipeline, 'process_file', side_effect=mock_process_file):
-                result = await pipeline.process_batch(["success.json", "fail.json"])
+            with patch.object(
+                pipeline, "process_file", side_effect=mock_process_file
+            ):
+                result = await pipeline.process_batch(
+                    ["success.json", "fail.json"]
+                )
 
             assert result.total_files == 2
             assert result.successful_files == 1
@@ -216,7 +241,7 @@ class TestPipelineComponents:
     @pytest.mark.asyncio
     async def test_integrity_validation(self):
         """Test data integrity validation."""
-        with patch('swagger_mcp_server.pipeline.get_db_manager'):
+        with patch("swagger_mcp_server.pipeline.get_db_manager"):
             pipeline = SwaggerProcessingPipeline()
 
             # Test integrity validation
@@ -239,7 +264,7 @@ class TestPipelineComponents:
             file_path="test.json",
             metrics=metrics,
             errors=[],
-            warnings=["test warning"]
+            warnings=["test warning"],
         )
 
         assert result.success is True
@@ -252,14 +277,16 @@ class TestPipelineComponents:
         """Test BatchProcessingResult creation and aggregation."""
         individual_results = [
             ProcessingResult(success=True, file_path="file1.json", api_id=1),
-            ProcessingResult(success=False, file_path="file2.json", errors=["error"])
+            ProcessingResult(
+                success=False, file_path="file2.json", errors=["error"]
+            ),
         ]
 
         batch_result = BatchProcessingResult(
             total_files=2,
             successful_files=1,
             failed_files=1,
-            results=individual_results
+            results=individual_results,
         )
 
         assert batch_result.total_files == 2
@@ -274,10 +301,12 @@ class TestPipelineEdgeCases:
     @pytest.mark.asyncio
     async def test_empty_file_path(self):
         """Test pipeline with empty file path."""
-        with patch('swagger_mcp_server.pipeline.get_db_manager'):
+        with patch("swagger_mcp_server.pipeline.get_db_manager"):
             pipeline = SwaggerProcessingPipeline()
 
-            with patch.object(pipeline, '_calculate_file_hash', side_effect=FileNotFoundError):
+            with patch.object(
+                pipeline, "_calculate_file_hash", side_effect=FileNotFoundError
+            ):
                 result = await pipeline.process_file("")
 
             assert result.success is False
@@ -286,7 +315,7 @@ class TestPipelineEdgeCases:
     @pytest.mark.asyncio
     async def test_batch_processing_empty_list(self):
         """Test batch processing with empty file list."""
-        with patch('swagger_mcp_server.pipeline.get_db_manager'):
+        with patch("swagger_mcp_server.pipeline.get_db_manager"):
             pipeline = SwaggerProcessingPipeline()
 
             result = await pipeline.process_batch([])
@@ -298,6 +327,7 @@ class TestPipelineEdgeCases:
     @pytest.mark.asyncio
     async def test_pipeline_with_exception_in_stage(self):
         """Test pipeline handling of unexpected exceptions in stages."""
+
         class ExceptionStage(ProcessingStage):
             def __init__(self):
                 super().__init__("exception_stage")
@@ -308,11 +338,13 @@ class TestPipelineEdgeCases:
             async def rollback(self, context):
                 pass
 
-        with patch('swagger_mcp_server.pipeline.get_db_manager'):
+        with patch("swagger_mcp_server.pipeline.get_db_manager"):
             pipeline = SwaggerProcessingPipeline()
             pipeline.stages = [ExceptionStage()]
 
-            with patch.object(pipeline, '_calculate_file_hash', return_value="hash"):
+            with patch.object(
+                pipeline, "_calculate_file_hash", return_value="hash"
+            ):
                 result = await pipeline.process_file("test.json")
 
             assert result.success is False
@@ -322,4 +354,5 @@ class TestPipelineEdgeCases:
 if __name__ == "__main__":
     # Simple test runner for development
     import sys
+
     pytest.main([__file__] + sys.argv[1:])

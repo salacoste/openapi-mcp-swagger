@@ -3,15 +3,17 @@
 Implements Story 2.5 error handling and resilience requirements.
 """
 
-from typing import Dict, Any, Optional, List
-import time
 import logging
+import time
+from typing import Any, Dict, List, Optional
 
 
 class MCPServerError(Exception):
     """Base exception for MCP server errors with JSON-RPC 2.0 compliance."""
 
-    def __init__(self, code: int, message: str, data: Optional[Dict[str, Any]] = None):
+    def __init__(
+        self, code: int, message: str, data: Optional[Dict[str, Any]] = None
+    ):
         """Initialize MCP server error.
 
         Args:
@@ -27,10 +29,7 @@ class MCPServerError(Exception):
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert error to JSON-RPC 2.0 error response format."""
-        error_dict = {
-            "code": self.code,
-            "message": self.message
-        }
+        error_dict = {"code": self.code, "message": self.message}
         if self.data:
             error_dict["data"] = self.data
         return error_dict
@@ -39,7 +38,13 @@ class MCPServerError(Exception):
 class ValidationError(MCPServerError):
     """Parameter validation error (-32602 Invalid params)."""
 
-    def __init__(self, parameter: str, message: str, value: Any = None, suggestions: Optional[List[str]] = None):
+    def __init__(
+        self,
+        parameter: str,
+        message: str,
+        value: Any = None,
+        suggestions: Optional[List[str]] = None,
+    ):
         """Initialize validation error.
 
         Args:
@@ -48,10 +53,7 @@ class ValidationError(MCPServerError):
             value: The invalid value that caused the error
             suggestions: List of suggested valid values
         """
-        data = {
-            "parameter": parameter,
-            "error_type": "validation_error"
-        }
+        data = {"parameter": parameter, "error_type": "validation_error"}
         if value is not None:
             data["value"] = str(value)
         if suggestions:
@@ -60,14 +62,18 @@ class ValidationError(MCPServerError):
         super().__init__(
             code=-32602,
             message=f"Invalid parameter '{parameter}': {message}",
-            data=data
+            data=data,
         )
 
 
 class DatabaseConnectionError(MCPServerError):
     """Database connection failure (-32603 Internal error)."""
 
-    def __init__(self, message: str = "Database connection failed", operation: str = "unknown"):
+    def __init__(
+        self,
+        message: str = "Database connection failed",
+        operation: str = "unknown",
+    ):
         """Initialize database connection error.
 
         Args:
@@ -80,8 +86,8 @@ class DatabaseConnectionError(MCPServerError):
             data={
                 "error_type": "database_error",
                 "operation": operation,
-                "recoverable": True
-            }
+                "recoverable": True,
+            },
         )
 
 
@@ -102,15 +108,20 @@ class DatabaseTimeoutError(MCPServerError):
                 "error_type": "timeout_error",
                 "operation": operation,
                 "timeout_seconds": timeout_seconds,
-                "recoverable": True
-            }
+                "recoverable": True,
+            },
         )
 
 
 class ResourceNotFoundError(MCPServerError):
     """Resource not found error (custom code -1001)."""
 
-    def __init__(self, resource_type: str, identifier: str, suggestions: Optional[List[str]] = None):
+    def __init__(
+        self,
+        resource_type: str,
+        identifier: str,
+        suggestions: Optional[List[str]] = None,
+    ):
         """Initialize resource not found error.
 
         Args:
@@ -121,7 +132,7 @@ class ResourceNotFoundError(MCPServerError):
         data = {
             "error_type": "not_found_error",
             "resource_type": resource_type,
-            "identifier": identifier
+            "identifier": identifier,
         }
         if suggestions:
             data["suggestions"] = suggestions
@@ -129,7 +140,7 @@ class ResourceNotFoundError(MCPServerError):
         super().__init__(
             code=-1001,
             message=f"{resource_type.title()} '{identifier}' not found",
-            data=data
+            data=data,
         )
 
 
@@ -152,15 +163,20 @@ class ResourceExhaustedError(MCPServerError):
                 "resource_type": resource_type,
                 "current_usage": current_usage,
                 "limit": limit,
-                "recoverable": True
-            }
+                "recoverable": True,
+            },
         )
 
 
 class ServiceUnavailableError(MCPServerError):
     """Service temporarily unavailable (-32603 Internal error)."""
 
-    def __init__(self, service: str, reason: str, retry_after_seconds: Optional[int] = None):
+    def __init__(
+        self,
+        service: str,
+        reason: str,
+        retry_after_seconds: Optional[int] = None,
+    ):
         """Initialize service unavailable error.
 
         Args:
@@ -172,7 +188,7 @@ class ServiceUnavailableError(MCPServerError):
             "error_type": "service_unavailable",
             "service": service,
             "reason": reason,
-            "recoverable": True
+            "recoverable": True,
         }
         if retry_after_seconds:
             data["retry_after_seconds"] = retry_after_seconds
@@ -180,7 +196,7 @@ class ServiceUnavailableError(MCPServerError):
         super().__init__(
             code=-32603,
             message=f"Service '{service}' temporarily unavailable: {reason}",
-            data=data
+            data=data,
         )
 
 
@@ -203,15 +219,20 @@ class CodeGenerationError(MCPServerError):
                 "format": format_type,
                 "endpoint": endpoint,
                 "reason": reason,
-                "recoverable": True
-            }
+                "recoverable": True,
+            },
         )
 
 
 class SchemaResolutionError(MCPServerError):
     """Schema dependency resolution error (custom code -1003)."""
 
-    def __init__(self, component_name: str, reason: str, circular_refs: Optional[List[str]] = None):
+    def __init__(
+        self,
+        component_name: str,
+        reason: str,
+        circular_refs: Optional[List[str]] = None,
+    ):
         """Initialize schema resolution error.
 
         Args:
@@ -222,7 +243,7 @@ class SchemaResolutionError(MCPServerError):
         data = {
             "error_type": "schema_resolution_error",
             "component": component_name,
-            "reason": reason
+            "reason": reason,
         }
         if circular_refs:
             data["circular_references"] = circular_refs
@@ -230,7 +251,7 @@ class SchemaResolutionError(MCPServerError):
         super().__init__(
             code=-1003,
             message=f"Schema resolution failed for '{component_name}': {reason}",
-            data=data
+            data=data,
         )
 
 
@@ -249,7 +270,7 @@ class ErrorLogger:
         self,
         error: MCPServerError,
         context: Optional[Dict[str, Any]] = None,
-        request_id: Optional[str] = None
+        request_id: Optional[str] = None,
     ) -> None:
         """Log MCP server error with structured context.
 
@@ -262,7 +283,7 @@ class ErrorLogger:
             "error_code": error.code,
             "error_message": error.message,
             "error_type": error.data.get("error_type", "unknown"),
-            "timestamp": error.timestamp
+            "timestamp": error.timestamp,
         }
 
         if request_id:
@@ -287,7 +308,7 @@ class ErrorLogger:
         operation: str,
         error: Exception,
         context: Optional[Dict[str, Any]] = None,
-        request_id: Optional[str] = None
+        request_id: Optional[str] = None,
     ) -> None:
         """Log general operation error.
 
@@ -300,7 +321,7 @@ class ErrorLogger:
         log_data = {
             "operation": operation,
             "error_message": str(error),
-            "error_type": type(error).__name__
+            "error_type": type(error).__name__,
         }
 
         if request_id:
@@ -312,7 +333,9 @@ class ErrorLogger:
         self.logger.error("Operation failed", extra=log_data, exc_info=True)
 
 
-def create_mcp_error_response(error: MCPServerError, request_id: Optional[str] = None) -> Dict[str, Any]:
+def create_mcp_error_response(
+    error: MCPServerError, request_id: Optional[str] = None
+) -> Dict[str, Any]:
     """Create MCP protocol-compliant error response.
 
     Args:
@@ -322,10 +345,7 @@ def create_mcp_error_response(error: MCPServerError, request_id: Optional[str] =
     Returns:
         JSON-RPC 2.0 error response dictionary
     """
-    response = {
-        "jsonrpc": "2.0",
-        "error": error.to_dict()
-    }
+    response = {"jsonrpc": "2.0", "error": error.to_dict()}
 
     if request_id is not None:
         response["id"] = request_id
@@ -343,8 +363,15 @@ def sanitize_error_data(data: Dict[str, Any]) -> Dict[str, Any]:
         Sanitized error data safe for client consumption
     """
     sensitive_keys = {
-        "password", "token", "secret", "key", "auth", "credential",
-        "database_url", "connection_string", "internal_id"
+        "password",
+        "token",
+        "secret",
+        "key",
+        "auth",
+        "credential",
+        "database_url",
+        "connection_string",
+        "internal_id",
     }
 
     sanitized = {}

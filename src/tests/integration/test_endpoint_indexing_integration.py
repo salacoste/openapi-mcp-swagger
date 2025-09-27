@@ -4,13 +4,18 @@ Tests the complete endpoint indexing pipeline with realistic API data
 to ensure the comprehensive indexing system works end-to-end.
 """
 
-import pytest
 import asyncio
 import json
-from typing import Dict, Any
+from typing import Any, Dict
 
-from swagger_mcp_server.search.endpoint_indexing import EndpointDocumentProcessor
-from swagger_mcp_server.search.index_schema import convert_endpoint_document_to_index_fields
+import pytest
+
+from swagger_mcp_server.search.endpoint_indexing import (
+    EndpointDocumentProcessor,
+)
+from swagger_mcp_server.search.index_schema import (
+    convert_endpoint_document_to_index_fields,
+)
 
 
 class TestEndpointIndexingIntegration:
@@ -40,7 +45,7 @@ class TestEndpointIndexingIntegration:
                     "required": True,
                     "description": "Unique identifier for the product",
                     "schema": {"type": "integer", "format": "int64"},
-                    "example": 123456
+                    "example": 123456,
                 },
                 {
                     "name": "include",
@@ -49,25 +54,33 @@ class TestEndpointIndexingIntegration:
                     "description": "Comma-separated list of additional data to include",
                     "schema": {
                         "type": "string",
-                        "enum": ["pricing", "inventory", "specifications", "reviews"]
+                        "enum": [
+                            "pricing",
+                            "inventory",
+                            "specifications",
+                            "reviews",
+                        ],
                     },
-                    "example": "pricing,inventory"
+                    "example": "pricing,inventory",
                 },
                 {
                     "name": "locale",
                     "in": "query",
                     "required": False,
                     "description": "Locale for localized content",
-                    "schema": {"type": "string", "pattern": "^[a-z]{2}-[A-Z]{2}$"},
-                    "example": "en-US"
+                    "schema": {
+                        "type": "string",
+                        "pattern": "^[a-z]{2}-[A-Z]{2}$",
+                    },
+                    "example": "en-US",
                 },
                 {
                     "name": "authorization",
                     "in": "header",
                     "required": True,
                     "description": "Bearer token for API access",
-                    "schema": {"type": "string"}
-                }
+                    "schema": {"type": "string"},
+                },
             ],
             "responses": {
                 "200": {
@@ -81,44 +94,47 @@ class TestEndpointIndexingIntegration:
                                 "id": 123456,
                                 "name": "Premium Wireless Headphones",
                                 "price": 299.99,
-                                "availability": "in_stock"
-                            }
+                                "availability": "in_stock",
+                            },
                         }
-                    }
+                    },
                 },
                 "404": {
                     "description": "Product not found",
                     "content": {
                         "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/Error"
-                            }
+                            "schema": {"$ref": "#/components/schemas/Error"}
                         }
-                    }
+                    },
                 },
                 "401": {
                     "description": "Unauthorized - invalid or missing authentication"
-                }
+                },
             },
             "security": [
                 {"bearerAuth": ["products:read"]},
-                {"apiKey": ["products:read"]}
+                {"apiKey": ["products:read"]},
             ],
             "requestBody": None,
             "externalDocs": {
                 "url": "https://docs.example.com/products/get-details"
-            }
+            },
         }
 
         # Process the endpoint
-        document = await self.processor.create_endpoint_document(complex_endpoint)
+        document = await self.processor.create_endpoint_document(
+            complex_endpoint
+        )
 
         # Verify core information
         assert document.endpoint_id == "get-product-by-id"
         assert document.endpoint_path == "/api/v2/products/{productId}/details"
         assert document.http_method == "GET"
         assert document.operation_summary == "Get product details by ID"
-        assert "Retrieve comprehensive product information" in document.operation_description
+        assert (
+            "Retrieve comprehensive product information"
+            in document.operation_description
+        )
 
         # Verify path processing
         assert "products" in document.path_segments
@@ -164,7 +180,10 @@ class TestEndpointIndexingIntegration:
         assert document.deprecated is False
         assert document.has_examples is True
         assert document.has_request_body is False
-        assert "https://docs.example.com/products/get-details" in document.external_docs
+        assert (
+            "https://docs.example.com/products/get-details"
+            in document.external_docs
+        )
 
         # Verify composite fields
         assert len(document.searchable_text) > 100  # Should be substantial
@@ -185,7 +204,10 @@ class TestEndpointIndexingIntegration:
         assert isinstance(index_fields["deprecated"], bool)
         assert isinstance(index_fields["has_request_body"], bool)
         assert isinstance(index_fields["has_examples"], bool)
-        assert "productId include locale authorization" == index_fields["parameter_names"]
+        assert (
+            "productId include locale authorization"
+            == index_fields["parameter_names"]
+        )
 
     @pytest.mark.asyncio
     async def test_minimal_endpoint_processing(self):
@@ -193,10 +215,12 @@ class TestEndpointIndexingIntegration:
         minimal_endpoint = {
             "id": "basic-health-check",
             "path": "/health",
-            "method": "GET"
+            "method": "GET",
         }
 
-        document = await self.processor.create_endpoint_document(minimal_endpoint)
+        document = await self.processor.create_endpoint_document(
+            minimal_endpoint
+        )
 
         # Verify basic information
         assert document.endpoint_id == "basic-health-check"
@@ -216,7 +240,10 @@ class TestEndpointIndexingIntegration:
         # Verify path processing still works
         assert document.path_segments == ["health"]
         assert document.resource_name == "health"
-        assert document.operation_type in ["read", "list"]  # Could be either for /health endpoint
+        assert document.operation_type in [
+            "read",
+            "list",
+        ]  # Could be either for /health endpoint
 
         # Verify it can be converted to index format
         index_fields = convert_endpoint_document_to_index_fields(document)
@@ -239,7 +266,7 @@ class TestEndpointIndexingIntegration:
                     "in": "header",
                     "required": True,
                     "description": "Content type header",
-                    "schema": {"type": "string"}
+                    "schema": {"type": "string"},
                 }
             ],
             "requestBody": {
@@ -253,32 +280,24 @@ class TestEndpointIndexingIntegration:
                         "example": {
                             "username": "john_doe",
                             "email": "john@example.com",
-                            "password": "secretpassword"
-                        }
+                            "password": "secretpassword",
+                        },
                     }
-                }
+                },
             },
             "responses": {
                 "201": {
                     "description": "User created successfully",
                     "content": {
                         "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/User"
-                            }
+                            "schema": {"$ref": "#/components/schemas/User"}
                         }
-                    }
+                    },
                 },
-                "400": {
-                    "description": "Invalid input data"
-                },
-                "409": {
-                    "description": "User already exists"
-                }
+                "400": {"description": "Invalid input data"},
+                "409": {"description": "User already exists"},
             },
-            "security": [
-                {"apiKey": []}
-            ]
+            "security": [{"apiKey": []}],
         }
 
         document = await self.processor.create_endpoint_document(post_endpoint)
@@ -322,7 +341,7 @@ class TestEndpointIndexingIntegration:
                         "in": "path",
                         "required": True,
                         "description": f"Resource ID for operation {i}",
-                        "schema": {"type": "integer"}
+                        "schema": {"type": "integer"},
                     }
                 ],
                 "responses": {
@@ -330,16 +349,19 @@ class TestEndpointIndexingIntegration:
                         "description": "Success response",
                         "content": {
                             "application/json": {
-                                "schema": {"$ref": f"#/components/schemas/Resource{i}"}
+                                "schema": {
+                                    "$ref": f"#/components/schemas/Resource{i}"
+                                }
                             }
-                        }
+                        },
                     }
-                }
+                },
             }
             endpoints.append(endpoint)
 
         # Process all endpoints and measure basic performance
         import time
+
         start_time = time.time()
 
         documents = []
@@ -352,7 +374,9 @@ class TestEndpointIndexingIntegration:
 
         # Basic performance validation
         assert len(documents) == 50
-        assert processing_time < 5.0  # Should process 50 endpoints in under 5 seconds
+        assert (
+            processing_time < 5.0
+        )  # Should process 50 endpoints in under 5 seconds
 
         # Verify all documents are valid
         for i, doc in enumerate(documents):
@@ -362,8 +386,14 @@ class TestEndpointIndexingIntegration:
             assert doc.resource_name == "resource"
 
         # Verify operation type classification
-        get_operations = [doc for doc in documents if doc.operation_type == "read"]
-        post_operations = [doc for doc in documents if doc.operation_type in ["create", "update"]]
+        get_operations = [
+            doc for doc in documents if doc.operation_type == "read"
+        ]
+        post_operations = [
+            doc
+            for doc in documents
+            if doc.operation_type in ["create", "update"]
+        ]
         assert len(get_operations) > 0
         assert len(post_operations) > 0
 
@@ -385,28 +415,26 @@ class TestEndpointIndexingIntegration:
                     "description": "A parameter with complex requirements",
                     "schema": {
                         "type": "object",
-                        "properties": {
-                            "nested": {"type": "string"}
-                        }
-                    }
-                }
+                        "properties": {"nested": {"type": "string"}},
+                    },
+                },
             ],
             "responses": {
                 "default": {
                     "description": "Default response",
-                    "content": {
-                        "text/plain": {"schema": {"type": "string"}}
-                    }
+                    "content": {"text/plain": {"schema": {"type": "string"}}},
                 }
             },
             "security": [
                 {},  # Empty security requirement
-                {"customAuth": ["read", "write"]}
-            ]
+                {"customAuth": ["read", "write"]},
+            ],
         }
 
         # Should not raise exceptions with malformed data
-        document = await self.processor.create_endpoint_document(edge_case_endpoint)
+        document = await self.processor.create_endpoint_document(
+            edge_case_endpoint
+        )
 
         # Verify basic processing still works
         assert document.endpoint_id == "edge-case-test"

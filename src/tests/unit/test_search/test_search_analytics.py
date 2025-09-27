@@ -4,38 +4,46 @@ Tests cover all components of the search analytics system including performance
 monitoring, analytics engine, index monitoring, and dashboard functionality.
 """
 
-import pytest
 import asyncio
-from unittest.mock import Mock, AsyncMock, patch, MagicMock
 from datetime import datetime, timedelta
-from typing import List, Dict, Any
+from typing import Any, Dict, List
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
-from swagger_mcp_server.search.performance_monitor import (
-    SearchPerformanceMonitor,
-    SearchAnalytics,
-    PerformanceAlert,
-    AlertLevel
+import pytest
+
+from swagger_mcp_server.config.settings import (
+    SearchConfig,
+    SearchPerformanceConfig,
+)
+from swagger_mcp_server.search.analytics_dashboard import (
+    SearchAnalyticsDashboard,
 )
 from swagger_mcp_server.search.analytics_engine import (
-    SearchAnalyticsEngine,
     QueryPattern,
-    UserSession,
     QueryPatternType,
-    UserBehaviorPattern
+    SearchAnalyticsEngine,
+    UserBehaviorPattern,
+    UserSession,
 )
 from swagger_mcp_server.search.index_monitor import (
-    IndexPerformanceMonitor,
     IndexMetrics,
-    IndexOptimizationEvent
+    IndexOptimizationEvent,
+    IndexPerformanceMonitor,
+)
+from swagger_mcp_server.search.monitoring_integration import (
+    SearchMonitoringIntegration,
+)
+from swagger_mcp_server.search.performance_monitor import (
+    AlertLevel,
+    PerformanceAlert,
+    SearchAnalytics,
+    SearchPerformanceMonitor,
 )
 from swagger_mcp_server.search.performance_tester import (
-    SearchPerformanceTester,
+    LoadTestConfiguration,
     PerformanceTestCase,
-    LoadTestConfiguration
+    SearchPerformanceTester,
 )
-from swagger_mcp_server.search.analytics_dashboard import SearchAnalyticsDashboard
-from swagger_mcp_server.search.monitoring_integration import SearchMonitoringIntegration
-from swagger_mcp_server.config.settings import SearchConfig, SearchPerformanceConfig
 
 
 @pytest.fixture
@@ -43,9 +51,7 @@ def search_config():
     """Create test search configuration."""
     return SearchConfig(
         performance=SearchPerformanceConfig(
-            max_search_results=100,
-            query_timeout=30.0,
-            enable_caching=True
+            max_search_results=100, query_timeout=30.0, enable_caching=True
         )
     )
 
@@ -71,7 +77,7 @@ def sample_analytics_data():
             performance_grade="good" if i < 10 else "poor",
             exceeded_threshold=i >= 15,
             cache_hit=i % 2 == 0,
-            concurrent_queries=min(i, 5)
+            concurrent_queries=min(i, 5),
         )
         analytics_data.append(analytics)
 
@@ -89,6 +95,7 @@ class TestSearchPerformanceMonitor:
     @pytest.mark.asyncio
     async def test_monitor_search_operation(self, performance_monitor):
         """Test monitoring of search operations."""
+
         # Mock search function
         async def mock_search_function(query, **kwargs):
             await asyncio.sleep(0.01)  # Simulate search time
@@ -96,9 +103,7 @@ class TestSearchPerformanceMonitor:
 
         # Monitor search operation
         result = await performance_monitor.monitor_search_operation(
-            mock_search_function,
-            query="test query",
-            search_type="endpoint"
+            mock_search_function, query="test query", search_type="endpoint"
         )
 
         # Verify result
@@ -114,7 +119,9 @@ class TestSearchPerformanceMonitor:
         assert analytics.total_response_time > 0
 
     @pytest.mark.asyncio
-    async def test_performance_summary_generation(self, performance_monitor, sample_analytics_data):
+    async def test_performance_summary_generation(
+        self, performance_monitor, sample_analytics_data
+    ):
         """Test performance summary generation."""
         # Add sample data
         for analytics in sample_analytics_data:
@@ -163,7 +170,7 @@ class TestSearchPerformanceMonitor:
             index_query_time=200.0,
             result_processing_time=100.0,
             result_count=5,
-            correlation_id="slow_test"
+            correlation_id="slow_test",
         )
 
         # Record analytics (should trigger alert)
@@ -210,7 +217,9 @@ class TestSearchAnalyticsEngine:
         return SearchAnalyticsEngine()
 
     @pytest.mark.asyncio
-    async def test_query_pattern_identification(self, analytics_engine, sample_analytics_data):
+    async def test_query_pattern_identification(
+        self, analytics_engine, sample_analytics_data
+    ):
         """Test query pattern identification."""
         # Add some duplicate queries for pattern detection
         duplicate_queries = []
@@ -225,14 +234,16 @@ class TestSearchAnalyticsEngine:
                 result_processing_time=20.0,
                 result_count=8,
                 correlation_id=f"dup_{i}",
-                timestamp=datetime.now() + timedelta(minutes=i)
+                timestamp=datetime.now() + timedelta(minutes=i),
             )
             duplicate_queries.append(analytics)
 
         all_data = sample_analytics_data + duplicate_queries
 
         # Analyze patterns
-        analysis_result = await analytics_engine.analyze_search_patterns(all_data)
+        analysis_result = await analytics_engine.analyze_search_patterns(
+            all_data
+        )
 
         # Verify pattern analysis
         assert "query_patterns" in analysis_result
@@ -250,7 +261,9 @@ class TestSearchAnalyticsEngine:
 
         assert auth_pattern is not None
         assert auth_pattern["frequency"] == 5
-        assert auth_pattern["pattern_type"] in [pt.value for pt in QueryPatternType]
+        assert auth_pattern["pattern_type"] in [
+            pt.value for pt in QueryPatternType
+        ]
 
     @pytest.mark.asyncio
     async def test_user_session_analysis(self, analytics_engine):
@@ -273,7 +286,7 @@ class TestSearchAnalyticsEngine:
                 correlation_id=f"session1_{i}",
                 user_session="session_1",
                 timestamp=base_time + timedelta(minutes=i * 2),
-                results_clicked=[f"result_{j}" for j in range(min(i + 1, 2))]
+                results_clicked=[f"result_{j}" for j in range(min(i + 1, 2))],
             )
             session_data.append(analytics)
 
@@ -282,7 +295,10 @@ class TestSearchAnalyticsEngine:
             analytics = SearchAnalytics(
                 query_text=f"different query {i}",  # Diverse queries
                 search_type="endpoint",
-                filters_applied={"http_method": ["GET"], "tag": f"tag_{i}"},  # Many filters
+                filters_applied={
+                    "http_method": ["GET"],
+                    "tag": f"tag_{i}",
+                },  # Many filters
                 query_processing_time=15.0,
                 total_response_time=120.0,
                 index_query_time=70.0,
@@ -290,7 +306,7 @@ class TestSearchAnalyticsEngine:
                 result_count=10,
                 correlation_id=f"session2_{i}",
                 user_session="session_2",
-                timestamp=base_time + timedelta(minutes=i * 3)
+                timestamp=base_time + timedelta(minutes=i * 3),
             )
             session_data.append(analytics)
 
@@ -311,16 +327,23 @@ class TestSearchAnalyticsEngine:
         assert session_2.behavior_pattern == UserBehaviorPattern.EXPLORER
 
     @pytest.mark.asyncio
-    async def test_search_effectiveness_calculation(self, analytics_engine, sample_analytics_data):
+    async def test_search_effectiveness_calculation(
+        self, analytics_engine, sample_analytics_data
+    ):
         """Test search effectiveness calculation."""
         # Add some interaction data
         for i, analytics in enumerate(sample_analytics_data):
             if i % 3 == 0:  # Some queries have clicks
-                analytics.results_clicked = [f"result_{j}" for j in range(min(analytics.result_count, 2))]
+                analytics.results_clicked = [
+                    f"result_{j}"
+                    for j in range(min(analytics.result_count, 2))
+                ]
             if i >= 15:  # Some queries are abandoned
                 analytics.query_abandoned = True
 
-        effectiveness = await analytics_engine._calculate_search_effectiveness(sample_analytics_data)
+        effectiveness = await analytics_engine._calculate_search_effectiveness(
+            sample_analytics_data
+        )
 
         # Verify effectiveness metrics
         assert 0 <= effectiveness.relevance_score <= 1
@@ -330,32 +353,48 @@ class TestSearchAnalyticsEngine:
         assert effectiveness.user_engagement >= 0
 
         # Check that effectiveness calculations make sense
-        assert effectiveness.query_success_rate > 0  # Some queries should succeed
-        assert effectiveness.abandonment_rate > 0  # Some queries are marked as abandoned
+        assert (
+            effectiveness.query_success_rate > 0
+        )  # Some queries should succeed
+        assert (
+            effectiveness.abandonment_rate > 0
+        )  # Some queries are marked as abandoned
 
     def test_query_normalization(self, analytics_engine):
         """Test query text normalization."""
         # Test basic normalization
-        normalized = analytics_engine._normalize_query_text("User Authentication System")
+        normalized = analytics_engine._normalize_query_text(
+            "User Authentication System"
+        )
         assert normalized == "user authentication system"
 
         # Test special character removal
-        normalized = analytics_engine._normalize_query_text("user@auth!system#")
+        normalized = analytics_engine._normalize_query_text(
+            "user@auth!system#"
+        )
         assert normalized == "user auth system"
 
         # Test multiple spaces
-        normalized = analytics_engine._normalize_query_text("user    auth   system")
+        normalized = analytics_engine._normalize_query_text(
+            "user    auth   system"
+        )
         assert normalized == "user auth system"
 
     def test_query_similarity(self, analytics_engine):
         """Test query similarity detection."""
         # Similar queries
-        assert analytics_engine._are_queries_similar("user auth", "user authentication")
+        assert analytics_engine._are_queries_similar(
+            "user auth", "user authentication"
+        )
         assert analytics_engine._are_queries_similar("get users", "users get")
 
         # Different queries
-        assert not analytics_engine._are_queries_similar("user auth", "product catalog")
-        assert not analytics_engine._are_queries_similar("authentication", "completely different")
+        assert not analytics_engine._are_queries_similar(
+            "user auth", "product catalog"
+        )
+        assert not analytics_engine._are_queries_similar(
+            "authentication", "completely different"
+        )
 
 
 class TestIndexPerformanceMonitor:
@@ -369,10 +408,14 @@ class TestIndexPerformanceMonitor:
     @pytest.mark.asyncio
     async def test_index_metrics_collection(self, index_monitor):
         """Test index metrics collection."""
-        with patch('os.path.exists', return_value=True), \
-             patch('os.walk', return_value=[('/tmp/test_index', [], ['index.db', 'segments.gen'])]), \
-             patch('os.path.getsize', side_effect=[1024*1024, 512*1024]):  # 1MB + 512KB
-
+        with patch("os.path.exists", return_value=True), patch(
+            "os.walk",
+            return_value=[
+                ("/tmp/test_index", [], ["index.db", "segments.gen"])
+            ],
+        ), patch(
+            "os.path.getsize", side_effect=[1024 * 1024, 512 * 1024]
+        ):  # 1MB + 512KB
             metrics = await index_monitor.collect_index_metrics()
 
             # Verify metrics structure
@@ -387,9 +430,11 @@ class TestIndexPerformanceMonitor:
     async def test_optimization_trigger(self, index_monitor):
         """Test optimization triggering logic."""
         # Create metrics with high fragmentation
-        with patch.object(index_monitor, '_calculate_fragmentation', return_value=0.35), \
-             patch.object(index_monitor, '_trigger_optimization') as mock_trigger:
-
+        with patch.object(
+            index_monitor, "_calculate_fragmentation", return_value=0.35
+        ), patch.object(
+            index_monitor, "_trigger_optimization"
+        ) as mock_trigger:
             metrics = await index_monitor.collect_index_metrics()
 
             # Optimization should be triggered due to high fragmentation
@@ -401,20 +446,20 @@ class TestIndexPerformanceMonitor:
         # Add some mock metrics to history
         for i in range(10):
             metrics = IndexMetrics(
-                index_size_bytes=1024*1024*(i+1),
-                index_size_mb=i+1,
-                document_count=1000*(i+1),
+                index_size_bytes=1024 * 1024 * (i + 1),
+                index_size_mb=i + 1,
+                document_count=1000 * (i + 1),
                 field_count=10,
-                query_time_ms=50 + i*5,
+                query_time_ms=50 + i * 5,
                 update_time_ms=10 + i,
                 optimization_time_ms=None,
-                fragmentation_ratio=0.1 + i*0.02,
-                cache_hit_rate=0.8 - i*0.01,
+                fragmentation_ratio=0.1 + i * 0.02,
+                cache_hit_rate=0.8 - i * 0.01,
                 disk_io_rate=100.0,
-                storage_utilization=0.5 + i*0.02,
-                memory_usage_mb=100 + i*10,
-                cpu_usage_percent=20 + i*2,
-                timestamp=datetime.now() - timedelta(minutes=10-i)
+                storage_utilization=0.5 + i * 0.02,
+                memory_usage_mb=100 + i * 10,
+                cpu_usage_percent=20 + i * 2,
+                timestamp=datetime.now() - timedelta(minutes=10 - i),
             )
             index_monitor.metrics_history.append(metrics)
 
@@ -439,9 +484,11 @@ class TestIndexPerformanceMonitor:
         base_time = datetime.now() - timedelta(days=7)
         for i in range(7):  # One week of data
             metrics = IndexMetrics(
-                index_size_bytes=(100 + i*10) * 1024 * 1024,  # 10MB growth per day
-                index_size_mb=100 + i*10,
-                document_count=10000 + i*1000,  # 1000 docs per day
+                index_size_bytes=(100 + i * 10)
+                * 1024
+                * 1024,  # 10MB growth per day
+                index_size_mb=100 + i * 10,
+                document_count=10000 + i * 1000,  # 1000 docs per day
                 field_count=10,
                 query_time_ms=50,
                 update_time_ms=10,
@@ -452,7 +499,7 @@ class TestIndexPerformanceMonitor:
                 storage_utilization=0.5,
                 memory_usage_mb=200,
                 cpu_usage_percent=30,
-                timestamp=base_time + timedelta(days=i)
+                timestamp=base_time + timedelta(days=i),
             )
             index_monitor.metrics_history.append(metrics)
 
@@ -471,10 +518,14 @@ class TestPerformanceTester:
     @pytest.fixture
     def performance_tester(self, search_config):
         """Create performance tester instance."""
+
         # Mock search function for testing
         async def mock_search(test_case):
             await asyncio.sleep(0.01)  # Simulate search time
-            return {"results": [{"id": f"result_{i}"} for i in range(5)], "total_results": 5}
+            return {
+                "results": [{"id": f"result_{i}"} for i in range(5)],
+                "total_results": 5,
+            }
 
         return SearchPerformanceTester(mock_search, search_config)
 
@@ -492,13 +543,19 @@ class TestPerformanceTester:
         assert validation_result["nfr1_threshold_ms"] == 200.0
 
         # Verify compliance status
-        assert validation_result["compliance_status"] in ["pass", "warning", "fail"]
+        assert validation_result["compliance_status"] in [
+            "pass",
+            "warning",
+            "fail",
+        ]
 
     @pytest.mark.asyncio
     async def test_load_testing(self, performance_tester):
         """Test load testing functionality."""
         # Use shorter duration for testing
-        with patch.object(performance_tester, '_execute_load_test') as mock_load_test:
+        with patch.object(
+            performance_tester, "_execute_load_test"
+        ) as mock_load_test:
             mock_result = Mock()
             mock_result.configuration.concurrent_users = 5
             mock_result.avg_response_time_ms = 75.0
@@ -519,12 +576,16 @@ class TestPerformanceTester:
     @pytest.mark.asyncio
     async def test_stress_testing(self, performance_tester):
         """Test stress testing functionality."""
-        with patch.object(performance_tester, '_execute_load_test') as mock_load_test:
+        with patch.object(
+            performance_tester, "_execute_load_test"
+        ) as mock_load_test:
             # Mock increasing degradation with load
             def side_effect(config):
                 result = Mock()
                 result.configuration = config
-                result.avg_response_time_ms = 50 + (config.concurrent_users * 5)
+                result.avg_response_time_ms = 50 + (
+                    config.concurrent_users * 5
+                )
                 result.failed_requests = max(0, config.concurrent_users - 10)
                 result.total_requests = config.concurrent_users * 10
                 return result
@@ -547,9 +608,9 @@ class TestPerformanceTester:
 
         # Verify test case structure
         for test_case in test_cases:
-            assert hasattr(test_case, 'test_id')
-            assert hasattr(test_case, 'query')
-            assert hasattr(test_case, 'expected_response_time_ms')
+            assert hasattr(test_case, "test_id")
+            assert hasattr(test_case, "query")
+            assert hasattr(test_case, "expected_response_time_ms")
             assert test_case.expected_response_time_ms > 0
 
         # Verify specific test cases exist
@@ -570,33 +631,56 @@ class TestAnalyticsDashboard:
         index_monitor = Mock(spec=IndexPerformanceMonitor)
 
         # Mock performance monitor
-        performance_monitor.get_performance_summary = AsyncMock(return_value={
-            "response_time_metrics": {"avg": 85.0, "p95": 150.0, "nfr1_compliance": 92.0},
-            "query_volume_metrics": {"total_queries": 1000, "avg_queries_per_hour": 42},
-            "current_metrics": {"active_queries": 3, "cache_hit_rate_hour": 0.75}
-        })
+        performance_monitor.get_performance_summary = AsyncMock(
+            return_value={
+                "response_time_metrics": {
+                    "avg": 85.0,
+                    "p95": 150.0,
+                    "nfr1_compliance": 92.0,
+                },
+                "query_volume_metrics": {
+                    "total_queries": 1000,
+                    "avg_queries_per_hour": 42,
+                },
+                "current_metrics": {
+                    "active_queries": 3,
+                    "cache_hit_rate_hour": 0.75,
+                },
+            }
+        )
         performance_monitor.get_active_alerts = Mock(return_value=[])
         performance_monitor.analytics_data = []
 
         # Mock analytics engine
-        analytics_engine.analyze_search_patterns = AsyncMock(return_value={
-            "query_patterns": [{"pattern_text": "user auth", "frequency": 10}],
-            "user_behavior": {"behavior_distribution": {"explorer": 5, "searcher": 3}},
-            "effectiveness_metrics": {"relevance_score": 0.85, "query_success_rate": 0.9},
-            "recommendations": []
-        })
+        analytics_engine.analyze_search_patterns = AsyncMock(
+            return_value={
+                "query_patterns": [
+                    {"pattern_text": "user auth", "frequency": 10}
+                ],
+                "user_behavior": {
+                    "behavior_distribution": {"explorer": 5, "searcher": 3}
+                },
+                "effectiveness_metrics": {
+                    "relevance_score": 0.85,
+                    "query_success_rate": 0.9,
+                },
+                "recommendations": [],
+            }
+        )
 
         # Mock index monitor
-        index_monitor.get_performance_summary = AsyncMock(return_value={
-            "health": {"health_score": 85, "health_status": "good"},
-            "index_size": {"current_size_mb": 256, "size_growth_mb": 12},
-            "optimization": {"last_optimization": None}
-        })
+        index_monitor.get_performance_summary = AsyncMock(
+            return_value={
+                "health": {"health_score": 85, "health_status": "good"},
+                "index_size": {"current_size_mb": 256, "size_growth_mb": 12},
+                "optimization": {"last_optimization": None},
+            }
+        )
 
         dashboard = SearchAnalyticsDashboard(
             performance_monitor=performance_monitor,
             analytics_engine=analytics_engine,
-            index_monitor=index_monitor
+            index_monitor=index_monitor,
         )
 
         return dashboard, performance_monitor, analytics_engine, index_monitor
@@ -673,11 +757,13 @@ class TestMonitoringIntegration:
         dashboard = Mock(spec=SearchAnalyticsDashboard)
         mcp_monitor = Mock()
 
-        search_monitor.get_performance_summary = AsyncMock(return_value={
-            "response_time_metrics": {"avg": 85.0, "p95": 150.0},
-            "query_volume_metrics": {"total_queries": 1000},
-            "current_metrics": {"active_queries": 3}
-        })
+        search_monitor.get_performance_summary = AsyncMock(
+            return_value={
+                "response_time_metrics": {"avg": 85.0, "p95": 150.0},
+                "query_volume_metrics": {"total_queries": 1000},
+                "current_metrics": {"active_queries": 3},
+            }
+        )
         search_monitor.add_alert_callback = Mock()
         search_monitor.remove_alert_callback = Mock()
 
@@ -689,7 +775,7 @@ class TestMonitoringIntegration:
         integration = SearchMonitoringIntegration(
             search_monitor=search_monitor,
             dashboard=dashboard,
-            mcp_monitor=mcp_monitor
+            mcp_monitor=mcp_monitor,
         )
 
         return integration, search_monitor, dashboard, mcp_monitor
@@ -718,11 +804,11 @@ class TestMonitoringIntegration:
 
         # Verify metric structure
         for metric in metrics:
-            assert hasattr(metric, 'metric_name')
-            assert hasattr(metric, 'metric_value')
-            assert hasattr(metric, 'metric_type')
-            assert hasattr(metric, 'timestamp')
-            assert hasattr(metric, 'tags')
+            assert hasattr(metric, "metric_name")
+            assert hasattr(metric, "metric_value")
+            assert hasattr(metric, "metric_type")
+            assert hasattr(metric, "timestamp")
+            assert hasattr(metric, "tags")
 
     @pytest.mark.asyncio
     async def test_alert_handling(self, integration_components):
@@ -736,7 +822,7 @@ class TestMonitoringIntegration:
             title="Test Alert",
             description="Test alert description",
             metric_value=150.0,
-            threshold=100.0
+            threshold=100.0,
         )
 
         # Handle alert
@@ -771,7 +857,12 @@ class TestMonitoringIntegration:
         assert "overall_status" in health
         assert "health_checks" in health
         assert "total_checks" in health
-        assert health["overall_status"] in ["healthy", "degraded", "unhealthy", "error"]
+        assert health["overall_status"] in [
+            "healthy",
+            "degraded",
+            "unhealthy",
+            "error",
+        ]
 
     @pytest.mark.asyncio
     async def test_monitoring_report_generation(self, integration_components):
@@ -798,7 +889,9 @@ class TestIntegrationScenarios:
     """Test end-to-end integration scenarios."""
 
     @pytest.mark.asyncio
-    async def test_complete_analytics_workflow(self, search_config, sample_analytics_data):
+    async def test_complete_analytics_workflow(
+        self, search_config, sample_analytics_data
+    ):
         """Test complete analytics workflow from data collection to dashboard."""
         # Create components
         performance_monitor = SearchPerformanceMonitor(search_config)
@@ -806,15 +899,17 @@ class TestIntegrationScenarios:
         index_monitor = IndexPerformanceMonitor("/tmp/test", search_config)
 
         # Mock index monitor methods
-        index_monitor.get_performance_summary = AsyncMock(return_value={
-            "health": {"health_score": 85},
-            "index_size": {"current_size_mb": 100}
-        })
+        index_monitor.get_performance_summary = AsyncMock(
+            return_value={
+                "health": {"health_score": 85},
+                "index_size": {"current_size_mb": 100},
+            }
+        )
 
         dashboard = SearchAnalyticsDashboard(
             performance_monitor=performance_monitor,
             analytics_engine=analytics_engine,
-            index_monitor=index_monitor
+            index_monitor=index_monitor,
         )
 
         # Add sample data
@@ -850,7 +945,7 @@ class TestIntegrationScenarios:
                 result_processing_time=response_time * 0.2,
                 result_count=5,
                 correlation_id=f"deg_{i}",
-                timestamp=base_time + timedelta(minutes=i)
+                timestamp=base_time + timedelta(minutes=i),
             )
             performance_monitor.analytics_data.append(analytics)
 
@@ -887,18 +982,21 @@ class TestIntegrationScenarios:
             index_query_time=300.0,
             result_processing_time=100.0,
             result_count=0,  # No results
-            correlation_id="critical_test"
+            correlation_id="critical_test",
         )
 
         # Process the analytics
         await performance_monitor._record_analytics(critical_analytics)
-        await performance_monitor._check_performance_thresholds(critical_analytics)
+        await performance_monitor._check_performance_thresholds(
+            critical_analytics
+        )
 
         # Verify alert escalation
         assert len(alerts_triggered) > 0
         critical_alert = alerts_triggered[0]
         assert critical_alert.level == AlertLevel.CRITICAL
         assert critical_alert.metric_value == 500.0
+
 
 if __name__ == "__main__":
     pytest.main([__file__])

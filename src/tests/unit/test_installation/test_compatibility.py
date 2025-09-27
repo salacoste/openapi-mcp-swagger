@@ -1,19 +1,22 @@
 """Tests for SystemCompatibilityChecker."""
 
+import asyncio
 import os
+import platform
 import sys
 import tempfile
-import pytest
-import asyncio
-import platform
 from pathlib import Path
-from unittest.mock import Mock, patch, AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
+
 import aiohttp
+import pytest
 
 # Add src to path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../../..'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../../.."))
 
-from swagger_mcp_server.installation.compatibility import SystemCompatibilityChecker
+from swagger_mcp_server.installation.compatibility import (
+    SystemCompatibilityChecker,
+)
 
 
 class TestSystemCompatibilityChecker:
@@ -33,14 +36,33 @@ class TestSystemCompatibilityChecker:
     async def test_check_system_compatibility_success(self, checker):
         """Test successful system compatibility check."""
         # Mock all check methods to return success
-        with patch.object(checker, 'check_python_version', return_value={"compatible": True, "message": "OK"}), \
-             patch.object(checker, 'check_platform_support', return_value={"supported": True, "message": "OK"}), \
-             patch.object(checker, 'check_disk_space', return_value={"sufficient": True, "message": "OK"}), \
-             patch.object(checker, 'check_memory', return_value={"sufficient": True, "message": "OK"}), \
-             patch.object(checker, 'check_network_connectivity', return_value={"available": True, "message": "OK"}), \
-             patch.object(checker, 'check_permissions', return_value={"adequate": True, "message": "OK"}), \
-             patch.object(checker, 'check_core_dependencies', return_value={"missing": []}):
-
+        with patch.object(
+            checker,
+            "check_python_version",
+            return_value={"compatible": True, "message": "OK"},
+        ), patch.object(
+            checker,
+            "check_platform_support",
+            return_value={"supported": True, "message": "OK"},
+        ), patch.object(
+            checker,
+            "check_disk_space",
+            return_value={"sufficient": True, "message": "OK"},
+        ), patch.object(
+            checker,
+            "check_memory",
+            return_value={"sufficient": True, "message": "OK"},
+        ), patch.object(
+            checker,
+            "check_network_connectivity",
+            return_value={"available": True, "message": "OK"},
+        ), patch.object(
+            checker,
+            "check_permissions",
+            return_value={"adequate": True, "message": "OK"},
+        ), patch.object(
+            checker, "check_core_dependencies", return_value={"missing": []}
+        ):
             result = await checker.check_system_compatibility()
 
         assert result["compatible"] is True
@@ -50,14 +72,33 @@ class TestSystemCompatibilityChecker:
     @pytest.mark.asyncio
     async def test_check_system_compatibility_python_failure(self, checker):
         """Test compatibility check with Python version failure."""
-        with patch.object(checker, 'check_python_version', return_value={"compatible": False, "message": "Python too old"}), \
-             patch.object(checker, 'check_platform_support', return_value={"supported": True, "message": "OK"}), \
-             patch.object(checker, 'check_disk_space', return_value={"sufficient": True, "message": "OK"}), \
-             patch.object(checker, 'check_memory', return_value={"sufficient": True, "message": "OK"}), \
-             patch.object(checker, 'check_network_connectivity', return_value={"available": True, "message": "OK"}), \
-             patch.object(checker, 'check_permissions', return_value={"adequate": True, "message": "OK"}), \
-             patch.object(checker, 'check_core_dependencies', return_value={"missing": []}):
-
+        with patch.object(
+            checker,
+            "check_python_version",
+            return_value={"compatible": False, "message": "Python too old"},
+        ), patch.object(
+            checker,
+            "check_platform_support",
+            return_value={"supported": True, "message": "OK"},
+        ), patch.object(
+            checker,
+            "check_disk_space",
+            return_value={"sufficient": True, "message": "OK"},
+        ), patch.object(
+            checker,
+            "check_memory",
+            return_value={"sufficient": True, "message": "OK"},
+        ), patch.object(
+            checker,
+            "check_network_connectivity",
+            return_value={"available": True, "message": "OK"},
+        ), patch.object(
+            checker,
+            "check_permissions",
+            return_value={"adequate": True, "message": "OK"},
+        ), patch.object(
+            checker, "check_core_dependencies", return_value={"missing": []}
+        ):
             result = await checker.check_system_compatibility()
 
         assert result["compatible"] is False
@@ -74,7 +115,7 @@ class TestSystemCompatibilityChecker:
     def test_check_python_version_incompatible(self, checker):
         """Test Python version check with incompatible version."""
         # Mock older Python version
-        with patch('sys.version_info', (3, 8, 0)):
+        with patch("sys.version_info", (3, 8, 0)):
             result = checker.check_python_version()
 
         assert result["compatible"] is False
@@ -90,7 +131,7 @@ class TestSystemCompatibilityChecker:
 
     def test_check_platform_support_unsupported(self, checker):
         """Test platform support check with unsupported platform."""
-        with patch('platform.system', return_value="FakePlatform"):
+        with patch("platform.system", return_value="FakePlatform"):
             result = checker.check_platform_support()
 
         assert result["supported"] is False
@@ -102,7 +143,7 @@ class TestSystemCompatibilityChecker:
         mock_usage = Mock()
         mock_usage.free = 500 * 1024 * 1024  # 500MB
 
-        with patch('shutil.disk_usage', return_value=mock_usage):
+        with patch("shutil.disk_usage", return_value=mock_usage):
             result = checker.check_disk_space(required_mb=100)
 
         assert result["sufficient"] is True
@@ -114,7 +155,7 @@ class TestSystemCompatibilityChecker:
         mock_usage = Mock()
         mock_usage.free = 50 * 1024 * 1024  # 50MB
 
-        with patch('shutil.disk_usage', return_value=mock_usage):
+        with patch("shutil.disk_usage", return_value=mock_usage):
             result = checker.check_disk_space(required_mb=100)
 
         assert result["sufficient"] is False
@@ -122,10 +163,12 @@ class TestSystemCompatibilityChecker:
 
     def test_check_disk_space_error(self, checker):
         """Test disk space check with error."""
-        with patch('shutil.disk_usage', side_effect=Exception("Disk error")):
+        with patch("shutil.disk_usage", side_effect=Exception("Disk error")):
             result = checker.check_disk_space()
 
-        assert result["sufficient"] is True  # Assumes sufficient if can't check
+        assert (
+            result["sufficient"] is True
+        )  # Assumes sufficient if can't check
         assert "Could not check disk space" in result["message"]
 
     def test_check_memory_sufficient(self, checker):
@@ -135,7 +178,7 @@ class TestSystemCompatibilityChecker:
         mock_memory.available = 1024 * 1024 * 1024  # 1GB
         mock_memory.total = 2 * 1024 * 1024 * 1024  # 2GB
 
-        with patch('psutil.virtual_memory', return_value=mock_memory):
+        with patch("psutil.virtual_memory", return_value=mock_memory):
             result = checker.check_memory(required_mb=512)
 
         assert result["sufficient"] is True
@@ -148,7 +191,7 @@ class TestSystemCompatibilityChecker:
         mock_memory.available = 256 * 1024 * 1024  # 256MB
         mock_memory.total = 512 * 1024 * 1024  # 512MB
 
-        with patch('psutil.virtual_memory', return_value=mock_memory):
+        with patch("psutil.virtual_memory", return_value=mock_memory):
             result = checker.check_memory(required_mb=512)
 
         assert result["sufficient"] is False
@@ -156,10 +199,14 @@ class TestSystemCompatibilityChecker:
 
     def test_check_memory_error(self, checker):
         """Test memory check with error."""
-        with patch('psutil.virtual_memory', side_effect=Exception("Memory error")):
+        with patch(
+            "psutil.virtual_memory", side_effect=Exception("Memory error")
+        ):
             result = checker.check_memory()
 
-        assert result["sufficient"] is True  # Assumes sufficient if can't check
+        assert (
+            result["sufficient"] is True
+        )  # Assumes sufficient if can't check
         assert "Could not check memory usage" in result["message"]
 
     @pytest.mark.asyncio
@@ -176,7 +223,7 @@ class TestSystemCompatibilityChecker:
         mock_session.__aenter__ = AsyncMock(return_value=mock_session)
         mock_session.__aexit__ = AsyncMock(return_value=None)
 
-        with patch('aiohttp.ClientSession', return_value=mock_session):
+        with patch("aiohttp.ClientSession", return_value=mock_session):
             result = await checker.check_network_connectivity()
 
         assert result["available"] is True
@@ -196,7 +243,7 @@ class TestSystemCompatibilityChecker:
         mock_session.__aenter__ = AsyncMock(return_value=mock_session)
         mock_session.__aexit__ = AsyncMock(return_value=None)
 
-        with patch('aiohttp.ClientSession', return_value=mock_session):
+        with patch("aiohttp.ClientSession", return_value=mock_session):
             result = await checker.check_network_connectivity()
 
         assert result["available"] is False
@@ -210,7 +257,7 @@ class TestSystemCompatibilityChecker:
         mock_session.__aenter__ = AsyncMock(return_value=mock_session)
         mock_session.__aexit__ = AsyncMock(return_value=None)
 
-        with patch('aiohttp.ClientSession', return_value=mock_session):
+        with patch("aiohttp.ClientSession", return_value=mock_session):
             result = await checker.check_network_connectivity()
 
         assert result["available"] is False
@@ -222,7 +269,7 @@ class TestSystemCompatibilityChecker:
         mock_session = Mock()
         mock_session.get = AsyncMock(side_effect=Exception("Network error"))
 
-        with patch('aiohttp.ClientSession', return_value=mock_session):
+        with patch("aiohttp.ClientSession", return_value=mock_session):
             result = await checker.check_network_connectivity()
 
         assert result["available"] is False
@@ -231,7 +278,7 @@ class TestSystemCompatibilityChecker:
     def test_check_permissions_adequate(self, checker):
         """Test permission check with adequate permissions."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            with patch('pathlib.Path.home', return_value=Path(temp_dir)):
+            with patch("pathlib.Path.home", return_value=Path(temp_dir)):
                 result = checker.check_permissions()
 
         assert result["adequate"] is True
@@ -240,9 +287,13 @@ class TestSystemCompatibilityChecker:
     def test_check_permissions_inadequate(self, checker):
         """Test permission check with inadequate permissions."""
         # Mock permission errors
-        with patch('pathlib.Path.mkdir', side_effect=PermissionError("Permission denied")), \
-             patch('pathlib.Path.touch', side_effect=PermissionError("Permission denied")):
-
+        with patch(
+            "pathlib.Path.mkdir",
+            side_effect=PermissionError("Permission denied"),
+        ), patch(
+            "pathlib.Path.touch",
+            side_effect=PermissionError("Permission denied"),
+        ):
             result = checker.check_permissions()
 
         assert result["adequate"] is False
@@ -251,7 +302,7 @@ class TestSystemCompatibilityChecker:
     def test_check_core_dependencies_available(self, checker):
         """Test core dependencies check with all available."""
         # Mock successful imports
-        with patch('builtins.__import__', return_value=Mock()):
+        with patch("builtins.__import__", return_value=Mock()):
             result = checker.check_core_dependencies()
 
         assert len(result["missing"]) == 0
@@ -259,12 +310,13 @@ class TestSystemCompatibilityChecker:
 
     def test_check_core_dependencies_missing(self, checker):
         """Test core dependencies check with missing modules."""
+
         def mock_import(name, *args, **kwargs):
             if name in ["click", "yaml"]:
                 raise ImportError(f"No module named '{name}'")
             return Mock()
 
-        with patch('builtins.__import__', side_effect=mock_import):
+        with patch("builtins.__import__", side_effect=mock_import):
             result = checker.check_core_dependencies()
 
         assert "click" in result["missing"]
@@ -273,7 +325,7 @@ class TestSystemCompatibilityChecker:
     def test_check_command_availability_available(self, checker):
         """Test command availability check with available commands."""
         # Mock successful subprocess call
-        with patch('subprocess.run', return_value=Mock(returncode=0)):
+        with patch("subprocess.run", return_value=Mock(returncode=0)):
             result = checker.check_command_availability(["python", "pip"])
 
         assert "python" in result["available"]
@@ -283,7 +335,7 @@ class TestSystemCompatibilityChecker:
     def test_check_command_availability_missing(self, checker):
         """Test command availability check with missing commands."""
         # Mock failed subprocess call
-        with patch('subprocess.run', side_effect=FileNotFoundError()):
+        with patch("subprocess.run", side_effect=FileNotFoundError()):
             result = checker.check_command_availability(["nonexistent"])
 
         assert "nonexistent" in result["missing"]

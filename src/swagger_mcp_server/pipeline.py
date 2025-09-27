@@ -5,24 +5,36 @@ comprehensive error handling, metrics, and data integrity validation.
 """
 
 import asyncio
-import time
 import hashlib
+import time
+import traceback
 from abc import ABC, abstractmethod
+from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union, Callable
-from contextlib import asynccontextmanager
-import traceback
+from typing import Any, Callable, Dict, List, Optional, Union
 
+from swagger_mcp_server.config.logging import get_logger
+from swagger_mcp_server.parser.base import (
+    ParserConfig,
+    ParseResult,
+    SwaggerParseError,
+)
+from swagger_mcp_server.parser.schema_normalizer import (
+    NormalizationResult,
+    SchemaNormalizer,
+)
 from swagger_mcp_server.parser.swagger_parser import SwaggerParser
-from swagger_mcp_server.parser.schema_normalizer import SchemaNormalizer, NormalizationResult
-from swagger_mcp_server.parser.base import ParserConfig, ParseResult, SwaggerParseError
 from swagger_mcp_server.storage import (
-    DatabaseManager, DatabaseConfig, get_db_manager,
-    EndpointRepository, SchemaRepository, SecurityRepository, MetadataRepository
+    DatabaseConfig,
+    DatabaseManager,
+    EndpointRepository,
+    MetadataRepository,
+    SchemaRepository,
+    SecurityRepository,
+    get_db_manager,
 )
 from swagger_mcp_server.storage.models import APIMetadata
-from swagger_mcp_server.config.logging import get_logger
 
 logger = get_logger(__name__)
 
@@ -30,6 +42,7 @@ logger = get_logger(__name__)
 @dataclass
 class ProcessingMetrics:
     """Metrics collected during pipeline processing."""
+
     start_time: float = field(default_factory=time.time)
     parsing_duration: float = 0.0
     normalization_duration: float = 0.0
@@ -53,6 +66,7 @@ class ProcessingMetrics:
 @dataclass
 class PipelineContext:
     """Context shared across pipeline stages."""
+
     api_id: Optional[int] = None
     file_path: str = ""
     file_hash: str = ""
@@ -65,6 +79,7 @@ class PipelineContext:
 @dataclass
 class StageResult:
     """Result from a pipeline stage execution."""
+
     success: bool
     data: Any = None
     errors: List[str] = field(default_factory=list)
@@ -76,6 +91,7 @@ class StageResult:
 @dataclass
 class ProcessingResult:
     """Complete pipeline processing result."""
+
     success: bool
     api_id: Optional[int] = None
     file_path: str = ""
@@ -88,6 +104,7 @@ class ProcessingResult:
 @dataclass
 class BatchProcessingResult:
     """Result from batch processing multiple files."""
+
     total_files: int
     successful_files: int
     failed_files: int
@@ -104,7 +121,9 @@ class ProcessingStage(ABC):
         self.logger = get_logger(f"{__name__}.{name}")
 
     @abstractmethod
-    async def execute(self, input_data: Any, context: PipelineContext) -> StageResult:
+    async def execute(
+        self, input_data: Any, context: PipelineContext
+    ) -> StageResult:
         """Execute the stage with given input and context."""
         pass
 
@@ -121,7 +140,9 @@ class ParsingStage(ProcessingStage):
         super().__init__("parsing")
         self.parser = SwaggerParser(config)
 
-    async def execute(self, input_data: str, context: PipelineContext) -> StageResult:
+    async def execute(
+        self, input_data: str, context: PipelineContext
+    ) -> StageResult:
         """Parse the Swagger file."""
         stage_start = time.time()
 
@@ -141,7 +162,7 @@ class ParsingStage(ProcessingStage):
                     success=False,
                     stage_name=self.name,
                     errors=[f"Parsing failed: {parse_result.error}"],
-                    metrics={"duration": context.metrics.parsing_duration}
+                    metrics={"duration": context.metrics.parsing_duration},
                 )
 
             self.logger.info(
@@ -153,7 +174,7 @@ class ParsingStage(ProcessingStage):
                 data=parse_result.data,
                 stage_name=self.name,
                 warnings=parse_result.warnings or [],
-                metrics={"duration": context.metrics.parsing_duration}
+                metrics={"duration": context.metrics.parsing_duration},
             )
 
         except Exception as e:
@@ -165,7 +186,7 @@ class ParsingStage(ProcessingStage):
                 success=False,
                 stage_name=self.name,
                 errors=[error_msg],
-                metrics={"duration": context.metrics.parsing_duration}
+                metrics={"duration": context.metrics.parsing_duration},
             )
 
     async def rollback(self, context: PipelineContext) -> None:
@@ -180,7 +201,9 @@ class NormalizationStage(ProcessingStage):
         super().__init__("normalization")
         self.normalizer = SchemaNormalizer()
 
-    async def execute(self, input_data: Dict[str, Any], context: PipelineContext) -> StageResult:
+    async def execute(
+        self, input_data: Dict[str, Any], context: PipelineContext
+    ) -> StageResult:
         """Normalize the parsed OpenAPI data."""
         stage_start = time.time()
 
@@ -193,9 +216,15 @@ class NormalizationStage(ProcessingStage):
 
             # Update metrics
             context.metrics.normalization_duration = time.time() - stage_start
-            context.metrics.endpoints_processed = len(normalization_result.endpoints)
-            context.metrics.schemas_processed = len(normalization_result.schemas)
-            context.metrics.security_schemes_processed = len(normalization_result.security_schemes)
+            context.metrics.endpoints_processed = len(
+                normalization_result.endpoints
+            )
+            context.metrics.schemas_processed = len(
+                normalization_result.schemas
+            )
+            context.metrics.security_schemes_processed = len(
+                normalization_result.security_schemes
+            )
 
             # Store result in context
             context.stage_results["normalization"] = normalization_result
@@ -213,8 +242,8 @@ class NormalizationStage(ProcessingStage):
                 metrics={
                     "duration": context.metrics.normalization_duration,
                     "endpoints": context.metrics.endpoints_processed,
-                    "schemas": context.metrics.schemas_processed
-                }
+                    "schemas": context.metrics.schemas_processed,
+                },
             )
 
         except Exception as e:
@@ -226,7 +255,7 @@ class NormalizationStage(ProcessingStage):
                 success=False,
                 stage_name=self.name,
                 errors=[error_msg],
-                metrics={"duration": context.metrics.normalization_duration}
+                metrics={"duration": context.metrics.normalization_duration},
             )
 
     async def rollback(self, context: PipelineContext) -> None:
@@ -241,7 +270,9 @@ class StorageStage(ProcessingStage):
         super().__init__("storage")
         self.db_manager = db_manager
 
-    async def execute(self, input_data: NormalizationResult, context: PipelineContext) -> StageResult:
+    async def execute(
+        self, input_data: NormalizationResult, context: PipelineContext
+    ) -> StageResult:
         """Store normalized data to database."""
         stage_start = time.time()
 
@@ -257,12 +288,12 @@ class StorageStage(ProcessingStage):
                 api_metadata = APIMetadata(
                     file_path=context.file_path,
                     file_hash=context.file_hash,
-                    title=getattr(input_data, 'title', 'Unknown API'),
-                    version=getattr(input_data, 'version', '1.0.0'),
-                    description=getattr(input_data, 'description', ''),
+                    title=getattr(input_data, "title", "Unknown API"),
+                    version=getattr(input_data, "version", "1.0.0"),
+                    description=getattr(input_data, "description", ""),
                     endpoints_count=len(input_data.endpoints),
                     schemas_count=len(input_data.schemas),
-                    security_schemes_count=len(input_data.security_schemes)
+                    security_schemes_count=len(input_data.security_schemes),
                 )
 
                 created_metadata = await metadata_repo.create(api_metadata)
@@ -302,8 +333,8 @@ class StorageStage(ProcessingStage):
                     stage_name=self.name,
                     metrics={
                         "duration": context.metrics.storage_duration,
-                        "api_id": created_metadata.id
-                    }
+                        "api_id": created_metadata.id,
+                    },
                 )
 
         except Exception as e:
@@ -315,7 +346,7 @@ class StorageStage(ProcessingStage):
                 success=False,
                 stage_name=self.name,
                 errors=[error_msg],
-                metrics={"duration": context.metrics.storage_duration}
+                metrics={"duration": context.metrics.storage_duration},
             )
 
     async def rollback(self, context: PipelineContext) -> None:
@@ -326,9 +357,13 @@ class StorageStage(ProcessingStage):
                     metadata_repo = MetadataRepository(session)
                     await metadata_repo.delete(context.api_id)
                     await session.commit()
-                self.logger.info(f"Storage rollback completed for API ID {context.api_id}")
+                self.logger.info(
+                    f"Storage rollback completed for API ID {context.api_id}"
+                )
             except Exception as e:
-                self.logger.error(f"Storage rollback failed: {str(e)}", exc_info=True)
+                self.logger.error(
+                    f"Storage rollback failed: {str(e)}", exc_info=True
+                )
 
 
 class SwaggerProcessingPipeline:
@@ -337,7 +372,7 @@ class SwaggerProcessingPipeline:
     def __init__(
         self,
         parser_config: Optional[ParserConfig] = None,
-        db_config: Optional[DatabaseConfig] = None
+        db_config: Optional[DatabaseConfig] = None,
     ):
         self.parser_config = parser_config or ParserConfig()
         self.db_config = db_config or DatabaseConfig()
@@ -347,7 +382,7 @@ class SwaggerProcessingPipeline:
         self.stages: List[ProcessingStage] = [
             ParsingStage(self.parser_config),
             NormalizationStage(),
-            StorageStage(self.db_manager)
+            StorageStage(self.db_manager),
         ]
 
         self.logger = get_logger(__name__)
@@ -355,7 +390,7 @@ class SwaggerProcessingPipeline:
     def _calculate_file_hash(self, file_path: str) -> str:
         """Calculate SHA-256 hash of the file."""
         hasher = hashlib.sha256()
-        with open(file_path, 'rb') as f:
+        with open(file_path, "rb") as f:
             for chunk in iter(lambda: f.read(4096), b""):
                 hasher.update(chunk)
         return hasher.hexdigest()
@@ -363,8 +398,7 @@ class SwaggerProcessingPipeline:
     async def process_file(self, file_path: str) -> ProcessingResult:
         """Process a single Swagger file through the complete pipeline."""
         context = PipelineContext(
-            file_path=file_path,
-            file_hash=self._calculate_file_hash(file_path)
+            file_path=file_path, file_hash=self._calculate_file_hash(file_path)
         )
 
         self.logger.info(f"Starting pipeline processing for {file_path}")
@@ -389,7 +423,7 @@ class SwaggerProcessingPipeline:
                         success=False,
                         file_path=file_path,
                         metrics=context.metrics,
-                        errors=stage_result.errors
+                        errors=stage_result.errors,
                     )
 
                 # Update metrics and pass data to next stage
@@ -408,12 +442,15 @@ class SwaggerProcessingPipeline:
                 success=True,
                 api_id=context.api_id,
                 file_path=file_path,
-                metrics=context.metrics
+                metrics=context.metrics,
             )
 
         except Exception as e:
             # Unexpected error, rollback all executed stages
-            self.logger.error(f"Pipeline failed with unexpected error: {str(e)}", exc_info=True)
+            self.logger.error(
+                f"Pipeline failed with unexpected error: {str(e)}",
+                exc_info=True,
+            )
             await self._rollback_stages(executed_stages, context)
 
             context.metrics.calculate_total_duration()
@@ -422,10 +459,12 @@ class SwaggerProcessingPipeline:
                 success=False,
                 file_path=file_path,
                 metrics=context.metrics,
-                errors=[f"Pipeline failed: {str(e)}"]
+                errors=[f"Pipeline failed: {str(e)}"],
             )
 
-    async def _rollback_stages(self, stages: List[ProcessingStage], context: PipelineContext) -> None:
+    async def _rollback_stages(
+        self, stages: List[ProcessingStage], context: PipelineContext
+    ) -> None:
         """Rollback executed stages in reverse order."""
         self.logger.warning("Initiating pipeline rollback")
 
@@ -433,15 +472,18 @@ class SwaggerProcessingPipeline:
             try:
                 await stage.rollback(context)
             except Exception as e:
-                self.logger.error(f"Rollback failed for stage {stage.name}: {str(e)}", exc_info=True)
+                self.logger.error(
+                    f"Rollback failed for stage {stage.name}: {str(e)}",
+                    exc_info=True,
+                )
 
     async def process_batch(
-        self,
-        file_paths: List[str],
-        max_concurrent: int = 3
+        self, file_paths: List[str], max_concurrent: int = 3
     ) -> BatchProcessingResult:
         """Process multiple Swagger files concurrently."""
-        self.logger.info(f"Starting batch processing of {len(file_paths)} files")
+        self.logger.info(
+            f"Starting batch processing of {len(file_paths)} files"
+        )
 
         # Create semaphore for concurrency control
         semaphore = asyncio.Semaphore(max_concurrent)
@@ -454,7 +496,7 @@ class SwaggerProcessingPipeline:
         batch_start = time.time()
         results = await asyncio.gather(
             *[process_single(path) for path in file_paths],
-            return_exceptions=True
+            return_exceptions=True,
         )
 
         # Process results and handle exceptions
@@ -465,11 +507,13 @@ class SwaggerProcessingPipeline:
             if isinstance(result, Exception):
                 error_msg = f"File {file_paths[i]} failed: {str(result)}"
                 errors.append(error_msg)
-                processed_results.append(ProcessingResult(
-                    success=False,
-                    file_path=file_paths[i],
-                    errors=[error_msg]
-                ))
+                processed_results.append(
+                    ProcessingResult(
+                        success=False,
+                        file_path=file_paths[i],
+                        errors=[error_msg],
+                    )
+                )
             else:
                 processed_results.append(result)
 
@@ -490,9 +534,11 @@ class SwaggerProcessingPipeline:
             results=processed_results,
             batch_metrics={
                 "duration": batch_duration,
-                "throughput": len(file_paths) / batch_duration if batch_duration > 0 else 0
+                "throughput": len(file_paths) / batch_duration
+                if batch_duration > 0
+                else 0,
             },
-            errors=errors
+            errors=errors,
         )
 
     async def validate_integrity(self, api_id: int) -> Dict[str, Any]:
@@ -509,25 +555,29 @@ class SwaggerProcessingPipeline:
                     "metadata_complete": True,
                     "endpoints_valid": True,
                     "schemas_consistent": True,
-                    "references_resolved": True
+                    "references_resolved": True,
                 },
                 "score": 100.0,
                 "issues": [],
-                "duration": time.time() - validation_start
+                "duration": time.time() - validation_start,
             }
 
-            self.logger.info(f"Integrity validation completed for API {api_id}")
+            self.logger.info(
+                f"Integrity validation completed for API {api_id}"
+            )
             return validation_report
 
         except Exception as e:
-            error_msg = f"Integrity validation failed for API {api_id}: {str(e)}"
+            error_msg = (
+                f"Integrity validation failed for API {api_id}: {str(e)}"
+            )
             self.logger.error(error_msg, exc_info=True)
 
             return {
                 "api_id": api_id,
                 "validation_time": time.time(),
                 "error": error_msg,
-                "duration": time.time() - validation_start
+                "duration": time.time() - validation_start,
             }
 
 
@@ -545,13 +595,11 @@ class PipelineFactory:
         parser_config = ParserConfig(
             strict_mode=False,
             progress_callback=None,  # Disable progress callbacks for speed
-            preserve_order=False
+            preserve_order=False,
         )
 
         db_config = DatabaseConfig(
-            enable_wal=True,
-            max_connections=20,
-            busy_timeout=5.0
+            enable_wal=True, max_connections=20, busy_timeout=5.0
         )
 
         return SwaggerProcessingPipeline(parser_config, db_config)
@@ -561,8 +609,8 @@ class PipelineFactory:
         """Create pipeline with strict validation."""
         parser_config = ParserConfig(
             strict_mode=True,
-            max_errors=0,  # Fail on first error
-            preserve_order=True
+            max_errors=0,
+            preserve_order=True,  # Fail on first error
         )
 
         return SwaggerProcessingPipeline(parser_config)

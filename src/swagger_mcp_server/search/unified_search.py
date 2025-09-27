@@ -7,18 +7,19 @@ as specified in Story 3.5.
 
 import asyncio
 from dataclasses import dataclass
-from typing import Dict, Any, List, Optional, Union, Set
 from enum import Enum
+from typing import Any, Dict, List, Optional, Set, Union
 
-from .search_engine import SearchEngine
-from .schema_indexing import SchemaIndexManager, SchemaSearchDocument
-from .schema_mapper import SchemaEndpointMapper, CrossReferenceMap
-from .schema_relationships import SchemaRelationshipDiscovery, SchemaGraph
 from ..config.settings import SearchConfig
+from .schema_indexing import SchemaIndexManager, SchemaSearchDocument
+from .schema_mapper import CrossReferenceMap, SchemaEndpointMapper
+from .schema_relationships import SchemaGraph, SchemaRelationshipDiscovery
+from .search_engine import SearchEngine
 
 
 class SearchType(Enum):
     """Types of unified search."""
+
     ENDPOINTS_ONLY = "endpoints"
     SCHEMAS_ONLY = "schemas"
     MIXED = "mixed"
@@ -27,6 +28,7 @@ class SearchType(Enum):
 
 class ResultType(Enum):
     """Types of search results."""
+
     ENDPOINT = "endpoint"
     SCHEMA = "schema"
     CROSS_REFERENCE = "cross_reference"
@@ -35,6 +37,7 @@ class ResultType(Enum):
 @dataclass
 class UnifiedSearchResult:
     """Unified search result that can represent endpoints or schemas."""
+
     result_id: str
     result_type: ResultType
     title: str
@@ -48,6 +51,7 @@ class UnifiedSearchResult:
 @dataclass
 class UnifiedSearchResponse:
     """Complete unified search response with all result types."""
+
     query: str
     search_types: List[str]
     total_results: int
@@ -125,7 +129,10 @@ class UnifiedSearchInterface:
         if page < 1:
             raise ValueError("Page number must be >= 1")
 
-        if per_page < 1 or per_page > self.config.performance.max_search_results:
+        if (
+            per_page < 1
+            or per_page > self.config.performance.max_search_results
+        ):
             raise ValueError(
                 f"per_page must be between 1 and {self.config.performance.max_search_results}"
             )
@@ -134,8 +141,12 @@ class UnifiedSearchInterface:
 
         try:
             # Determine which search types to execute
-            execute_endpoints = any(t in search_types for t in ["endpoints", "mixed", "all"])
-            execute_schemas = any(t in search_types for t in ["schemas", "mixed", "all"])
+            execute_endpoints = any(
+                t in search_types for t in ["endpoints", "mixed", "all"]
+            )
+            execute_schemas = any(
+                t in search_types for t in ["schemas", "mixed", "all"]
+            )
 
             # Initialize result containers
             all_results = []
@@ -144,13 +155,15 @@ class UnifiedSearchInterface:
 
             # Execute endpoint search
             if execute_endpoints:
-                endpoint_search_response = await self.search_engine.search_advanced(
-                    query=query,
-                    filters=filters,
-                    page=1,  # Get all for unified processing
-                    per_page=self.config.performance.max_search_results,
-                    include_organization=False,
-                    include_metadata=True
+                endpoint_search_response = (
+                    await self.search_engine.search_advanced(
+                        query=query,
+                        filters=filters,
+                        page=1,  # Get all for unified processing
+                        per_page=self.config.performance.max_search_results,
+                        include_organization=False,
+                        include_metadata=True,
+                    )
                 )
 
                 endpoint_results = endpoint_search_response.get("results", [])
@@ -161,7 +174,9 @@ class UnifiedSearchInterface:
                         result_id=result["endpoint_id"],
                         result_type=ResultType.ENDPOINT,
                         title=f"{result['http_method']} {result['endpoint_path']}",
-                        description=result.get("summary", result.get("description", "")),
+                        description=result.get(
+                            "summary", result.get("description", "")
+                        ),
                         score=result["score"],
                         highlights=result.get("highlights", {}),
                         metadata={
@@ -170,16 +185,24 @@ class UnifiedSearchInterface:
                             "tags": result.get("tags", ""),
                             "deprecated": result.get("deprecated", False),
                             "operation_type": result.get("operation_type", ""),
-                            "complexity_level": result.get("complexity_level", ""),
-                            "authentication_info": result.get("authentication_info", {})
-                        }
+                            "complexity_level": result.get(
+                                "complexity_level", ""
+                            ),
+                            "authentication_info": result.get(
+                                "authentication_info", {}
+                            ),
+                        },
                     )
                     all_results.append(unified_result)
 
             # Execute schema search
             if execute_schemas:
-                schema_documents = await self.schema_index_manager.create_schema_documents()
-                schema_results = await self._search_schemas(query, schema_documents, filters)
+                schema_documents = (
+                    await self.schema_index_manager.create_schema_documents()
+                )
+                schema_results = await self._search_schemas(
+                    query, schema_documents, filters
+                )
 
                 # Convert schema results to unified format
                 for result in schema_results:
@@ -192,32 +215,50 @@ class UnifiedSearchInterface:
                         highlights=result.get("highlights", {}),
                         metadata={
                             "schema_type": result["schema_type"],
-                            "property_count": len(result.get("property_names", [])),
-                            "complexity_level": result.get("complexity_level", ""),
-                            "usage_frequency": result.get("usage_frequency", 0),
+                            "property_count": len(
+                                result.get("property_names", [])
+                            ),
+                            "complexity_level": result.get(
+                                "complexity_level", ""
+                            ),
+                            "usage_frequency": result.get(
+                                "usage_frequency", 0
+                            ),
                             "composition_type": result.get("composition_type"),
-                            "validation_rules": result.get("validation_rules", {})
-                        }
+                            "validation_rules": result.get(
+                                "validation_rules", {}
+                            ),
+                        },
                     )
                     all_results.append(unified_result)
 
             # Generate cross-references if requested
             cross_references = {}
-            if include_cross_references and endpoint_results and schema_results:
+            if (
+                include_cross_references
+                and endpoint_results
+                and schema_results
+            ):
                 cross_references = await self._generate_cross_references(
                     endpoint_results, schema_results
                 )
 
                 # Add relationships to results
-                await self._enrich_results_with_relationships(all_results, cross_references)
+                await self._enrich_results_with_relationships(
+                    all_results, cross_references
+                )
 
             # Organize results if requested
             organization = {}
             if include_organization:
-                organization = await self._organize_unified_results(all_results, query)
+                organization = await self._organize_unified_results(
+                    all_results, query
+                )
 
             # Apply intelligent ranking to mixed results
-            ranked_results = self._rank_unified_results(all_results, query, search_types)
+            ranked_results = self._rank_unified_results(
+                all_results, query, search_types
+            )
 
             # Apply pagination
             start_idx = (page - 1) * per_page
@@ -248,8 +289,8 @@ class UnifiedSearchInterface:
                     "cross_references_found": len(cross_references),
                     "page": page,
                     "per_page": per_page,
-                    "has_more": len(ranked_results) > (page * per_page)
-                }
+                    "has_more": len(ranked_results) > (page * per_page),
+                },
             )
 
         except Exception as e:
@@ -259,7 +300,7 @@ class UnifiedSearchInterface:
         self,
         query: str,
         schema_documents: List[SchemaSearchDocument],
-        filters: Optional[Dict[str, Any]] = None
+        filters: Optional[Dict[str, Any]] = None,
     ) -> List[Dict[str, Any]]:
         """Search schemas using the provided query.
 
@@ -305,7 +346,7 @@ class UnifiedSearchInterface:
 
             # Apply usage frequency bonus
             if doc.usage_frequency > 0:
-                score *= (1.0 + (doc.usage_frequency * 0.1))
+                score *= 1.0 + (doc.usage_frequency * 0.1)
 
             # Apply complexity penalty for very complex schemas
             if doc.complexity_level == "complex":
@@ -325,7 +366,7 @@ class UnifiedSearchInterface:
                     "composition_type": doc.composition_type,
                     "validation_rules": doc.validation_rules,
                     "highlights": self._generate_schema_highlights(doc, query),
-                    "used_in_endpoints": doc.used_in_endpoints
+                    "used_in_endpoints": doc.used_in_endpoints,
                 }
 
                 # Apply filters if provided
@@ -338,9 +379,7 @@ class UnifiedSearchInterface:
         return results
 
     def _generate_schema_highlights(
-        self,
-        doc: SchemaSearchDocument,
-        query: str
+        self, doc: SchemaSearchDocument, query: str
     ) -> Dict[str, str]:
         """Generate highlights for schema search results.
 
@@ -356,14 +395,20 @@ class UnifiedSearchInterface:
 
         # Highlight schema name
         if query_lower in doc.schema_name.lower():
-            highlights["schema_name"] = self._highlight_text(doc.schema_name, query)
+            highlights["schema_name"] = self._highlight_text(
+                doc.schema_name, query
+            )
 
         # Highlight description
         if query_lower in doc.description.lower():
-            highlights["description"] = self._highlight_text(doc.description, query)
+            highlights["description"] = self._highlight_text(
+                doc.description, query
+            )
 
         # Highlight matching property names
-        matching_props = [prop for prop in doc.property_names if query_lower in prop.lower()]
+        matching_props = [
+            prop for prop in doc.property_names if query_lower in prop.lower()
+        ]
         if matching_props:
             highlights["properties"] = ", ".join(matching_props)
 
@@ -386,14 +431,12 @@ class UnifiedSearchInterface:
             highlighted = highlighted.replace(
                 term,
                 f"<mark>{term}</mark>",
-                1  # Only highlight first occurrence
+                1,  # Only highlight first occurrence
             )
         return highlighted
 
     def _passes_schema_filters(
-        self,
-        schema_result: Dict[str, Any],
-        filters: Optional[Dict[str, Any]]
+        self, schema_result: Dict[str, Any], filters: Optional[Dict[str, Any]]
     ) -> bool:
         """Check if schema result passes the provided filters.
 
@@ -434,7 +477,7 @@ class UnifiedSearchInterface:
     async def _generate_cross_references(
         self,
         endpoint_results: List[Dict[str, Any]],
-        schema_results: List[Dict[str, Any]]
+        schema_results: List[Dict[str, Any]],
     ) -> Dict[str, Any]:
         """Generate cross-references between endpoint and schema results.
 
@@ -446,46 +489,55 @@ class UnifiedSearchInterface:
             Dict[str, Any]: Cross-reference information
         """
         if not self._cross_reference_cache:
-            self._cross_reference_cache = await self.schema_mapper.create_complete_cross_reference_map()
+            self._cross_reference_cache = (
+                await self.schema_mapper.create_complete_cross_reference_map()
+            )
 
         cross_refs = self._cross_reference_cache
         result_cross_refs = {
             "endpoint_to_schema": {},
             "schema_to_endpoint": {},
-            "related_pairs": []
+            "related_pairs": [],
         }
 
         # Map endpoints to their schemas
         for endpoint in endpoint_results:
             endpoint_id = endpoint["endpoint_id"]
             if endpoint_id in cross_refs.endpoint_to_schemas:
-                result_cross_refs["endpoint_to_schema"][endpoint_id] = cross_refs.endpoint_to_schemas[endpoint_id]
+                result_cross_refs["endpoint_to_schema"][
+                    endpoint_id
+                ] = cross_refs.endpoint_to_schemas[endpoint_id]
 
         # Map schemas to their endpoints
         for schema in schema_results:
             schema_id = schema["schema_id"]
             if schema_id in cross_refs.schema_to_endpoints:
-                result_cross_refs["schema_to_endpoint"][schema_id] = cross_refs.schema_to_endpoints[schema_id]
+                result_cross_refs["schema_to_endpoint"][
+                    schema_id
+                ] = cross_refs.schema_to_endpoints[schema_id]
 
         # Find related pairs
         for endpoint in endpoint_results:
             for schema in schema_results:
-                if self._are_related(endpoint["endpoint_id"], schema["schema_id"], cross_refs):
-                    result_cross_refs["related_pairs"].append({
-                        "endpoint_id": endpoint["endpoint_id"],
-                        "schema_id": schema["schema_id"],
-                        "relationship_type": self._get_relationship_type(
-                            endpoint["endpoint_id"], schema["schema_id"], cross_refs
-                        )
-                    })
+                if self._are_related(
+                    endpoint["endpoint_id"], schema["schema_id"], cross_refs
+                ):
+                    result_cross_refs["related_pairs"].append(
+                        {
+                            "endpoint_id": endpoint["endpoint_id"],
+                            "schema_id": schema["schema_id"],
+                            "relationship_type": self._get_relationship_type(
+                                endpoint["endpoint_id"],
+                                schema["schema_id"],
+                                cross_refs,
+                            ),
+                        }
+                    )
 
         return result_cross_refs
 
     def _are_related(
-        self,
-        endpoint_id: str,
-        schema_id: str,
-        cross_refs: CrossReferenceMap
+        self, endpoint_id: str, schema_id: str, cross_refs: CrossReferenceMap
     ) -> bool:
         """Check if endpoint and schema are related."""
         # Check if endpoint uses schema
@@ -503,10 +555,7 @@ class UnifiedSearchInterface:
         return False
 
     def _get_relationship_type(
-        self,
-        endpoint_id: str,
-        schema_id: str,
-        cross_refs: CrossReferenceMap
+        self, endpoint_id: str, schema_id: str, cross_refs: CrossReferenceMap
     ) -> Optional[str]:
         """Get the type of relationship between endpoint and schema."""
         if endpoint_id in cross_refs.endpoint_to_schemas:
@@ -518,7 +567,7 @@ class UnifiedSearchInterface:
     async def _enrich_results_with_relationships(
         self,
         results: List[UnifiedSearchResult],
-        cross_references: Dict[str, Any]
+        cross_references: Dict[str, Any],
     ) -> None:
         """Enrich search results with relationship information."""
         for result in results:
@@ -527,37 +576,45 @@ class UnifiedSearchInterface:
             if result.result_type == ResultType.ENDPOINT:
                 # Add schema relationships for endpoints
                 endpoint_id = result.result_id
-                if endpoint_id in cross_references.get("endpoint_to_schema", {}):
-                    schema_deps = cross_references["endpoint_to_schema"][endpoint_id]
+                if endpoint_id in cross_references.get(
+                    "endpoint_to_schema", {}
+                ):
+                    schema_deps = cross_references["endpoint_to_schema"][
+                        endpoint_id
+                    ]
                     for schema_dep in schema_deps:
-                        relationships.append({
-                            "type": "uses_schema",
-                            "target_id": schema_dep["schema_id"],
-                            "target_type": "schema",
-                            "context": schema_dep["context"],
-                            "details": schema_dep.get("details", {})
-                        })
+                        relationships.append(
+                            {
+                                "type": "uses_schema",
+                                "target_id": schema_dep["schema_id"],
+                                "target_type": "schema",
+                                "context": schema_dep["context"],
+                                "details": schema_dep.get("details", {}),
+                            }
+                        )
 
             elif result.result_type == ResultType.SCHEMA:
                 # Add endpoint relationships for schemas
                 schema_id = result.result_id
                 if schema_id in cross_references.get("schema_to_endpoint", {}):
-                    endpoint_usages = cross_references["schema_to_endpoint"][schema_id]
+                    endpoint_usages = cross_references["schema_to_endpoint"][
+                        schema_id
+                    ]
                     for endpoint_usage in endpoint_usages:
-                        relationships.append({
-                            "type": "used_by_endpoint",
-                            "target_id": endpoint_usage["endpoint_id"],
-                            "target_type": "endpoint",
-                            "context": endpoint_usage["context"],
-                            "details": endpoint_usage.get("details", {})
-                        })
+                        relationships.append(
+                            {
+                                "type": "used_by_endpoint",
+                                "target_id": endpoint_usage["endpoint_id"],
+                                "target_type": "endpoint",
+                                "context": endpoint_usage["context"],
+                                "details": endpoint_usage.get("details", {}),
+                            }
+                        )
 
             result.relationships = relationships
 
     async def _organize_unified_results(
-        self,
-        results: List[UnifiedSearchResult],
-        query: str
+        self, results: List[UnifiedSearchResult], query: str
     ) -> Dict[str, Any]:
         """Organize unified search results into meaningful categories."""
         organization = {
@@ -565,7 +622,7 @@ class UnifiedSearchInterface:
             "by_complexity": {"simple": 0, "moderate": 0, "complex": 0},
             "by_relevance": {"high": [], "medium": [], "low": []},
             "top_matches": [],
-            "related_groups": []
+            "related_groups": [],
         }
 
         # Count by type
@@ -602,7 +659,7 @@ class UnifiedSearchInterface:
         self,
         results: List[UnifiedSearchResult],
         query: str,
-        search_types: List[str]
+        search_types: List[str],
     ) -> List[UnifiedSearchResult]:
         """Apply intelligent ranking to unified search results."""
         # Apply type-specific boosts based on search type preferences
@@ -610,7 +667,7 @@ class UnifiedSearchInterface:
             "endpoints": {"endpoint": 1.0, "schema": 0.8},
             "schemas": {"endpoint": 0.8, "schema": 1.0},
             "mixed": {"endpoint": 1.0, "schema": 1.0},
-            "all": {"endpoint": 1.0, "schema": 1.0}
+            "all": {"endpoint": 1.0, "schema": 1.0},
         }
 
         primary_search_type = search_types[0] if search_types else "all"
@@ -626,35 +683,38 @@ class UnifiedSearchInterface:
         return sorted(results, key=lambda x: x.score, reverse=True)
 
     async def _generate_unified_suggestions(
-        self,
-        query: str,
-        result_count: int,
-        search_types: List[str]
+        self, query: str, result_count: int, search_types: List[str]
     ) -> List[Dict[str, Any]]:
         """Generate suggestions for improving unified search results."""
         suggestions = []
 
         # Low result count suggestions
         if result_count < 5:
-            suggestions.append({
-                "type": "broaden_search",
-                "suggestion": f"Try broader terms instead of '{query}'",
-                "description": "Use more general terms to find related content"
-            })
+            suggestions.append(
+                {
+                    "type": "broaden_search",
+                    "suggestion": f"Try broader terms instead of '{query}'",
+                    "description": "Use more general terms to find related content",
+                }
+            )
 
             # Suggest alternative search types
             if "endpoints" in search_types and "schemas" not in search_types:
-                suggestions.append({
-                    "type": "expand_search_type",
-                    "suggestion": "Include schema search",
-                    "description": "Search schemas to find data models related to your query"
-                })
+                suggestions.append(
+                    {
+                        "type": "expand_search_type",
+                        "suggestion": "Include schema search",
+                        "description": "Search schemas to find data models related to your query",
+                    }
+                )
 
             if "schemas" in search_types and "endpoints" not in search_types:
-                suggestions.append({
-                    "type": "expand_search_type",
-                    "suggestion": "Include endpoint search",
-                    "description": "Search endpoints to find APIs that use related schemas"
-                })
+                suggestions.append(
+                    {
+                        "type": "expand_search_type",
+                        "suggestion": "Include endpoint search",
+                        "description": "Search endpoints to find APIs that use related schemas",
+                    }
+                )
 
         return suggestions

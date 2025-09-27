@@ -1,11 +1,11 @@
 """CLI utility functions and helpers."""
 
 import os
+import subprocess
 import sys
 import time
-import subprocess
-from typing import Optional, Dict, Any, List
 from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 import click
 
@@ -16,26 +16,28 @@ def validate_swagger_file(file_path: str) -> bool:
         return False
 
     # Check file extension
-    if not file_path.lower().endswith(('.json', '.yaml', '.yml')):
+    if not file_path.lower().endswith((".json", ".yaml", ".yml")):
         return False
 
     # Basic content validation (full validation happens during conversion)
     try:
-        if file_path.lower().endswith('.json'):
+        if file_path.lower().endswith(".json"):
             import json
-            with open(file_path, 'r') as f:
+
+            with open(file_path, "r") as f:
                 data = json.load(f)
         else:
             import yaml
-            with open(file_path, 'r') as f:
+
+            with open(file_path, "r") as f:
                 data = yaml.safe_load(f)
 
         # Check for OpenAPI/Swagger indicators
         return (
-            'swagger' in data or
-            'openapi' in data or
-            'info' in data or
-            'paths' in data
+            "swagger" in data
+            or "openapi" in data
+            or "info" in data
+            or "paths" in data
         )
     except Exception:
         return False
@@ -68,6 +70,7 @@ def format_duration(seconds: float) -> str:
 def check_port_available(port: int, host: str = "localhost") -> bool:
     """Check if a port is available for binding."""
     import socket
+
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
             sock.settimeout(1)
@@ -77,7 +80,9 @@ def check_port_available(port: int, host: str = "localhost") -> bool:
         return False
 
 
-def find_free_port(start_port: int = 8080, end_port: int = 8180) -> Optional[int]:
+def find_free_port(
+    start_port: int = 8080, end_port: int = 8180
+) -> Optional[int]:
     """Find the next available port in the given range."""
     for port in range(start_port, end_port + 1):
         if check_port_available(port):
@@ -89,16 +94,20 @@ def confirm_action(message: str, default: bool = False) -> bool:
     """Ask user for confirmation with a yes/no prompt."""
     suffix = " [Y/n]" if default else " [y/N]"
     while True:
-        response = click.prompt(
-            message + suffix,
-            default="y" if default else "n",
-            show_default=False,
-            type=str
-        ).lower().strip()
+        response = (
+            click.prompt(
+                message + suffix,
+                default="y" if default else "n",
+                show_default=False,
+                type=str,
+            )
+            .lower()
+            .strip()
+        )
 
-        if response in ('y', 'yes'):
+        if response in ("y", "yes"):
             return True
-        elif response in ('n', 'no'):
+        elif response in ("n", "no"):
             return False
         else:
             click.echo("Please answer 'y' or 'n'")
@@ -110,13 +119,15 @@ def create_directory_safely(path: str, force: bool = False) -> bool:
 
     if path_obj.exists():
         if not path_obj.is_dir():
-            click.echo(f"Error: {path} exists but is not a directory", err=True)
+            click.echo(
+                f"Error: {path} exists but is not a directory", err=True
+            )
             return False
 
         if not force and any(path_obj.iterdir()):
             if not confirm_action(
                 f"Directory {path} is not empty. Continue anyway?",
-                default=False
+                default=False,
             ):
                 return False
 
@@ -136,7 +147,9 @@ def get_terminal_width() -> int:
         return 80  # Default width
 
 
-def print_table(headers: List[str], rows: List[List[str]], max_width: Optional[int] = None):
+def print_table(
+    headers: List[str], rows: List[List[str]], max_width: Optional[int] = None
+):
     """Print a formatted table to the console."""
     if not rows:
         return
@@ -168,7 +181,7 @@ def print_table(headers: List[str], rows: List[List[str]], max_width: Optional[i
     # Print rows
     for row in rows:
         formatted_row = " | ".join(
-            str(cell).ljust(col_widths[i])[:col_widths[i]]
+            str(cell).ljust(col_widths[i])[: col_widths[i]]
             for i, cell in enumerate(row)
         )
         click.echo(formatted_row)
@@ -178,7 +191,7 @@ def print_status_indicator(
     status: str,
     message: str,
     details: Optional[str] = None,
-    color: Optional[str] = None
+    color: Optional[str] = None,
 ):
     """Print a status indicator with optional details."""
     status_colors = {
@@ -186,7 +199,7 @@ def print_status_indicator(
         "warning": "yellow",
         "error": "red",
         "info": "blue",
-        "working": "cyan"
+        "working": "cyan",
     }
 
     # Status icons
@@ -195,7 +208,7 @@ def print_status_indicator(
         "warning": "⚠️",
         "error": "❌",
         "info": "ℹ️",
-        "working": "🔄"
+        "working": "🔄",
     }
 
     icon = status_icons.get(status, "•")
@@ -210,6 +223,7 @@ def print_status_indicator(
 
 def measure_performance(func):
     """Decorator to measure function execution time."""
+
     def wrapper(*args, **kwargs):
         start_time = time.time()
         try:
@@ -219,6 +233,7 @@ def measure_performance(func):
         except Exception as e:
             execution_time = time.time() - start_time
             raise e
+
     return wrapper
 
 
@@ -259,7 +274,7 @@ def check_dependencies() -> Dict[str, bool]:
 
 def print_version_info(detailed: bool = False):
     """Print version information and optionally system details."""
-    from .. import __version__, __author__
+    from .. import __author__, __version__
 
     click.echo(f"swagger-mcp-server version {__version__}")
     click.echo(f"Author: {__author__}")
@@ -277,12 +292,15 @@ def print_version_info(detailed: bool = False):
             click.echo(f"  {dep}: {status}")
 
 
-def safe_file_operation(operation, file_path: str, backup: bool = True) -> bool:
+def safe_file_operation(
+    operation, file_path: str, backup: bool = True
+) -> bool:
     """Safely perform file operations with optional backup."""
     if backup and os.path.exists(file_path):
         backup_path = f"{file_path}.backup"
         try:
             import shutil
+
             shutil.copy2(file_path, backup_path)
         except Exception as e:
             click.echo(f"Warning: Could not create backup: {e}", err=True)
@@ -296,6 +314,7 @@ def safe_file_operation(operation, file_path: str, backup: bool = True) -> bool:
         if backup and os.path.exists(f"{file_path}.backup"):
             try:
                 import shutil
+
                 shutil.move(f"{file_path}.backup", file_path)
                 click.echo("Restored from backup", err=True)
             except Exception:
@@ -327,8 +346,12 @@ def get_config_directories() -> Dict[str, Path]:
         config_dir = home / "AppData" / "Roaming" / "swagger-mcp-server"
         data_dir = home / "AppData" / "Local" / "swagger-mcp-server"
     elif system == "Darwin":  # macOS
-        config_dir = home / "Library" / "Application Support" / "swagger-mcp-server"
-        data_dir = home / "Library" / "Application Support" / "swagger-mcp-server"
+        config_dir = (
+            home / "Library" / "Application Support" / "swagger-mcp-server"
+        )
+        data_dir = (
+            home / "Library" / "Application Support" / "swagger-mcp-server"
+        )
     else:  # Linux and other Unix-like
         config_dir = home / ".config" / "swagger-mcp-server"
         data_dir = home / ".local" / "share" / "swagger-mcp-server"
@@ -337,14 +360,15 @@ def get_config_directories() -> Dict[str, Path]:
         "config": config_dir,
         "data": data_dir,
         "global_config": config_dir / "config.yaml",
-        "project_config": Path.cwd() / "swagger-mcp.yaml"
+        "project_config": Path.cwd() / "swagger-mcp.yaml",
     }
 
 
 def setup_logging(verbose: bool = False, quiet: bool = False):
     """Setup structured logging with appropriate levels."""
-    import structlog
     import logging
+
+    import structlog
 
     if quiet:
         level = logging.ERROR
@@ -359,9 +383,7 @@ def setup_logging(verbose: bool = False, quiet: bool = False):
     )
 
     structlog.configure(
-        processors=[
-            structlog.dev.ConsoleRenderer(colors=True)
-        ],
+        processors=[structlog.dev.ConsoleRenderer(colors=True)],
         wrapper_class=structlog.make_filtering_bound_logger(level),
         context_class=dict,
         logger_factory=structlog.WriteLoggerFactory(),

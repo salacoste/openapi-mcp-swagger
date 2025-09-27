@@ -1,8 +1,9 @@
 """Tests for environment configuration extraction."""
 
-import pytest
 import os
 from unittest.mock import patch
+
+import pytest
 
 from swagger_mcp_server.config import EnvironmentConfigExtractor
 
@@ -24,17 +25,17 @@ class TestEnvironmentConfigExtractor:
     def test_extract_environment_config_with_variables(self, extractor):
         """Test extracting environment configuration with variables set."""
         env_vars = {
-            'SWAGGER_MCP_SERVER_HOST': 'test.example.com',
-            'SWAGGER_MCP_SERVER_PORT': '9000',
-            'SWAGGER_MCP_SERVER_MAX_CONNECTIONS': '200',
-            'SWAGGER_MCP_SERVER_TIMEOUT': '60',
-            'SWAGGER_MCP_SERVER_SSL_ENABLED': 'true',
-            'SWAGGER_MCP_DATABASE_PATH': '/custom/path/db.sqlite',
-            'SWAGGER_MCP_DATABASE_POOL_SIZE': '10',
-            'SWAGGER_MCP_LOGGING_LEVEL': 'DEBUG',
-            'SWAGGER_MCP_LOGGING_FILE': '/var/log/server.log',
-            'SWAGGER_MCP_SEARCH_ENGINE': 'whoosh',
-            'SWAGGER_MCP_FEATURES_METRICS_ENABLED': 'false'
+            "SWAGGER_MCP_SERVER_HOST": "test.example.com",
+            "SWAGGER_MCP_SERVER_PORT": "9000",
+            "SWAGGER_MCP_SERVER_MAX_CONNECTIONS": "200",
+            "SWAGGER_MCP_SERVER_TIMEOUT": "60",
+            "SWAGGER_MCP_SERVER_SSL_ENABLED": "true",
+            "SWAGGER_MCP_DATABASE_PATH": "/custom/path/db.sqlite",
+            "SWAGGER_MCP_DATABASE_POOL_SIZE": "10",
+            "SWAGGER_MCP_LOGGING_LEVEL": "DEBUG",
+            "SWAGGER_MCP_LOGGING_FILE": "/var/log/server.log",
+            "SWAGGER_MCP_SEARCH_ENGINE": "whoosh",
+            "SWAGGER_MCP_FEATURES_METRICS_ENABLED": "false",
         }
 
         with patch.dict(os.environ, env_vars):
@@ -64,10 +65,10 @@ class TestEnvironmentConfigExtractor:
     def test_type_conversion_integers(self, extractor):
         """Test type conversion for integer values."""
         env_vars = {
-            'SWAGGER_MCP_SERVER_PORT': '8080',
-            'SWAGGER_MCP_SERVER_MAX_CONNECTIONS': '100',
-            'SWAGGER_MCP_DATABASE_POOL_SIZE': '5',
-            'SWAGGER_MCP_SEARCH_PERFORMANCE_CACHE_SIZE_MB': '64'
+            "SWAGGER_MCP_SERVER_PORT": "8080",
+            "SWAGGER_MCP_SERVER_MAX_CONNECTIONS": "100",
+            "SWAGGER_MCP_DATABASE_POOL_SIZE": "5",
+            "SWAGGER_MCP_SEARCH_PERFORMANCE_CACHE_SIZE_MB": "64",
         }
 
         with patch.dict(os.environ, env_vars):
@@ -76,51 +77,79 @@ class TestEnvironmentConfigExtractor:
             assert isinstance(config["server"]["port"], int)
             assert isinstance(config["server"]["max_connections"], int)
             assert isinstance(config["database"]["pool_size"], int)
-            assert isinstance(config["search"]["performance"]["cache_size_mb"], int)
+            assert isinstance(
+                config["search"]["performance"]["cache_size_mb"], int
+            )
 
     def test_type_conversion_floats(self, extractor):
         """Test type conversion for float values."""
         env_vars = {
-            'SWAGGER_MCP_SEARCH_FIELD_WEIGHTS_ENDPOINT_PATH': '1.5',
-            'SWAGGER_MCP_SEARCH_FIELD_WEIGHTS_SUMMARY': '1.2',
-            'SWAGGER_MCP_SEARCH_FIELD_WEIGHTS_DESCRIPTION': '1.0'
+            "SWAGGER_MCP_SEARCH_FIELD_WEIGHTS_ENDPOINT_PATH": "1.5",
+            "SWAGGER_MCP_SEARCH_FIELD_WEIGHTS_SUMMARY": "1.2",
+            "SWAGGER_MCP_SEARCH_FIELD_WEIGHTS_DESCRIPTION": "1.0",
         }
 
         with patch.dict(os.environ, env_vars):
             config = extractor.extract_environment_config()
 
-            assert isinstance(config["search"]["field_weights"]["endpoint_path"], float)
-            assert isinstance(config["search"]["field_weights"]["summary"], float)
-            assert isinstance(config["search"]["field_weights"]["description"], float)
+            assert isinstance(
+                config["search"]["field_weights"]["endpoint_path"], float
+            )
+            assert isinstance(
+                config["search"]["field_weights"]["summary"], float
+            )
+            assert isinstance(
+                config["search"]["field_weights"]["description"], float
+            )
 
     def test_type_conversion_booleans(self, extractor):
         """Test type conversion for boolean values."""
-        true_values = ['true', 'True', 'TRUE', '1', 'yes', 'Yes', 'on', 'ON']
-        false_values = ['false', 'False', 'FALSE', '0', 'no', 'No', 'off', 'OFF']
+        true_values = ["true", "True", "TRUE", "1", "yes", "Yes", "on", "ON"]
+        false_values = [
+            "false",
+            "False",
+            "FALSE",
+            "0",
+            "no",
+            "No",
+            "off",
+            "OFF",
+        ]
 
         for true_val in true_values:
-            with patch.dict(os.environ, {'SWAGGER_MCP_SERVER_SSL_ENABLED': true_val}):
+            with patch.dict(
+                os.environ, {"SWAGGER_MCP_SERVER_SSL_ENABLED": true_val}
+            ):
                 config = extractor.extract_environment_config()
                 assert config["server"]["ssl"]["enabled"] is True
 
         for false_val in false_values:
-            with patch.dict(os.environ, {'SWAGGER_MCP_SERVER_SSL_ENABLED': false_val}):
+            with patch.dict(
+                os.environ, {"SWAGGER_MCP_SERVER_SSL_ENABLED": false_val}
+            ):
                 config = extractor.extract_environment_config()
                 assert config["server"]["ssl"]["enabled"] is False
 
     def test_type_conversion_invalid_integer(self, extractor):
         """Test handling of invalid integer values."""
-        with patch.dict(os.environ, {'SWAGGER_MCP_SERVER_PORT': 'invalid'}):
+        with patch.dict(os.environ, {"SWAGGER_MCP_SERVER_PORT": "invalid"}):
             config = extractor.extract_environment_config()
             # Should skip invalid values
-            assert "server" not in config or "port" not in config.get("server", {})
+            assert "server" not in config or "port" not in config.get(
+                "server", {}
+            )
 
     def test_type_conversion_invalid_float(self, extractor):
         """Test handling of invalid float values."""
-        with patch.dict(os.environ, {'SWAGGER_MCP_SEARCH_FIELD_WEIGHTS_ENDPOINT_PATH': 'invalid'}):
+        with patch.dict(
+            os.environ,
+            {"SWAGGER_MCP_SEARCH_FIELD_WEIGHTS_ENDPOINT_PATH": "invalid"},
+        ):
             config = extractor.extract_environment_config()
             # Should skip invalid values
-            assert "search" not in config or "field_weights" not in config.get("search", {})
+            assert "search" not in config or "field_weights" not in config.get(
+                "search", {}
+            )
 
     def test_get_nested_config_value(self, extractor):
         """Test getting nested configuration values."""
@@ -128,29 +157,45 @@ class TestEnvironmentConfigExtractor:
             "server": {
                 "host": "localhost",
                 "port": 8080,
-                "ssl": {
-                    "enabled": True,
-                    "cert_file": "/path/to/cert.pem"
-                }
+                "ssl": {"enabled": True, "cert_file": "/path/to/cert.pem"},
             },
-            "database": {
-                "path": "./test.db"
-            }
+            "database": {"path": "./test.db"},
         }
 
         # Test simple nested access
-        assert extractor.get_nested_config_value(config, "server.host") == "localhost"
+        assert (
+            extractor.get_nested_config_value(config, "server.host")
+            == "localhost"
+        )
         assert extractor.get_nested_config_value(config, "server.port") == 8080
-        assert extractor.get_nested_config_value(config, "database.path") == "./test.db"
+        assert (
+            extractor.get_nested_config_value(config, "database.path")
+            == "./test.db"
+        )
 
         # Test deep nested access
-        assert extractor.get_nested_config_value(config, "server.ssl.enabled") is True
-        assert extractor.get_nested_config_value(config, "server.ssl.cert_file") == "/path/to/cert.pem"
+        assert (
+            extractor.get_nested_config_value(config, "server.ssl.enabled")
+            is True
+        )
+        assert (
+            extractor.get_nested_config_value(config, "server.ssl.cert_file")
+            == "/path/to/cert.pem"
+        )
 
         # Test non-existent keys
-        assert extractor.get_nested_config_value(config, "nonexistent.key") is None
-        assert extractor.get_nested_config_value(config, "server.nonexistent") is None
-        assert extractor.get_nested_config_value(config, "server.ssl.nonexistent") is None
+        assert (
+            extractor.get_nested_config_value(config, "nonexistent.key")
+            is None
+        )
+        assert (
+            extractor.get_nested_config_value(config, "server.nonexistent")
+            is None
+        )
+        assert (
+            extractor.get_nested_config_value(config, "server.ssl.nonexistent")
+            is None
+        )
 
     def test_set_nested_config(self, extractor):
         """Test setting nested configuration values."""
@@ -167,7 +212,9 @@ class TestEnvironmentConfigExtractor:
         # Test setting value in existing structure
         extractor.set_nested_config(config, "server.port", 8080)
         assert config["server"]["port"] == 8080
-        assert config["server"]["host"] == "localhost"  # Should preserve existing
+        assert (
+            config["server"]["host"] == "localhost"
+        )  # Should preserve existing
 
         # Test creating new branch
         extractor.set_nested_config(config, "database.path", "./test.db")
@@ -175,11 +222,26 @@ class TestEnvironmentConfigExtractor:
 
     def test_get_environment_variable_for_path(self, extractor):
         """Test getting environment variable name for configuration path."""
-        assert extractor.get_environment_variable_for_path("server.host") == "SWAGGER_MCP_SERVER_HOST"
-        assert extractor.get_environment_variable_for_path("server.port") == "SWAGGER_MCP_SERVER_PORT"
-        assert extractor.get_environment_variable_for_path("server.ssl.enabled") == "SWAGGER_MCP_SERVER_SSL_ENABLED"
-        assert extractor.get_environment_variable_for_path("database.path") == "SWAGGER_MCP_DATABASE_PATH"
-        assert extractor.get_environment_variable_for_path("logging.level") == "SWAGGER_MCP_LOGGING_LEVEL"
+        assert (
+            extractor.get_environment_variable_for_path("server.host")
+            == "SWAGGER_MCP_SERVER_HOST"
+        )
+        assert (
+            extractor.get_environment_variable_for_path("server.port")
+            == "SWAGGER_MCP_SERVER_PORT"
+        )
+        assert (
+            extractor.get_environment_variable_for_path("server.ssl.enabled")
+            == "SWAGGER_MCP_SERVER_SSL_ENABLED"
+        )
+        assert (
+            extractor.get_environment_variable_for_path("database.path")
+            == "SWAGGER_MCP_DATABASE_PATH"
+        )
+        assert (
+            extractor.get_environment_variable_for_path("logging.level")
+            == "SWAGGER_MCP_LOGGING_LEVEL"
+        )
 
     def test_get_environment_documentation(self, extractor):
         """Test getting environment variable documentation."""
@@ -203,9 +265,9 @@ class TestEnvironmentConfigExtractor:
         """Test that environment variables take precedence."""
         # This test verifies the behavior expected in configuration hierarchy
         env_vars = {
-            'SWAGGER_MCP_SERVER_HOST': 'env.example.com',
-            'SWAGGER_MCP_SERVER_PORT': '9000',
-            'SWAGGER_MCP_LOGGING_LEVEL': 'ERROR'
+            "SWAGGER_MCP_SERVER_HOST": "env.example.com",
+            "SWAGGER_MCP_SERVER_PORT": "9000",
+            "SWAGGER_MCP_LOGGING_LEVEL": "ERROR",
         }
 
         with patch.dict(os.environ, env_vars):
@@ -220,8 +282,8 @@ class TestEnvironmentConfigExtractor:
         """Test that partial environment configuration works correctly."""
         # Only set some environment variables
         env_vars = {
-            'SWAGGER_MCP_SERVER_PORT': '9000',
-            'SWAGGER_MCP_LOGGING_LEVEL': 'DEBUG'
+            "SWAGGER_MCP_SERVER_PORT": "9000",
+            "SWAGGER_MCP_LOGGING_LEVEL": "DEBUG",
         }
 
         with patch.dict(os.environ, env_vars):
@@ -239,9 +301,9 @@ class TestEnvironmentConfigExtractor:
         """Test that environment variables are validated according to type."""
         # Test with valid values
         valid_env = {
-            'SWAGGER_MCP_SERVER_PORT': '8080',
-            'SWAGGER_MCP_SERVER_SSL_ENABLED': 'true',
-            'SWAGGER_MCP_SEARCH_FIELD_WEIGHTS_ENDPOINT_PATH': '1.5'
+            "SWAGGER_MCP_SERVER_PORT": "8080",
+            "SWAGGER_MCP_SERVER_SSL_ENABLED": "true",
+            "SWAGGER_MCP_SEARCH_FIELD_WEIGHTS_ENDPOINT_PATH": "1.5",
         }
 
         with patch.dict(os.environ, valid_env):
@@ -252,27 +314,31 @@ class TestEnvironmentConfigExtractor:
 
         # Test with invalid values (should be skipped)
         invalid_env = {
-            'SWAGGER_MCP_SERVER_PORT': 'not_a_number',
-            'SWAGGER_MCP_SEARCH_FIELD_WEIGHTS_ENDPOINT_PATH': 'not_a_float'
+            "SWAGGER_MCP_SERVER_PORT": "not_a_number",
+            "SWAGGER_MCP_SEARCH_FIELD_WEIGHTS_ENDPOINT_PATH": "not_a_float",
         }
 
         with patch.dict(os.environ, invalid_env):
             config = extractor.extract_environment_config()
             # Invalid values should be skipped
-            assert "server" not in config or "port" not in config.get("server", {})
-            assert "search" not in config or "field_weights" not in config.get("search", {})
+            assert "server" not in config or "port" not in config.get(
+                "server", {}
+            )
+            assert "search" not in config or "field_weights" not in config.get(
+                "search", {}
+            )
 
     def test_complex_nested_environment_config(self, extractor):
         """Test complex nested environment configuration."""
         env_vars = {
-            'SWAGGER_MCP_SERVER_SSL_ENABLED': 'true',
-            'SWAGGER_MCP_SERVER_SSL_CERT_FILE': '/etc/ssl/cert.pem',
-            'SWAGGER_MCP_SERVER_SSL_KEY_FILE': '/etc/ssl/key.pem',
-            'SWAGGER_MCP_FEATURES_METRICS_ENABLED': 'true',
-            'SWAGGER_MCP_FEATURES_METRICS_ENDPOINT': '/custom-metrics',
-            'SWAGGER_MCP_FEATURES_HEALTH_CHECK_ENABLED': 'false',
-            'SWAGGER_MCP_FEATURES_RATE_LIMITING_ENABLED': 'true',
-            'SWAGGER_MCP_FEATURES_RATE_LIMITING_REQUESTS_PER_MINUTE': '500'
+            "SWAGGER_MCP_SERVER_SSL_ENABLED": "true",
+            "SWAGGER_MCP_SERVER_SSL_CERT_FILE": "/etc/ssl/cert.pem",
+            "SWAGGER_MCP_SERVER_SSL_KEY_FILE": "/etc/ssl/key.pem",
+            "SWAGGER_MCP_FEATURES_METRICS_ENABLED": "true",
+            "SWAGGER_MCP_FEATURES_METRICS_ENDPOINT": "/custom-metrics",
+            "SWAGGER_MCP_FEATURES_HEALTH_CHECK_ENABLED": "false",
+            "SWAGGER_MCP_FEATURES_RATE_LIMITING_ENABLED": "true",
+            "SWAGGER_MCP_FEATURES_RATE_LIMITING_REQUESTS_PER_MINUTE": "500",
         }
 
         with patch.dict(os.environ, env_vars):

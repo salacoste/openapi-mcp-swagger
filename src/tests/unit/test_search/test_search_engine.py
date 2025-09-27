@@ -1,18 +1,19 @@
 """Tests for search engine functionality."""
 
 import asyncio
-import tempfile
 import shutil
-from unittest.mock import Mock, AsyncMock, patch
+import tempfile
+from unittest.mock import AsyncMock, Mock, patch
+
 import pytest
 
+from swagger_mcp_server.config.settings import SearchConfig
+from swagger_mcp_server.search.index_manager import SearchIndexManager
 from swagger_mcp_server.search.search_engine import (
     SearchEngine,
-    SearchResult,
     SearchResponse,
+    SearchResult,
 )
-from swagger_mcp_server.search.index_manager import SearchIndexManager
-from swagger_mcp_server.config.settings import SearchConfig
 
 
 @pytest.fixture
@@ -52,7 +53,9 @@ def search_engine(mock_index_manager, search_config):
 class TestSearchEngine:
     """Test cases for SearchEngine class."""
 
-    def test_initialization(self, search_engine, mock_index_manager, search_config):
+    def test_initialization(
+        self, search_engine, mock_index_manager, search_config
+    ):
         """Test SearchEngine initialization."""
         assert search_engine.index_manager == mock_index_manager
         assert search_engine.config == search_config
@@ -61,10 +64,10 @@ class TestSearchEngine:
 
     def test_setup_query_parsers(self, search_engine):
         """Test that query parsers are set up correctly."""
-        assert hasattr(search_engine, 'multifield_parser')
-        assert hasattr(search_engine, 'path_parser')
-        assert hasattr(search_engine, 'description_parser')
-        assert hasattr(search_engine, 'parameter_parser')
+        assert hasattr(search_engine, "multifield_parser")
+        assert hasattr(search_engine, "path_parser")
+        assert hasattr(search_engine, "description_parser")
+        assert hasattr(search_engine, "parameter_parser")
 
     @pytest.mark.asyncio
     async def test_search_with_empty_query_raises_error(self, search_engine):
@@ -85,7 +88,9 @@ class TestSearchEngine:
             await search_engine.search("test", page=-1)
 
     @pytest.mark.asyncio
-    async def test_search_with_invalid_per_page_raises_error(self, search_engine):
+    async def test_search_with_invalid_per_page_raises_error(
+        self, search_engine
+    ):
         """Test that invalid per_page raises ValueError."""
         with pytest.raises(ValueError, match="per_page must be between"):
             await search_engine.search("test", per_page=0)
@@ -107,7 +112,11 @@ class TestSearchEngine:
                     description="Retrieve all users",
                     score=0.8,
                     highlights={"summary": "Get <em>users</em>"},
-                    metadata={"operation_id": "getUsers", "tags": "users", "deprecated": False}
+                    metadata={
+                        "operation_id": "getUsers",
+                        "tags": "users",
+                        "deprecated": False,
+                    },
                 )
             ],
             "total": 1,
@@ -115,7 +124,9 @@ class TestSearchEngine:
             "per_page": 20,
         }
 
-        with patch.object(search_engine, '_execute_search', new_callable=AsyncMock) as mock_execute:
+        with patch.object(
+            search_engine, "_execute_search", new_callable=AsyncMock
+        ) as mock_execute:
             mock_execute.return_value = mock_results
 
             response = await search_engine.search("users")
@@ -134,11 +145,22 @@ class TestSearchEngine:
         """Test search with filters applied."""
         filters = {"http_method": "GET", "deprecated": False}
 
-        with patch.object(search_engine, '_execute_search', new_callable=AsyncMock) as mock_execute:
-            mock_execute.return_value = {"hits": [], "total": 0, "page": 1, "per_page": 20}
+        with patch.object(
+            search_engine, "_execute_search", new_callable=AsyncMock
+        ) as mock_execute:
+            mock_execute.return_value = {
+                "hits": [],
+                "total": 0,
+                "page": 1,
+                "per_page": 20,
+            }
 
-            with patch.object(search_engine, '_parse_search_query') as mock_parse:
-                with patch.object(search_engine, '_apply_filters') as mock_filter:
+            with patch.object(
+                search_engine, "_parse_search_query"
+            ) as mock_parse:
+                with patch.object(
+                    search_engine, "_apply_filters"
+                ) as mock_filter:
                     mock_parse.return_value = Mock()
                     mock_filter.return_value = Mock()
 
@@ -158,7 +180,9 @@ class TestSearchEngine:
             "per_page": 10,
         }
 
-        with patch.object(search_engine, '_execute_search', new_callable=AsyncMock) as mock_execute:
+        with patch.object(
+            search_engine, "_execute_search", new_callable=AsyncMock
+        ) as mock_execute:
             mock_execute.return_value = mock_results
 
             response = await search_engine.search("test", page=2, per_page=10)
@@ -166,12 +190,16 @@ class TestSearchEngine:
             assert response.page == 2
             assert response.per_page == 10
             assert response.total_results == 100
-            assert response.has_more is True  # 100 total, page 2 of 10 per page
+            assert (
+                response.has_more is True
+            )  # 100 total, page 2 of 10 per page
 
     @pytest.mark.asyncio
     async def test_search_by_path_exact_match(self, search_engine):
         """Test searching by exact path match."""
-        with patch.object(search_engine, '_execute_search', new_callable=AsyncMock) as mock_execute:
+        with patch.object(
+            search_engine, "_execute_search", new_callable=AsyncMock
+        ) as mock_execute:
             mock_execute.return_value = {"hits": [], "total": 0}
 
             await search_engine.search_by_path("/api/users", exact_match=True)
@@ -185,17 +213,23 @@ class TestSearchEngine:
     @pytest.mark.asyncio
     async def test_search_by_path_with_http_methods(self, search_engine):
         """Test searching by path with HTTP method filter."""
-        with patch.object(search_engine, '_execute_search', new_callable=AsyncMock) as mock_execute:
+        with patch.object(
+            search_engine, "_execute_search", new_callable=AsyncMock
+        ) as mock_execute:
             mock_execute.return_value = {"hits": [], "total": 0}
 
-            await search_engine.search_by_path("/api/users", http_methods=["GET", "POST"])
+            await search_engine.search_by_path(
+                "/api/users", http_methods=["GET", "POST"]
+            )
 
             mock_execute.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_search_by_tag_single_tag(self, search_engine):
         """Test searching by a single tag."""
-        with patch.object(search_engine, '_execute_search', new_callable=AsyncMock) as mock_execute:
+        with patch.object(
+            search_engine, "_execute_search", new_callable=AsyncMock
+        ) as mock_execute:
             mock_execute.return_value = {"hits": [], "total": 0}
 
             await search_engine.search_by_tag("users")
@@ -205,7 +239,9 @@ class TestSearchEngine:
     @pytest.mark.asyncio
     async def test_search_by_tag_multiple_tags(self, search_engine):
         """Test searching by multiple tags."""
-        with patch.object(search_engine, '_execute_search', new_callable=AsyncMock) as mock_execute:
+        with patch.object(
+            search_engine, "_execute_search", new_callable=AsyncMock
+        ) as mock_execute:
             mock_execute.return_value = {"hits": [], "total": 0}
 
             await search_engine.search_by_tag(["users", "admin"])
@@ -215,10 +251,14 @@ class TestSearchEngine:
     @pytest.mark.asyncio
     async def test_search_by_tag_with_additional_query(self, search_engine):
         """Test searching by tag with additional text query."""
-        with patch.object(search_engine, '_execute_search', new_callable=AsyncMock) as mock_execute:
+        with patch.object(
+            search_engine, "_execute_search", new_callable=AsyncMock
+        ) as mock_execute:
             mock_execute.return_value = {"hits": [], "total": 0}
 
-            await search_engine.search_by_tag("users", additional_query="profile")
+            await search_engine.search_by_tag(
+                "users", additional_query="profile"
+            )
 
             mock_execute.assert_called_once()
 
@@ -227,7 +267,12 @@ class TestSearchEngine:
         """Test query suggestion functionality."""
         # Mock the index reader
         mock_reader = Mock()
-        mock_reader.field_terms.return_value = ["user", "users", "username", "profile"]
+        mock_reader.field_terms.return_value = [
+            "user",
+            "users",
+            "username",
+            "profile",
+        ]
         search_engine.index_manager.index.reader.return_value = mock_reader
 
         suggestions = await search_engine.suggest_queries("user", limit=3)
@@ -284,7 +329,7 @@ class TestSearchResult:
             description="A test endpoint",
             score=0.85,
             highlights={"summary": "Test <em>endpoint</em>"},
-            metadata={"operation_id": "getTest"}
+            metadata={"operation_id": "getTest"},
         )
 
         assert result.endpoint_id == "test_id"
@@ -311,7 +356,7 @@ class TestSearchResponse:
                 description="Test endpoint",
                 score=0.8,
                 highlights={},
-                metadata={}
+                metadata={},
             )
         ]
 
@@ -322,7 +367,7 @@ class TestSearchResponse:
             query="test",
             page=1,
             per_page=20,
-            has_more=False
+            has_more=False,
         )
 
         assert len(response.results) == 1
@@ -340,7 +385,9 @@ class TestErrorHandling:
     @pytest.mark.asyncio
     async def test_search_handles_search_exceptions(self, search_engine):
         """Test that search handles exceptions gracefully."""
-        with patch.object(search_engine, '_execute_search', new_callable=AsyncMock) as mock_execute:
+        with patch.object(
+            search_engine, "_execute_search", new_callable=AsyncMock
+        ) as mock_execute:
             mock_execute.side_effect = Exception("Search failed")
 
             with pytest.raises(RuntimeError, match="Search operation failed"):
@@ -349,7 +396,9 @@ class TestErrorHandling:
     @pytest.mark.asyncio
     async def test_search_by_path_handles_exceptions(self, search_engine):
         """Test that path search handles exceptions gracefully."""
-        with patch.object(search_engine, '_execute_search', new_callable=AsyncMock) as mock_execute:
+        with patch.object(
+            search_engine, "_execute_search", new_callable=AsyncMock
+        ) as mock_execute:
             mock_execute.side_effect = Exception("Path search failed")
 
             with pytest.raises(RuntimeError, match="Path search failed"):
@@ -358,7 +407,9 @@ class TestErrorHandling:
     @pytest.mark.asyncio
     async def test_search_by_tag_handles_exceptions(self, search_engine):
         """Test that tag search handles exceptions gracefully."""
-        with patch.object(search_engine, '_execute_search', new_callable=AsyncMock) as mock_execute:
+        with patch.object(
+            search_engine, "_execute_search", new_callable=AsyncMock
+        ) as mock_execute:
             mock_execute.side_effect = Exception("Tag search failed")
 
             with pytest.raises(RuntimeError, match="Tag search failed"):
@@ -367,7 +418,9 @@ class TestErrorHandling:
     @pytest.mark.asyncio
     async def test_suggest_queries_handles_exceptions(self, search_engine):
         """Test that query suggestions handle exceptions gracefully."""
-        search_engine.index_manager.index.reader.side_effect = Exception("Reader failed")
+        search_engine.index_manager.index.reader.side_effect = Exception(
+            "Reader failed"
+        )
 
         suggestions = await search_engine.suggest_queries("test")
 

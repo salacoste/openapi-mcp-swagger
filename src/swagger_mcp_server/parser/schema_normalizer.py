@@ -1,18 +1,25 @@
 """Main OpenAPI Schema Normalization Engine orchestrator."""
 
-from typing import Any, Dict, List, Optional, Tuple
 from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Tuple
 
-from swagger_mcp_server.parser.models import (
-    NormalizedEndpoint, NormalizedSchema, NormalizedSecurityScheme
+from swagger_mcp_server.config.logging import get_logger
+from swagger_mcp_server.parser.consistency_validator import (
+    ConsistencyValidator,
 )
 from swagger_mcp_server.parser.endpoint_normalizer import EndpointNormalizer
-from swagger_mcp_server.parser.schema_processor import SchemaProcessor
-from swagger_mcp_server.parser.security_mapper import SecurityMapper
 from swagger_mcp_server.parser.extension_handler import ExtensionHandler
-from swagger_mcp_server.parser.consistency_validator import ConsistencyValidator
-from swagger_mcp_server.parser.search_optimizer import SearchOptimizer, SearchIndex
-from swagger_mcp_server.config.logging import get_logger
+from swagger_mcp_server.parser.models import (
+    NormalizedEndpoint,
+    NormalizedSchema,
+    NormalizedSecurityScheme,
+)
+from swagger_mcp_server.parser.schema_processor import SchemaProcessor
+from swagger_mcp_server.parser.search_optimizer import (
+    SearchIndex,
+    SearchOptimizer,
+)
+from swagger_mcp_server.parser.security_mapper import SecurityMapper
 
 logger = get_logger(__name__)
 
@@ -20,6 +27,7 @@ logger = get_logger(__name__)
 @dataclass
 class NormalizationResult:
     """Result of the complete normalization process."""
+
     endpoints: List[NormalizedEndpoint]
     schemas: Dict[str, NormalizedSchema]
     security_schemes: Dict[str, NormalizedSecurityScheme]
@@ -33,6 +41,7 @@ class NormalizationResult:
 @dataclass
 class NormalizationConfig:
     """Configuration for the normalization process."""
+
     validate_consistency: bool = True
     optimize_for_search: bool = True
     include_extensions: bool = True
@@ -57,8 +66,7 @@ class SchemaNormalizer:
         self.search_optimizer = SearchOptimizer()
 
     def normalize_openapi_document(
-        self,
-        openapi_data: Dict[str, Any]
+        self, openapi_data: Dict[str, Any]
     ) -> NormalizationResult:
         """Normalize a complete OpenAPI document.
 
@@ -70,7 +78,7 @@ class SchemaNormalizer:
         """
         self.logger.info(
             "Starting OpenAPI document normalization",
-            openapi_version=openapi_data.get('openapi', 'unknown')
+            openapi_version=openapi_data.get("openapi", "unknown"),
         )
 
         all_errors = []
@@ -79,9 +87,11 @@ class SchemaNormalizer:
         try:
             # Step 1: Extract and normalize endpoints
             self.logger.info("Step 1: Normalizing endpoints")
-            endpoints, endpoint_errors, endpoint_warnings = self._normalize_endpoints(
-                openapi_data
-            )
+            (
+                endpoints,
+                endpoint_errors,
+                endpoint_warnings,
+            ) = self._normalize_endpoints(openapi_data)
             all_errors.extend(endpoint_errors)
             all_warnings.extend(endpoint_warnings)
 
@@ -95,9 +105,11 @@ class SchemaNormalizer:
 
             # Step 3: Map security schemes
             self.logger.info("Step 3: Mapping security schemes")
-            security_schemes, security_errors, security_warnings = self._map_security_schemes(
-                openapi_data
-            )
+            (
+                security_schemes,
+                security_errors,
+                security_warnings,
+            ) = self._map_security_schemes(openapi_data)
             all_errors.extend(security_errors)
             all_warnings.extend(security_warnings)
 
@@ -111,13 +123,16 @@ class SchemaNormalizer:
 
             # Step 5: Validate consistency
             consistency_report = {}
-            if self.config.validate_consistency and not self.config.performance_mode:
+            if (
+                self.config.validate_consistency
+                and not self.config.performance_mode
+            ):
                 self.logger.info("Step 5: Validating consistency")
                 consistency_report = self._validate_consistency(
                     endpoints, schemas, security_schemes
                 )
-                all_errors.extend(consistency_report.get('errors', []))
-                all_warnings.extend(consistency_report.get('warnings', []))
+                all_errors.extend(consistency_report.get("errors", []))
+                all_warnings.extend(consistency_report.get("warnings", []))
 
             # Step 6: Optimize for search
             search_index = None
@@ -142,7 +157,7 @@ class SchemaNormalizer:
                 errors=all_errors,
                 warnings=all_warnings,
                 statistics=statistics,
-                consistency_report=consistency_report
+                consistency_report=consistency_report,
             )
 
             self.logger.info(
@@ -152,15 +167,14 @@ class SchemaNormalizer:
                 security_schemes=len(security_schemes),
                 errors=len(all_errors),
                 warnings=len(all_warnings),
-                success=len(all_errors) == 0
+                success=len(all_errors) == 0,
             )
 
             return result
 
         except Exception as e:
             self.logger.error(
-                "Critical error during normalization",
-                error=str(e)
+                "Critical error during normalization", error=str(e)
             )
             # Return partial result with error
             return NormalizationResult(
@@ -171,16 +185,15 @@ class SchemaNormalizer:
                 errors=[f"Critical normalization error: {str(e)}"],
                 warnings=all_warnings,
                 statistics={},
-                consistency_report={}
+                consistency_report={},
             )
 
     def _normalize_endpoints(
-        self,
-        openapi_data: Dict[str, Any]
+        self, openapi_data: Dict[str, Any]
     ) -> Tuple[List[NormalizedEndpoint], List[str], List[str]]:
         """Normalize all endpoints from OpenAPI document."""
-        paths_data = openapi_data.get('paths', {})
-        global_security = openapi_data.get('security', [])
+        paths_data = openapi_data.get("paths", {})
+        global_security = openapi_data.get("security", [])
 
         if not paths_data:
             self.logger.warning("No paths found in OpenAPI document")
@@ -191,13 +204,12 @@ class SchemaNormalizer:
         )
 
     def _process_schemas(
-        self,
-        openapi_data: Dict[str, Any]
+        self, openapi_data: Dict[str, Any]
     ) -> Tuple[Dict[str, NormalizedSchema], List[str], List[str]]:
         """Process all schema definitions from OpenAPI document."""
-        components_data = openapi_data.get('components', {})
+        components_data = openapi_data.get("components", {})
 
-        if not components_data or 'schemas' not in components_data:
+        if not components_data or "schemas" not in components_data:
             self.logger.info("No schema definitions found")
             return {}, [], ["No schema definitions found"]
 
@@ -206,13 +218,12 @@ class SchemaNormalizer:
         )
 
     def _map_security_schemes(
-        self,
-        openapi_data: Dict[str, Any]
+        self, openapi_data: Dict[str, Any]
     ) -> Tuple[Dict[str, NormalizedSecurityScheme], List[str], List[str]]:
         """Map all security schemes from OpenAPI document."""
-        components_data = openapi_data.get('components', {})
+        components_data = openapi_data.get("components", {})
 
-        if not components_data or 'securitySchemes' not in components_data:
+        if not components_data or "securitySchemes" not in components_data:
             self.logger.info("No security schemes found")
             return {}, [], ["No security schemes defined"]
 
@@ -222,7 +233,7 @@ class SchemaNormalizer:
         self,
         endpoints: List[NormalizedEndpoint],
         schemas: Dict[str, NormalizedSchema],
-        security_schemes: Dict[str, NormalizedSecurityScheme]
+        security_schemes: Dict[str, NormalizedSecurityScheme],
     ) -> List[str]:
         """Process and validate extensions across all components."""
         warnings = []
@@ -232,27 +243,33 @@ class SchemaNormalizer:
 
         # Extensions from endpoints
         for endpoint in endpoints:
-            if hasattr(endpoint, 'extensions') and endpoint.extensions:
-                extension_warnings = self.extension_handler.validate_extensions(
-                    endpoint.extensions
+            if hasattr(endpoint, "extensions") and endpoint.extensions:
+                extension_warnings = (
+                    self.extension_handler.validate_extensions(
+                        endpoint.extensions
+                    )
                 )
                 warnings.extend(extension_warnings)
                 all_extensions.append(endpoint.extensions)
 
         # Extensions from schemas
         for schema in schemas.values():
-            if hasattr(schema, 'extensions') and schema.extensions:
-                extension_warnings = self.extension_handler.validate_extensions(
-                    schema.extensions
+            if hasattr(schema, "extensions") and schema.extensions:
+                extension_warnings = (
+                    self.extension_handler.validate_extensions(
+                        schema.extensions
+                    )
                 )
                 warnings.extend(extension_warnings)
                 all_extensions.append(schema.extensions)
 
         # Extensions from security schemes
         for scheme in security_schemes.values():
-            if hasattr(scheme, 'extensions') and scheme.extensions:
-                extension_warnings = self.extension_handler.validate_extensions(
-                    scheme.extensions
+            if hasattr(scheme, "extensions") and scheme.extensions:
+                extension_warnings = (
+                    self.extension_handler.validate_extensions(
+                        scheme.extensions
+                    )
                 )
                 warnings.extend(extension_warnings)
                 all_extensions.append(scheme.extensions)
@@ -264,8 +281,8 @@ class SchemaNormalizer:
             )
             self.logger.info(
                 "Extension processing completed",
-                total_extensions=extension_stats['total_extension_properties'],
-                unique_extensions=extension_stats['unique_extensions']
+                total_extensions=extension_stats["total_extension_properties"],
+                unique_extensions=extension_stats["unique_extensions"],
             )
 
         return warnings
@@ -274,7 +291,7 @@ class SchemaNormalizer:
         self,
         endpoints: List[NormalizedEndpoint],
         schemas: Dict[str, NormalizedSchema],
-        security_schemes: Dict[str, NormalizedSecurityScheme]
+        security_schemes: Dict[str, NormalizedSecurityScheme],
     ) -> Dict[str, Any]:
         """Validate consistency across all normalized components."""
         return self.consistency_validator.generate_consistency_report(
@@ -285,7 +302,7 @@ class SchemaNormalizer:
         self,
         endpoints: List[NormalizedEndpoint],
         schemas: Dict[str, NormalizedSchema],
-        security_schemes: Dict[str, NormalizedSecurityScheme]
+        security_schemes: Dict[str, NormalizedSecurityScheme],
     ) -> Optional[SearchIndex]:
         """Optimize normalized data for search operations."""
         try:
@@ -295,17 +312,16 @@ class SchemaNormalizer:
 
             # Apply performance optimizations if enabled
             if self.config.enable_search_optimization:
-                search_index = self.search_optimizer.optimize_search_performance(
-                    search_index
+                search_index = (
+                    self.search_optimizer.optimize_search_performance(
+                        search_index
+                    )
                 )
 
             return search_index
 
         except Exception as e:
-            self.logger.error(
-                "Failed to optimize for search",
-                error=str(e)
-            )
+            self.logger.error("Failed to optimize for search", error=str(e))
             return None
 
     def _generate_statistics(
@@ -313,45 +329,49 @@ class SchemaNormalizer:
         endpoints: List[NormalizedEndpoint],
         schemas: Dict[str, NormalizedSchema],
         security_schemes: Dict[str, NormalizedSecurityScheme],
-        search_index: Optional[SearchIndex]
+        search_index: Optional[SearchIndex],
     ) -> Dict[str, Any]:
         """Generate comprehensive statistics about normalized data."""
         stats = {
-            'normalization': {
-                'total_endpoints': len(endpoints),
-                'total_schemas': len(schemas),
-                'total_security_schemes': len(security_schemes),
-                'openapi_version': '3.0+',  # Detected version
+            "normalization": {
+                "total_endpoints": len(endpoints),
+                "total_schemas": len(schemas),
+                "total_security_schemes": len(security_schemes),
+                "openapi_version": "3.0+",  # Detected version
             },
-            'endpoints': {},
-            'schemas': {},
-            'security': {},
-            'search': {},
-            'quality_metrics': {}
+            "endpoints": {},
+            "schemas": {},
+            "security": {},
+            "search": {},
+            "quality_metrics": {},
         }
 
         # Endpoint statistics
         if endpoints:
-            stats['endpoints'] = self.endpoint_normalizer.get_endpoint_statistics(endpoints)
+            stats[
+                "endpoints"
+            ] = self.endpoint_normalizer.get_endpoint_statistics(endpoints)
 
         # Security statistics
         if security_schemes:
             # Create mock security requirements for statistics
             security_requirements = []
             for endpoint in endpoints:
-                if hasattr(endpoint, 'security') and endpoint.security:
+                if hasattr(endpoint, "security") and endpoint.security:
                     security_requirements.extend(endpoint.security)
 
-            stats['security'] = self.security_mapper.get_security_statistics(
+            stats["security"] = self.security_mapper.get_security_statistics(
                 security_schemes, security_requirements
             )
 
         # Search statistics
         if search_index:
-            stats['search'] = self.search_optimizer.get_search_statistics(search_index)
+            stats["search"] = self.search_optimizer.get_search_statistics(
+                search_index
+            )
 
         # Quality metrics
-        stats['quality_metrics'] = self._calculate_quality_metrics(
+        stats["quality_metrics"] = self._calculate_quality_metrics(
             endpoints, schemas, security_schemes
         )
 
@@ -361,53 +381,66 @@ class SchemaNormalizer:
         self,
         endpoints: List[NormalizedEndpoint],
         schemas: Dict[str, NormalizedSchema],
-        security_schemes: Dict[str, NormalizedSecurityScheme]
+        security_schemes: Dict[str, NormalizedSecurityScheme],
     ) -> Dict[str, Any]:
         """Calculate quality metrics for the normalized data."""
         metrics = {
-            'documentation_coverage': 0.0,
-            'schema_complexity': 0.0,
-            'security_coverage': 0.0,
-            'completeness_score': 0.0,
-            'overall_quality_score': 0.0
+            "documentation_coverage": 0.0,
+            "schema_complexity": 0.0,
+            "security_coverage": 0.0,
+            "completeness_score": 0.0,
+            "overall_quality_score": 0.0,
         }
 
         if not endpoints:
             return metrics
 
         # Documentation coverage
-        documented_endpoints = sum(1 for ep in endpoints
-                                 if ep.description or ep.summary)
-        metrics['documentation_coverage'] = documented_endpoints / len(endpoints) * 100
+        documented_endpoints = sum(
+            1 for ep in endpoints if ep.description or ep.summary
+        )
+        metrics["documentation_coverage"] = (
+            documented_endpoints / len(endpoints) * 100
+        )
 
         # Schema complexity (average properties per schema)
         if schemas:
-            total_properties = sum(len(schema.properties) for schema in schemas.values())
-            metrics['schema_complexity'] = total_properties / len(schemas)
+            total_properties = sum(
+                len(schema.properties) for schema in schemas.values()
+            )
+            metrics["schema_complexity"] = total_properties / len(schemas)
 
         # Security coverage
         secured_endpoints = sum(1 for ep in endpoints if ep.security)
         if endpoints:
-            metrics['security_coverage'] = secured_endpoints / len(endpoints) * 100
+            metrics["security_coverage"] = (
+                secured_endpoints / len(endpoints) * 100
+            )
 
         # Completeness score (endpoints with operation IDs)
         complete_endpoints = sum(1 for ep in endpoints if ep.operation_id)
-        metrics['completeness_score'] = complete_endpoints / len(endpoints) * 100
+        metrics["completeness_score"] = (
+            complete_endpoints / len(endpoints) * 100
+        )
 
         # Overall quality score (weighted average)
         quality_components = [
-            (metrics['documentation_coverage'], 0.3),
-            (metrics['security_coverage'], 0.2),
-            (metrics['completeness_score'], 0.3),
-            (min(100, metrics['schema_complexity'] * 10), 0.2)  # Cap at 100
+            (metrics["documentation_coverage"], 0.3),
+            (metrics["security_coverage"], 0.2),
+            (metrics["completeness_score"], 0.3),
+            (min(100, metrics["schema_complexity"] * 10), 0.2),  # Cap at 100
         ]
 
-        weighted_sum = sum(score * weight for score, weight in quality_components)
-        metrics['overall_quality_score'] = weighted_sum
+        weighted_sum = sum(
+            score * weight for score, weight in quality_components
+        )
+        metrics["overall_quality_score"] = weighted_sum
 
         return metrics
 
-    def get_normalization_summary(self, result: NormalizationResult) -> Dict[str, Any]:
+    def get_normalization_summary(
+        self, result: NormalizationResult
+    ) -> Dict[str, Any]:
         """Generate a human-readable summary of normalization results.
 
         Args:
@@ -417,39 +450,44 @@ class SchemaNormalizer:
             Dictionary with summary information
         """
         summary = {
-            'success': len(result.errors) == 0,
-            'components': {
-                'endpoints': len(result.endpoints),
-                'schemas': len(result.schemas),
-                'security_schemes': len(result.security_schemes)
+            "success": len(result.errors) == 0,
+            "components": {
+                "endpoints": len(result.endpoints),
+                "schemas": len(result.schemas),
+                "security_schemes": len(result.security_schemes),
             },
-            'issues': {
-                'errors': len(result.errors),
-                'warnings': len(result.warnings)
+            "issues": {
+                "errors": len(result.errors),
+                "warnings": len(result.warnings),
             },
-            'quality': result.statistics.get('quality_metrics', {}),
-            'search_ready': result.search_index is not None,
-            'recommendations': []
+            "quality": result.statistics.get("quality_metrics", {}),
+            "search_ready": result.search_index is not None,
+            "recommendations": [],
         }
 
         # Add recommendations based on results
-        if result.consistency_report and 'recommendations' in result.consistency_report:
-            summary['recommendations'].extend(result.consistency_report['recommendations'])
+        if (
+            result.consistency_report
+            and "recommendations" in result.consistency_report
+        ):
+            summary["recommendations"].extend(
+                result.consistency_report["recommendations"]
+            )
 
         # Quality-based recommendations
-        quality = summary['quality']
-        if quality.get('documentation_coverage', 0) < 50:
-            summary['recommendations'].append(
+        quality = summary["quality"]
+        if quality.get("documentation_coverage", 0) < 50:
+            summary["recommendations"].append(
                 "Consider adding descriptions to more endpoints for better documentation"
             )
 
-        if quality.get('security_coverage', 0) < 80:
-            summary['recommendations'].append(
+        if quality.get("security_coverage", 0) < 80:
+            summary["recommendations"].append(
                 "Review security requirements - many endpoints may lack proper authentication"
             )
 
-        if quality.get('completeness_score', 0) < 70:
-            summary['recommendations'].append(
+        if quality.get("completeness_score", 0) < 70:
+            summary["recommendations"].append(
                 "Add operation IDs to endpoints to improve API tooling compatibility"
             )
 

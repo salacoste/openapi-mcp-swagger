@@ -1,17 +1,18 @@
 """Main MCP server manager coordinating all server lifecycle operations."""
 
 import asyncio
-import time
 import signal
 import subprocess
 import sys
-from typing import Dict, Any, List, Optional
+import time
 from pathlib import Path
+from typing import Any, Dict, List, Optional
+
 import structlog
 
-from .server_registry import ServerRegistry, ServerInstance
-from .process_monitor import ProcessMonitor, HealthStatus, ServerMetrics
 from .daemon_manager import DaemonManager
+from .process_monitor import HealthStatus, ProcessMonitor, ServerMetrics
+from .server_registry import ServerInstance, ServerRegistry
 
 logger = structlog.get_logger(__name__)
 
@@ -19,7 +20,12 @@ logger = structlog.get_logger(__name__)
 class ServerError(Exception):
     """Server management error with user-friendly messages."""
 
-    def __init__(self, message: str, suggestion: Optional[str] = None, details: Optional[Dict] = None):
+    def __init__(
+        self,
+        message: str,
+        suggestion: Optional[str] = None,
+        details: Optional[Dict] = None,
+    ):
         self.message = message
         self.suggestion = suggestion
         self.details = details or {}
@@ -42,9 +48,9 @@ class MCPServerManager:
         # Track active interactive servers
         self.interactive_servers: Dict[str, subprocess.Popen] = {}
 
-    async def start_server(self,
-                          server_config: Dict[str, Any],
-                          daemon: bool = False) -> Dict[str, Any]:
+    async def start_server(
+        self, server_config: Dict[str, Any], daemon: bool = False
+    ) -> Dict[str, Any]:
         """Start MCP server with specified configuration.
 
         Args:
@@ -63,7 +69,7 @@ class MCPServerManager:
             if not await self.registry.is_port_available(port):
                 raise ServerError(
                     f"Port {port} is already in use",
-                    f"Choose a different port with --port option or stop the conflicting server"
+                    f"Choose a different port with --port option or stop the conflicting server",
                 )
 
             # Clean up any dead servers
@@ -75,13 +81,17 @@ class MCPServerManager:
                 return await self._start_interactive_server(server_config)
 
         except Exception as e:
-            logger.error("Failed to start server", error=str(e), config=server_config)
+            logger.error(
+                "Failed to start server", error=str(e), config=server_config
+            )
             if isinstance(e, ServerError):
                 raise
             else:
                 raise ServerError(f"Failed to start server: {str(e)}")
 
-    async def stop_server(self, server_id: str, force: bool = False, timeout: int = 30) -> Dict[str, Any]:
+    async def stop_server(
+        self, server_id: str, force: bool = False, timeout: int = 30
+    ) -> Dict[str, Any]:
         """Stop running MCP server.
 
         Args:
@@ -107,9 +117,13 @@ class MCPServerManager:
 
             # Stop based on server type
             if server_id in self.interactive_servers:
-                success = await self._stop_interactive_server(server_id, force, timeout)
+                success = await self._stop_interactive_server(
+                    server_id, force, timeout
+                )
             else:
-                success = await self._stop_daemon_server(server_id, force, timeout)
+                success = await self._stop_daemon_server(
+                    server_id, force, timeout
+                )
 
             if success:
                 # Remove from registry
@@ -119,7 +133,7 @@ class MCPServerManager:
                     "status": "stopped",
                     "server_id": server_id,
                     "shutdown_time": time.time() - start_time,
-                    "method": "forced" if force else "graceful"
+                    "method": "forced" if force else "graceful",
                 }
 
                 logger.info("Server stopped successfully", **result)
@@ -150,13 +164,17 @@ class MCPServerManager:
 
             # Get process metrics
             async with self.process_monitor:
-                process_metrics = await self.process_monitor.get_process_metrics(server.pid)
+                process_metrics = (
+                    await self.process_monitor.get_process_metrics(server.pid)
+                )
                 if not process_metrics:
-                    await self.registry.update_server_status(server_id, "stopped")
+                    await self.registry.update_server_status(
+                        server_id, "stopped"
+                    )
                     return {
                         "server": server.to_dict(),
                         "status": "stopped",
-                        "message": "Process not found"
+                        "message": "Process not found",
                     }
 
                 # Get health status
@@ -173,7 +191,9 @@ class MCPServerManager:
             if health_status.is_healthy:
                 await self.registry.update_server_status(server_id, "running")
             else:
-                await self.registry.update_server_status(server_id, "unhealthy")
+                await self.registry.update_server_status(
+                    server_id, "unhealthy"
+                )
 
             return {
                 "server": server.to_dict(),
@@ -186,19 +206,31 @@ class MCPServerManager:
                         "threads": process_metrics.threads,
                         "connections": process_metrics.connections,
                         "uptime_seconds": process_metrics.uptime_seconds,
-                        "status": process_metrics.status
+                        "status": process_metrics.status,
                     },
                     "server": {
-                        "requests_total": server_metrics.requests_total if server_metrics else 0,
-                        "requests_per_minute": server_metrics.requests_per_minute if server_metrics else 0,
-                        "response_time_avg_ms": server_metrics.response_time_avg_ms if server_metrics else 0,
-                        "response_time_p95_ms": server_metrics.response_time_p95_ms if server_metrics else 0,
-                        "active_connections": server_metrics.active_connections if server_metrics else 0,
-                        "error_rate": server_metrics.error_rate if server_metrics else 0
-                    }
+                        "requests_total": server_metrics.requests_total
+                        if server_metrics
+                        else 0,
+                        "requests_per_minute": server_metrics.requests_per_minute
+                        if server_metrics
+                        else 0,
+                        "response_time_avg_ms": server_metrics.response_time_avg_ms
+                        if server_metrics
+                        else 0,
+                        "response_time_p95_ms": server_metrics.response_time_p95_ms
+                        if server_metrics
+                        else 0,
+                        "active_connections": server_metrics.active_connections
+                        if server_metrics
+                        else 0,
+                        "error_rate": server_metrics.error_rate
+                        if server_metrics
+                        else 0,
+                    },
                 },
                 "uptime": server.uptime,
-                "url": server.url
+                "url": server.url,
             }
 
         except Exception as e:
@@ -227,18 +259,22 @@ class MCPServerManager:
                     status_list.append(status)
                 except Exception as e:
                     # Include error information for failed status checks
-                    status_list.append({
-                        "server": server.to_dict(),
-                        "status": "error",
-                        "error": str(e)
-                    })
+                    status_list.append(
+                        {
+                            "server": server.to_dict(),
+                            "status": "error",
+                            "error": str(e),
+                        }
+                    )
 
             return status_list
 
         except Exception as e:
             raise ServerError(f"Failed to get all servers status: {str(e)}")
 
-    async def restart_server(self, server_id: str, timeout: int = 30) -> Dict[str, Any]:
+    async def restart_server(
+        self, server_id: str, timeout: int = 30
+    ) -> Dict[str, Any]:
         """Restart a running server.
 
         Args:
@@ -262,7 +298,7 @@ class MCPServerManager:
                 "config_file": server.config_file,
                 "working_directory": server.working_directory,
                 "api_title": server.api_title,
-                "swagger_file": server.swagger_file
+                "swagger_file": server.swagger_file,
             }
 
             # Determine if it was a daemon
@@ -275,14 +311,16 @@ class MCPServerManager:
             await asyncio.sleep(1)
 
             # Start the server again
-            start_result = await self.start_server(server_config, daemon=daemon_mode)
+            start_result = await self.start_server(
+                server_config, daemon=daemon_mode
+            )
 
             return {
                 "status": "restarted",
                 "old_server_id": server_id,
                 "new_server_id": start_result["server_id"],
                 "stop_time": stop_result.get("shutdown_time", 0),
-                "start_time": start_result.get("startup_time", 0)
+                "start_time": start_result.get("startup_time", 0),
             }
 
         except Exception as e:
@@ -310,22 +348,27 @@ class MCPServerManager:
             if not work_dir.exists():
                 raise ServerError(
                     f"Working directory does not exist: {work_dir}",
-                    "Create the directory or specify a valid path"
+                    "Create the directory or specify a valid path",
                 )
 
-    async def _start_daemon_server(self, server_config: Dict[str, Any]) -> Dict[str, Any]:
+    async def _start_daemon_server(
+        self, server_config: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Start server in daemon mode."""
         # Start daemon process
-        process_info = await self.daemon_manager.start_daemon_server(server_config)
+        process_info = await self.daemon_manager.start_daemon_server(
+            server_config
+        )
 
         # Register server
-        server_instance = await self.registry.register_server({
-            **server_config,
-            "pid": process_info["pid"]
-        })
+        server_instance = await self.registry.register_server(
+            {**server_config, "pid": process_info["pid"]}
+        )
 
         # Wait for server to be ready
-        await self._wait_for_server_ready(server_instance.host, server_instance.port)
+        await self._wait_for_server_ready(
+            server_instance.host, server_instance.port
+        )
 
         # Update status to running
         await self.registry.update_server_status(server_instance.id, "running")
@@ -337,23 +380,29 @@ class MCPServerManager:
             "host": server_instance.host,
             "port": server_instance.port,
             "daemon": True,
-            "startup_time": time.time() - server_instance.start_time
+            "startup_time": time.time() - server_instance.start_time,
         }
 
-    async def _start_interactive_server(self, server_config: Dict[str, Any]) -> Dict[str, Any]:
+    async def _start_interactive_server(
+        self, server_config: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Start server in interactive mode."""
         # For interactive mode, we'll use a simpler approach
         # In a real implementation, this would start the actual MCP server
         raise ServerError(
             "Interactive server mode not yet implemented",
-            "Use daemon mode with --daemon flag for now"
+            "Use daemon mode with --daemon flag for now",
         )
 
-    async def _stop_daemon_server(self, server_id: str, force: bool, timeout: int) -> bool:
+    async def _stop_daemon_server(
+        self, server_id: str, force: bool, timeout: int
+    ) -> bool:
         """Stop daemon server."""
         return await self.daemon_manager.stop_daemon_server(server_id, timeout)
 
-    async def _stop_interactive_server(self, server_id: str, force: bool, timeout: int) -> bool:
+    async def _stop_interactive_server(
+        self, server_id: str, force: bool, timeout: int
+    ) -> bool:
         """Stop interactive server."""
         if server_id not in self.interactive_servers:
             return False
@@ -379,16 +428,23 @@ class MCPServerManager:
             return True
 
         except Exception as e:
-            logger.error("Failed to stop interactive server", server_id=server_id, error=str(e))
+            logger.error(
+                "Failed to stop interactive server",
+                server_id=server_id,
+                error=str(e),
+            )
             return False
 
-    async def _wait_for_server_ready(self, host: str, port: int, timeout: int = 30):
+    async def _wait_for_server_ready(
+        self, host: str, port: int, timeout: int = 30
+    ):
         """Wait for server to be ready to accept connections."""
         start_time = time.time()
 
         while time.time() - start_time < timeout:
             try:
                 import socket
+
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 sock.settimeout(1)
                 result = sock.connect_ex((host, port))
@@ -405,5 +461,5 @@ class MCPServerManager:
 
         raise ServerError(
             f"Server did not become ready within {timeout} seconds",
-            "Check server logs for startup errors"
+            "Check server logs for startup errors",
         )

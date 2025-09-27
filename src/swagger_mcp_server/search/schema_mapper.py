@@ -6,18 +6,19 @@ as specified in Story 3.5.
 """
 
 import asyncio
-from typing import Dict, Any, List, Optional, Set, Tuple
 from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Set, Tuple
 
-from ..storage.repositories.schema_repository import SchemaRepository
-from ..storage.repositories.endpoint_repository import EndpointRepository
 from ..config.settings import SearchConfig
+from ..storage.repositories.endpoint_repository import EndpointRepository
+from ..storage.repositories.schema_repository import SchemaRepository
 from .schema_indexing import SchemaUsageContext
 
 
 @dataclass
 class SchemaEndpointRelationship:
     """Represents a relationship between a schema and an endpoint."""
+
     schema_id: str
     endpoint_id: str
     context: SchemaUsageContext
@@ -28,6 +29,7 @@ class SchemaEndpointRelationship:
 @dataclass
 class CrossReferenceMap:
     """Complete cross-reference mapping between schemas and endpoints."""
+
     schema_to_endpoints: Dict[str, List[Dict[str, Any]]]
     endpoint_to_schemas: Dict[str, List[Dict[str, Any]]]
     relationship_graph: List[SchemaEndpointRelationship]
@@ -80,18 +82,22 @@ class SchemaEndpointMapper:
                 schema_to_endpoints[schema_id] = []
                 dependency_matrix[schema_id] = set()
 
-                endpoint_relationships = await self._map_schema_endpoint_relationships(
-                    schema_id, endpoints
+                endpoint_relationships = (
+                    await self._map_schema_endpoint_relationships(
+                        schema_id, endpoints
+                    )
                 )
 
                 for relationship in endpoint_relationships:
                     # Add to schema-to-endpoint mapping
-                    schema_to_endpoints[schema_id].append({
-                        "endpoint_id": relationship.endpoint_id,
-                        "context": relationship.context.value,
-                        "details": relationship.details,
-                        "score": relationship.bidirectional_score
-                    })
+                    schema_to_endpoints[schema_id].append(
+                        {
+                            "endpoint_id": relationship.endpoint_id,
+                            "context": relationship.context.value,
+                            "details": relationship.details,
+                            "score": relationship.bidirectional_score,
+                        }
+                    )
 
                     # Add to relationship graph
                     relationship_graph.append(relationship)
@@ -105,8 +111,10 @@ class SchemaEndpointMapper:
                 if endpoint_id not in endpoint_to_schemas:
                     endpoint_to_schemas[endpoint_id] = []
 
-                schema_dependencies = await self._map_endpoint_schema_dependencies(
-                    endpoint_id, schemas
+                schema_dependencies = (
+                    await self._map_endpoint_schema_dependencies(
+                        endpoint_id, schemas
+                    )
                 )
 
                 for schema_dep in schema_dependencies:
@@ -116,16 +124,16 @@ class SchemaEndpointMapper:
                 schema_to_endpoints=schema_to_endpoints,
                 endpoint_to_schemas=endpoint_to_schemas,
                 relationship_graph=relationship_graph,
-                dependency_matrix=dependency_matrix
+                dependency_matrix=dependency_matrix,
             )
 
         except Exception as e:
-            raise RuntimeError(f"Failed to create cross-reference map: {e}") from e
+            raise RuntimeError(
+                f"Failed to create cross-reference map: {e}"
+            ) from e
 
     async def _map_schema_endpoint_relationships(
-        self,
-        schema_id: str,
-        endpoints: List[Dict[str, Any]]
+        self, schema_id: str, endpoints: List[Dict[str, Any]]
     ) -> List[SchemaEndpointRelationship]:
         """Map all relationships between a schema and endpoints.
 
@@ -142,14 +150,18 @@ class SchemaEndpointMapper:
             endpoint_id = endpoint.get("id", endpoint.get("endpoint_id"))
 
             # Check request body usage
-            request_relationships = await self._find_request_body_relationships(
-                schema_id, endpoint
+            request_relationships = (
+                await self._find_request_body_relationships(
+                    schema_id, endpoint
+                )
             )
             relationships.extend(request_relationships)
 
             # Check response body usage
-            response_relationships = await self._find_response_body_relationships(
-                schema_id, endpoint
+            response_relationships = (
+                await self._find_response_body_relationships(
+                    schema_id, endpoint
+                )
             )
             relationships.extend(response_relationships)
 
@@ -162,9 +174,7 @@ class SchemaEndpointMapper:
         return relationships
 
     async def _find_request_body_relationships(
-        self,
-        schema_id: str,
-        endpoint: Dict[str, Any]
+        self, schema_id: str, endpoint: Dict[str, Any]
     ) -> List[SchemaEndpointRelationship]:
         """Find request body relationships between schema and endpoint.
 
@@ -196,11 +206,13 @@ class SchemaEndpointMapper:
                     details={
                         "content_type": content_type,
                         "required": request_body.get("required", True),
-                        "description": request_body.get("description", "")
+                        "description": request_body.get("description", ""),
                     },
                     bidirectional_score=self._calculate_relationship_score(
-                        "request_body", content_type, request_body.get("required", True)
-                    )
+                        "request_body",
+                        content_type,
+                        request_body.get("required", True),
+                    ),
                 )
                 relationships.append(relationship)
 
@@ -216,20 +228,20 @@ class SchemaEndpointMapper:
                             "content_type": content_type,
                             "required": request_body.get("required", True),
                             "array_type": True,
-                            "description": request_body.get("description", "")
+                            "description": request_body.get("description", ""),
                         },
                         bidirectional_score=self._calculate_relationship_score(
-                            "request_body", content_type, request_body.get("required", True)
-                        )
+                            "request_body",
+                            content_type,
+                            request_body.get("required", True),
+                        ),
                     )
                     relationships.append(relationship)
 
         return relationships
 
     async def _find_response_body_relationships(
-        self,
-        schema_id: str,
-        endpoint: Dict[str, Any]
+        self, schema_id: str, endpoint: Dict[str, Any]
     ) -> List[SchemaEndpointRelationship]:
         """Find response body relationships between schema and endpoint.
 
@@ -261,11 +273,13 @@ class SchemaEndpointMapper:
                             "status_code": status_code,
                             "content_type": content_type,
                             "description": response_def.get("description", ""),
-                            "success_response": status_code.startswith("2")
+                            "success_response": status_code.startswith("2"),
                         },
                         bidirectional_score=self._calculate_relationship_score(
-                            "response_body", content_type, status_code.startswith("2")
-                        )
+                            "response_body",
+                            content_type,
+                            status_code.startswith("2"),
+                        ),
                     )
                     relationships.append(relationship)
 
@@ -281,21 +295,25 @@ class SchemaEndpointMapper:
                                 "status_code": status_code,
                                 "content_type": content_type,
                                 "array_type": True,
-                                "description": response_def.get("description", ""),
-                                "success_response": status_code.startswith("2")
+                                "description": response_def.get(
+                                    "description", ""
+                                ),
+                                "success_response": status_code.startswith(
+                                    "2"
+                                ),
                             },
                             bidirectional_score=self._calculate_relationship_score(
-                                "response_body", content_type, status_code.startswith("2")
-                            )
+                                "response_body",
+                                content_type,
+                                status_code.startswith("2"),
+                            ),
                         )
                         relationships.append(relationship)
 
         return relationships
 
     async def _find_parameter_relationships(
-        self,
-        schema_id: str,
-        endpoint: Dict[str, Any]
+        self, schema_id: str, endpoint: Dict[str, Any]
     ) -> List[SchemaEndpointRelationship]:
         """Find parameter relationships between schema and endpoint.
 
@@ -324,20 +342,20 @@ class SchemaEndpointMapper:
                         "parameter_name": param.get("name", ""),
                         "parameter_location": param.get("in", "query"),
                         "required": param.get("required", False),
-                        "description": param.get("description", "")
+                        "description": param.get("description", ""),
                     },
                     bidirectional_score=self._calculate_relationship_score(
-                        "parameter", param.get("in", "query"), param.get("required", False)
-                    )
+                        "parameter",
+                        param.get("in", "query"),
+                        param.get("required", False),
+                    ),
                 )
                 relationships.append(relationship)
 
         return relationships
 
     async def _map_endpoint_schema_dependencies(
-        self,
-        endpoint_id: str,
-        schemas: List[Dict[str, Any]]
+        self, endpoint_id: str, schemas: List[Dict[str, Any]]
     ) -> List[Dict[str, Any]]:
         """Map all schema dependencies for an endpoint.
 
@@ -368,14 +386,16 @@ class SchemaEndpointMapper:
                         "context": schema_ref["context"],
                         "details": schema_ref["details"],
                         "complexity": self._assess_schema_complexity(schema),
-                        "score": schema_ref["score"]
+                        "score": schema_ref["score"],
                     }
                     dependencies.append(dependency)
                     break
 
         return dependencies
 
-    def _extract_schema_references(self, endpoint: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def _extract_schema_references(
+        self, endpoint: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:
         """Extract all schema references from an endpoint definition.
 
         Args:
@@ -392,7 +412,7 @@ class SchemaEndpointMapper:
             refs = self._extract_refs_from_content(
                 request_body.get("content", {}),
                 "request_body",
-                {"required": request_body.get("required", True)}
+                {"required": request_body.get("required", True)},
             )
             references.extend(refs)
 
@@ -404,8 +424,8 @@ class SchemaEndpointMapper:
                 "response_body",
                 {
                     "status_code": status_code,
-                    "success_response": status_code.startswith("2")
-                }
+                    "success_response": status_code.startswith("2"),
+                },
             )
             references.extend(refs)
 
@@ -415,18 +435,22 @@ class SchemaEndpointMapper:
             schema_ref = param.get("schema", {}).get("$ref", "")
             if schema_ref:
                 schema_id = schema_ref.split("/")[-1]
-                references.append({
-                    "schema_id": schema_id,
-                    "context": "parameter",
-                    "details": {
-                        "parameter_name": param.get("name", ""),
-                        "parameter_location": param.get("in", "query"),
-                        "required": param.get("required", False)
-                    },
-                    "score": self._calculate_relationship_score(
-                        "parameter", param.get("in", "query"), param.get("required", False)
-                    )
-                })
+                references.append(
+                    {
+                        "schema_id": schema_id,
+                        "context": "parameter",
+                        "details": {
+                            "parameter_name": param.get("name", ""),
+                            "parameter_location": param.get("in", "query"),
+                            "required": param.get("required", False),
+                        },
+                        "score": self._calculate_relationship_score(
+                            "parameter",
+                            param.get("in", "query"),
+                            param.get("required", False),
+                        ),
+                    }
+                )
 
         return references
 
@@ -434,7 +458,7 @@ class SchemaEndpointMapper:
         self,
         content: Dict[str, Any],
         context: str,
-        base_details: Dict[str, Any]
+        base_details: Dict[str, Any],
     ) -> List[Dict[str, Any]]:
         """Extract schema references from content definitions.
 
@@ -456,37 +480,46 @@ class SchemaEndpointMapper:
             if ref_url:
                 schema_id = ref_url.split("/")[-1]
                 details = {**base_details, "content_type": content_type}
-                references.append({
-                    "schema_id": schema_id,
-                    "context": context,
-                    "details": details,
-                    "score": self._calculate_relationship_score(
-                        context, content_type, details.get("required", True)
-                    )
-                })
+                references.append(
+                    {
+                        "schema_id": schema_id,
+                        "context": context,
+                        "details": details,
+                        "score": self._calculate_relationship_score(
+                            context,
+                            content_type,
+                            details.get("required", True),
+                        ),
+                    }
+                )
 
             # Array type
             elif schema_ref.get("type") == "array":
                 items_ref = schema_ref.get("items", {}).get("$ref", "")
                 if items_ref:
                     schema_id = items_ref.split("/")[-1]
-                    details = {**base_details, "content_type": content_type, "array_type": True}
-                    references.append({
-                        "schema_id": schema_id,
-                        "context": context,
-                        "details": details,
-                        "score": self._calculate_relationship_score(
-                            context, content_type, details.get("required", True)
-                        )
-                    })
+                    details = {
+                        **base_details,
+                        "content_type": content_type,
+                        "array_type": True,
+                    }
+                    references.append(
+                        {
+                            "schema_id": schema_id,
+                            "context": context,
+                            "details": details,
+                            "score": self._calculate_relationship_score(
+                                context,
+                                content_type,
+                                details.get("required", True),
+                            ),
+                        }
+                    )
 
         return references
 
     def _calculate_relationship_score(
-        self,
-        context: str,
-        type_or_location: str,
-        importance_factor: bool
+        self, context: str, type_or_location: str, importance_factor: bool
     ) -> float:
         """Calculate a relevance score for a schema-endpoint relationship.
 
@@ -502,9 +535,9 @@ class SchemaEndpointMapper:
 
         # Context importance
         context_weights = {
-            "request_body": 0.9,    # High importance for input validation
-            "response_body": 0.8,   # High importance for output understanding
-            "parameter": 0.6        # Moderate importance
+            "request_body": 0.9,  # High importance for input validation
+            "response_body": 0.8,  # High importance for output understanding
+            "parameter": 0.6,  # Moderate importance
         }
         base_score *= context_weights.get(context, 0.5)
 
@@ -518,10 +551,10 @@ class SchemaEndpointMapper:
                 base_score *= 0.6
         elif context == "parameter":
             location_weights = {
-                "path": 1.0,      # Path parameters are critical
-                "query": 0.8,     # Query parameters are common
-                "header": 0.6,    # Headers are less common
-                "cookie": 0.4     # Cookies are least common
+                "path": 1.0,  # Path parameters are critical
+                "query": 0.8,  # Query parameters are common
+                "header": 0.6,  # Headers are less common
+                "cookie": 0.4,  # Cookies are least common
             }
             base_score *= location_weights.get(type_or_location, 0.5)
 
@@ -555,7 +588,9 @@ class SchemaEndpointMapper:
         # Nested references
         nested_refs = 0
         for prop in properties.values():
-            if "$ref" in prop or (prop.get("type") == "array" and "$ref" in prop.get("items", {})):
+            if "$ref" in prop or (
+                prop.get("type") == "array" and "$ref" in prop.get("items", {})
+            ):
                 nested_refs += 1
         complexity_score += min(nested_refs, 3)
 

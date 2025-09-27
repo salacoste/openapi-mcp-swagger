@@ -64,7 +64,9 @@ class TestIndexSchema:
         ]
 
         for field in required_fields:
-            assert field in field_names, f"Required field '{field}' missing from schema"
+            assert (
+                field in field_names
+            ), f"Required field '{field}' missing from schema"
 
     def test_field_properties_are_correctly_configured(self):
         """Test that fields have correct properties (stored, analyzers, etc.)."""
@@ -77,7 +79,7 @@ class TestIndexSchema:
 
         # Text fields should have analyzers
         endpoint_path_field = schema["endpoint_path"]
-        assert hasattr(endpoint_path_field, 'analyzer')
+        assert hasattr(endpoint_path_field, "analyzer")
         assert endpoint_path_field.stored is True
 
         # Boolean fields
@@ -187,7 +189,7 @@ class TestFieldBoostConfiguration:
         # Check that boost values are applied to the schema
         # Note: Whoosh field boost is accessed via field_boost attribute
         endpoint_path_field = schema["endpoint_path"]
-        if hasattr(endpoint_path_field, 'field_boost'):
+        if hasattr(endpoint_path_field, "field_boost"):
             assert endpoint_path_field.field_boost == weights["endpoint_path"]
 
     def test_field_weights_are_numeric(self):
@@ -195,7 +197,9 @@ class TestFieldBoostConfiguration:
         weights = IndexSchema.FIELD_WEIGHTS
 
         for field_name, weight in weights.items():
-            assert isinstance(weight, (int, float)), f"Weight for {field_name} is not numeric"
+            assert isinstance(
+                weight, (int, float)
+            ), f"Weight for {field_name} is not numeric"
             assert weight > 0, f"Weight for {field_name} must be positive"
 
     def test_field_weights_priorities_are_logical(self):

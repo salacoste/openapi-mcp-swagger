@@ -1,16 +1,16 @@
 """Installation management system for swagger-mcp-server."""
 
-import os
-import sys
-import shutil
-import platform
-import tempfile
-import subprocess
-from pathlib import Path
-from typing import Dict, Any, List, Optional
-from datetime import datetime
 import asyncio
 import json
+import os
+import platform
+import shutil
+import subprocess
+import sys
+import tempfile
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 from .compatibility import SystemCompatibilityChecker
 
@@ -40,9 +40,9 @@ class InstallationManager:
     def is_already_setup(self) -> bool:
         """Check if system is already set up."""
         return (
-            self.install_dir.exists() and
-            self.config_dir.exists() and
-            (self.config_dir / "config.yaml").exists()
+            self.install_dir.exists()
+            and self.config_dir.exists()
+            and (self.config_dir / "config.yaml").exists()
         )
 
     async def perform_setup(self, force: bool = False) -> Dict[str, Any]:
@@ -51,33 +51,45 @@ class InstallationManager:
             "steps_completed": [],
             "warnings": [],
             "errors": [],
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
 
         try:
             # Step 1: System compatibility check
-            compatibility_result = await self.compatibility_checker.check_system_compatibility()
+            compatibility_result = (
+                await self.compatibility_checker.check_system_compatibility()
+            )
 
             if not compatibility_result["compatible"]:
                 raise InstallationError(
                     "System compatibility check failed",
-                    {"issues": compatibility_result["issues"]}
+                    {"issues": compatibility_result["issues"]},
                 )
 
-            setup_results["steps_completed"].append("System compatibility verified")
-            setup_results["warnings"].extend(compatibility_result.get("warnings", []))
+            setup_results["steps_completed"].append(
+                "System compatibility verified"
+            )
+            setup_results["warnings"].extend(
+                compatibility_result.get("warnings", [])
+            )
 
             # Step 2: Create directory structure
             await self.create_directory_structure(force)
-            setup_results["steps_completed"].append("Directory structure created")
+            setup_results["steps_completed"].append(
+                "Directory structure created"
+            )
 
             # Step 3: Initialize configuration
             await self.initialize_configuration(force)
-            setup_results["steps_completed"].append("Configuration initialized")
+            setup_results["steps_completed"].append(
+                "Configuration initialized"
+            )
 
             # Step 4: Set up database and search directories
             await self.setup_data_directories()
-            setup_results["steps_completed"].append("Data directories configured")
+            setup_results["steps_completed"].append(
+                "Data directories configured"
+            )
 
             # Step 5: Create initial logging setup
             await self.setup_logging()
@@ -88,11 +100,15 @@ class InstallationManager:
             setup_results["steps_completed"].append("Installation verified")
 
             if verification_result.get("warnings"):
-                setup_results["warnings"].extend(verification_result["warnings"])
+                setup_results["warnings"].extend(
+                    verification_result["warnings"]
+                )
 
             # Step 7: Record installation metadata
             await self.record_installation_metadata()
-            setup_results["steps_completed"].append("Installation metadata recorded")
+            setup_results["steps_completed"].append(
+                "Installation metadata recorded"
+            )
 
             return setup_results
 
@@ -134,7 +150,9 @@ class InstallationManager:
 
         # Initialize with development template for first-time setup
         config_manager = ConfigurationManager(config_dir=self.install_dir)
-        await config_manager.initialize_configuration("development", str(config_file), force)
+        await config_manager.initialize_configuration(
+            "development", str(config_file), force
+        )
 
         # Create servers registry file
         servers_file = self.config_dir / "servers.json"
@@ -142,9 +160,9 @@ class InstallationManager:
             initial_servers = {
                 "version": "1.0",
                 "servers": {},
-                "last_updated": datetime.now().isoformat()
+                "last_updated": datetime.now().isoformat(),
             }
-            with open(servers_file, 'w') as f:
+            with open(servers_file, "w") as f:
                 json.dump(initial_servers, f, indent=2)
 
     async def setup_data_directories(self) -> None:
@@ -167,7 +185,7 @@ class InstallationManager:
         log_files = [
             self.logs_dir / "server.log",
             self.logs_dir / "conversion.log",
-            self.logs_dir / "setup.log"
+            self.logs_dir / "setup.log",
         ]
 
         for log_file in log_files:
@@ -185,41 +203,56 @@ class InstallationManager:
             "components": {},
             "system_info": {},
             "warnings": [],
-            "issues": []
+            "issues": [],
         }
 
         try:
             # Check directory structure
-            verification_result["components"]["directories"] = await self._verify_directories()
+            verification_result["components"][
+                "directories"
+            ] = await self._verify_directories()
 
             # Check configuration files
-            verification_result["components"]["configuration"] = await self._verify_configuration()
+            verification_result["components"][
+                "configuration"
+            ] = await self._verify_configuration()
 
             # Check permissions
-            verification_result["components"]["permissions"] = await self._verify_permissions()
+            verification_result["components"][
+                "permissions"
+            ] = await self._verify_permissions()
 
             # Check Python dependencies
-            verification_result["components"]["dependencies"] = await self._verify_dependencies()
+            verification_result["components"][
+                "dependencies"
+            ] = await self._verify_dependencies()
 
             # Gather system information
-            verification_result["system_info"] = await self._gather_system_info()
+            verification_result[
+                "system_info"
+            ] = await self._gather_system_info()
 
             # Check for any component failures
             failed_components = [
-                name for name, result in verification_result["components"].items()
+                name
+                for name, result in verification_result["components"].items()
                 if not result.get("working", True)
             ]
 
             if failed_components:
                 verification_result["status"] = "failed"
-                verification_result["issues"].extend([
-                    f"Component '{name}' verification failed"
-                    for name in failed_components
-                ])
+                verification_result["issues"].extend(
+                    [
+                        f"Component '{name}' verification failed"
+                        for name in failed_components
+                    ]
+                )
 
         except Exception as e:
             verification_result["status"] = "error"
-            verification_result["issues"].append(f"Verification error: {str(e)}")
+            verification_result["issues"].append(
+                f"Verification error: {str(e)}"
+            )
 
         return verification_result
 
@@ -230,19 +263,21 @@ class InstallationManager:
             self.config_dir,
             self.data_dir,
             self.logs_dir,
-            self.backup_dir
+            self.backup_dir,
         ]
 
         missing_dirs = [d for d in required_dirs if not d.exists()]
 
         return {
             "working": len(missing_dirs) == 0,
-            "message": "All directories exist" if not missing_dirs else f"Missing directories: {missing_dirs}",
+            "message": "All directories exist"
+            if not missing_dirs
+            else f"Missing directories: {missing_dirs}",
             "details": {
                 "required": len(required_dirs),
                 "existing": len(required_dirs) - len(missing_dirs),
-                "missing": [str(d) for d in missing_dirs]
-            }
+                "missing": [str(d) for d in missing_dirs],
+            },
         }
 
     async def _verify_configuration(self) -> Dict[str, Any]:
@@ -251,21 +286,24 @@ class InstallationManager:
             from ..config import ConfigurationManager
 
             config_manager = ConfigurationManager(config_dir=self.install_dir)
-            is_valid, errors, warnings = await config_manager.validate_configuration()
+            (
+                is_valid,
+                errors,
+                warnings,
+            ) = await config_manager.validate_configuration()
 
             return {
                 "working": is_valid,
-                "message": "Configuration valid" if is_valid else f"Configuration errors: {len(errors)}",
-                "details": {
-                    "errors": errors,
-                    "warnings": warnings
-                }
+                "message": "Configuration valid"
+                if is_valid
+                else f"Configuration errors: {len(errors)}",
+                "details": {"errors": errors, "warnings": warnings},
             }
         except Exception as e:
             return {
                 "working": False,
                 "message": f"Configuration verification failed: {str(e)}",
-                "details": {"error": str(e)}
+                "details": {"error": str(e)},
             }
 
     async def _verify_permissions(self) -> Dict[str, Any]:
@@ -273,7 +311,12 @@ class InstallationManager:
         permission_issues = []
 
         # Check write permissions on key directories
-        dirs_to_check = [self.install_dir, self.config_dir, self.data_dir, self.logs_dir]
+        dirs_to_check = [
+            self.install_dir,
+            self.config_dir,
+            self.data_dir,
+            self.logs_dir,
+        ]
 
         for directory in dirs_to_check:
             if not os.access(directory, os.W_OK):
@@ -281,15 +324,23 @@ class InstallationManager:
 
         return {
             "working": len(permission_issues) == 0,
-            "message": "Permissions OK" if not permission_issues else f"Permission issues: {len(permission_issues)}",
-            "details": {"issues": permission_issues}
+            "message": "Permissions OK"
+            if not permission_issues
+            else f"Permission issues: {len(permission_issues)}",
+            "details": {"issues": permission_issues},
         }
 
     async def _verify_dependencies(self) -> Dict[str, Any]:
         """Verify Python dependencies are available."""
         required_modules = [
-            "click", "yaml", "aiofiles", "whoosh", "psutil",
-            "aiohttp", "jsonref", "openapi_spec_validator"
+            "click",
+            "yaml",
+            "aiofiles",
+            "whoosh",
+            "psutil",
+            "aiohttp",
+            "jsonref",
+            "openapi_spec_validator",
         ]
 
         missing_modules = []
@@ -302,12 +353,14 @@ class InstallationManager:
 
         return {
             "working": len(missing_modules) == 0,
-            "message": "All dependencies available" if not missing_modules else f"Missing modules: {missing_modules}",
+            "message": "All dependencies available"
+            if not missing_modules
+            else f"Missing modules: {missing_modules}",
             "details": {
                 "required": len(required_modules),
                 "available": len(required_modules) - len(missing_modules),
-                "missing": missing_modules
-            }
+                "missing": missing_modules,
+            },
         }
 
     async def _gather_system_info(self) -> Dict[str, Any]:
@@ -318,7 +371,9 @@ class InstallationManager:
             "install_path": str(self.install_dir),
             "python_executable": sys.executable,
             "architecture": platform.machine(),
-            "processor": platform.processor() if platform.processor() else "Unknown"
+            "processor": platform.processor()
+            if platform.processor()
+            else "Unknown",
         }
 
     async def record_installation_metadata(self) -> None:
@@ -331,30 +386,31 @@ class InstallationManager:
                 "release": platform.release(),
                 "version": platform.version(),
                 "machine": platform.machine(),
-                "processor": platform.processor()
+                "processor": platform.processor(),
             },
             "python": {
                 "version": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
                 "executable": sys.executable,
-                "implementation": platform.python_implementation()
+                "implementation": platform.python_implementation(),
             },
             "installation_path": str(self.install_dir),
             "directories": {
                 "config": str(self.config_dir),
                 "data": str(self.data_dir),
                 "logs": str(self.logs_dir),
-                "backup": str(self.backup_dir)
-            }
+                "backup": str(self.backup_dir),
+            },
         }
 
         metadata_file = self.install_dir / "installation_metadata.json"
-        with open(metadata_file, 'w') as f:
+        with open(metadata_file, "w") as f:
             json.dump(metadata, f, indent=2)
 
     def _get_package_version(self) -> str:
         """Get package version."""
         try:
             from ..__version__ import __version__
+
             return __version__
         except ImportError:
             return "unknown"
@@ -382,12 +438,19 @@ class InstallationManager:
             # Add configuration status
             try:
                 from ..config import ConfigurationManager
-                config_manager = ConfigurationManager(config_dir=self.install_dir)
-                is_valid, errors, warnings = await config_manager.validate_configuration()
+
+                config_manager = ConfigurationManager(
+                    config_dir=self.install_dir
+                )
+                (
+                    is_valid,
+                    errors,
+                    warnings,
+                ) = await config_manager.validate_configuration()
                 info["configuration_status"] = {
                     "valid": is_valid,
                     "errors": len(errors),
-                    "warnings": len(warnings)
+                    "warnings": len(warnings),
                 }
             except Exception as e:
                 info["configuration_status"] = {"error": str(e)}

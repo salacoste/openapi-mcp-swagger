@@ -7,26 +7,28 @@ as specified in Story 3.5.
 
 import asyncio
 from dataclasses import dataclass
-from typing import Dict, Any, List, Optional, Set, Tuple
 from enum import Enum
+from typing import Any, Dict, List, Optional, Set, Tuple
 
-from ..storage.repositories.schema_repository import SchemaRepository
 from ..config.settings import SearchConfig
+from ..storage.repositories.schema_repository import SchemaRepository
 
 
 class RelationshipType(Enum):
     """Types of schema relationships."""
-    INHERITANCE = "inheritance"        # allOf with single $ref + properties
-    COMPOSITION = "composition"        # allOf, oneOf, anyOf patterns
-    REFERENCE = "reference"           # Direct $ref usage
-    ARRAY_ITEMS = "array_items"       # Array items reference
-    NESTED_PROPERTY = "nested_property" # Property with $ref
-    CIRCULAR = "circular"             # Circular dependency
+
+    INHERITANCE = "inheritance"  # allOf with single $ref + properties
+    COMPOSITION = "composition"  # allOf, oneOf, anyOf patterns
+    REFERENCE = "reference"  # Direct $ref usage
+    ARRAY_ITEMS = "array_items"  # Array items reference
+    NESTED_PROPERTY = "nested_property"  # Property with $ref
+    CIRCULAR = "circular"  # Circular dependency
 
 
 @dataclass
 class SchemaRelationship:
     """Represents a relationship between two schemas."""
+
     source_schema_id: str
     target_schema_id: str
     relationship_type: RelationshipType
@@ -39,8 +41,9 @@ class SchemaRelationship:
 @dataclass
 class SchemaGraph:
     """Complete schema relationship graph."""
+
     nodes: Dict[str, Dict[str, Any]]  # Schema nodes with metadata
-    edges: List[SchemaRelationship]   # Relationships between schemas
+    edges: List[SchemaRelationship]  # Relationships between schemas
     dependency_chains: List[List[str]]  # Dependency chains
     circular_dependencies: List[List[str]]  # Circular dependency cycles
     inheritance_trees: Dict[str, List[str]]  # Inheritance hierarchies
@@ -85,22 +88,28 @@ class SchemaRelationshipDiscovery:
                     "properties_count": len(schema.get("properties", {})),
                     "required_count": len(schema.get("required", [])),
                     "description": schema.get("description", ""),
-                    "complexity": self._assess_schema_complexity(schema)
+                    "complexity": self._assess_schema_complexity(schema),
                 }
 
             # Discover all types of relationships
             edges = []
 
             # Find inheritance relationships
-            inheritance_edges = await self._discover_inheritance_relationships(schemas)
+            inheritance_edges = await self._discover_inheritance_relationships(
+                schemas
+            )
             edges.extend(inheritance_edges)
 
             # Find composition relationships
-            composition_edges = await self._discover_composition_relationships(schemas)
+            composition_edges = await self._discover_composition_relationships(
+                schemas
+            )
             edges.extend(composition_edges)
 
             # Find reference relationships
-            reference_edges = await self._discover_reference_relationships(schemas)
+            reference_edges = await self._discover_reference_relationships(
+                schemas
+            )
             edges.extend(reference_edges)
 
             # Analyze dependency chains
@@ -110,22 +119,25 @@ class SchemaRelationshipDiscovery:
             circular_dependencies = self._detect_circular_dependencies(edges)
 
             # Build inheritance trees
-            inheritance_trees = self._build_inheritance_trees(inheritance_edges)
+            inheritance_trees = self._build_inheritance_trees(
+                inheritance_edges
+            )
 
             return SchemaGraph(
                 nodes=nodes,
                 edges=edges,
                 dependency_chains=dependency_chains,
                 circular_dependencies=circular_dependencies,
-                inheritance_trees=inheritance_trees
+                inheritance_trees=inheritance_trees,
             )
 
         except Exception as e:
-            raise RuntimeError(f"Failed to discover schema relationships: {e}") from e
+            raise RuntimeError(
+                f"Failed to discover schema relationships: {e}"
+            ) from e
 
     async def _discover_inheritance_relationships(
-        self,
-        schemas: List[Dict[str, Any]]
+        self, schemas: List[Dict[str, Any]]
     ) -> List[SchemaRelationship]:
         """Discover inheritance relationships between schemas.
 
@@ -142,7 +154,11 @@ class SchemaRelationshipDiscovery:
 
             # Check for allOf inheritance pattern
             all_of = schema.get("allOf", [])
-            if len(all_of) == 1 and "$ref" in all_of[0] and "properties" in schema:
+            if (
+                len(all_of) == 1
+                and "$ref" in all_of[0]
+                and "properties" in schema
+            ):
                 # Single allOf with additional properties = inheritance
                 parent_ref = all_of[0]["$ref"]
                 parent_id = parent_ref.split("/")[-1]
@@ -154,11 +170,13 @@ class SchemaRelationshipDiscovery:
                     context="allOf_inheritance",
                     details={
                         "parent_ref": parent_ref,
-                        "additional_properties": list(schema.get("properties", {}).keys()),
-                        "inheritance_pattern": "single_allOf_with_properties"
+                        "additional_properties": list(
+                            schema.get("properties", {}).keys()
+                        ),
+                        "inheritance_pattern": "single_allOf_with_properties",
                     },
                     strength=0.9,  # High strength for clear inheritance
-                    is_bidirectional=False
+                    is_bidirectional=False,
                 )
                 relationships.append(relationship)
 
@@ -175,20 +193,21 @@ class SchemaRelationshipDiscovery:
                         relationship_type=RelationshipType.INHERITANCE,
                         context="discriminator_inheritance",
                         details={
-                            "discriminator_property": discriminator.get("propertyName"),
+                            "discriminator_property": discriminator.get(
+                                "propertyName"
+                            ),
                             "discriminator_value": discriminator_value,
-                            "inheritance_pattern": "discriminator_mapping"
+                            "inheritance_pattern": "discriminator_mapping",
                         },
                         strength=0.85,
-                        is_bidirectional=False
+                        is_bidirectional=False,
                     )
                     relationships.append(relationship)
 
         return relationships
 
     async def _discover_composition_relationships(
-        self,
-        schemas: List[Dict[str, Any]]
+        self, schemas: List[Dict[str, Any]]
     ) -> List[SchemaRelationship]:
         """Discover composition relationships between schemas.
 
@@ -219,10 +238,10 @@ class SchemaRelationshipDiscovery:
                                 "composition_type": "allOf",
                                 "component_index": i,
                                 "total_components": len(all_of),
-                                "ref": component["$ref"]
+                                "ref": component["$ref"],
                             },
                             strength=0.8,
-                            is_bidirectional=False
+                            is_bidirectional=False,
                         )
                         relationships.append(relationship)
 
@@ -241,10 +260,10 @@ class SchemaRelationshipDiscovery:
                             "composition_type": "oneOf",
                             "alternative_index": i,
                             "total_alternatives": len(one_of),
-                            "ref": component["$ref"]
+                            "ref": component["$ref"],
                         },
                         strength=0.7,
-                        is_bidirectional=False
+                        is_bidirectional=False,
                     )
                     relationships.append(relationship)
 
@@ -263,18 +282,17 @@ class SchemaRelationshipDiscovery:
                             "composition_type": "anyOf",
                             "option_index": i,
                             "total_options": len(any_of),
-                            "ref": component["$ref"]
+                            "ref": component["$ref"],
                         },
                         strength=0.6,
-                        is_bidirectional=False
+                        is_bidirectional=False,
                     )
                     relationships.append(relationship)
 
         return relationships
 
     async def _discover_reference_relationships(
-        self,
-        schemas: List[Dict[str, Any]]
+        self, schemas: List[Dict[str, Any]]
     ) -> List[SchemaRelationship]:
         """Discover direct reference relationships between schemas.
 
@@ -303,17 +321,24 @@ class SchemaRelationshipDiscovery:
                         context=f"property_{prop_name}",
                         details={
                             "property_name": prop_name,
-                            "property_description": prop_def.get("description", ""),
+                            "property_description": prop_def.get(
+                                "description", ""
+                            ),
                             "ref": prop_def["$ref"],
-                            "is_required": prop_name in schema.get("required", [])
+                            "is_required": prop_name
+                            in schema.get("required", []),
                         },
-                        strength=0.8 if prop_name in schema.get("required", []) else 0.6,
-                        is_bidirectional=False
+                        strength=0.8
+                        if prop_name in schema.get("required", [])
+                        else 0.6,
+                        is_bidirectional=False,
                     )
                     relationships.append(relationship)
 
                 # Array items reference
-                elif prop_def.get("type") == "array" and "$ref" in prop_def.get("items", {}):
+                elif prop_def.get(
+                    "type"
+                ) == "array" and "$ref" in prop_def.get("items", {}):
                     target_id = prop_def["items"]["$ref"].split("/")[-1]
 
                     relationship = SchemaRelationship(
@@ -323,19 +348,28 @@ class SchemaRelationshipDiscovery:
                         context=f"array_property_{prop_name}",
                         details={
                             "property_name": prop_name,
-                            "array_description": prop_def.get("description", ""),
+                            "array_description": prop_def.get(
+                                "description", ""
+                            ),
                             "items_ref": prop_def["items"]["$ref"],
-                            "is_required": prop_name in schema.get("required", [])
+                            "is_required": prop_name
+                            in schema.get("required", []),
                         },
                         strength=0.7,
-                        is_bidirectional=False
+                        is_bidirectional=False,
                     )
                     relationships.append(relationship)
 
                 # Nested object with properties containing references
-                elif prop_def.get("type") == "object" and "properties" in prop_def:
+                elif (
+                    prop_def.get("type") == "object"
+                    and "properties" in prop_def
+                ):
                     nested_props = prop_def["properties"]
-                    for nested_prop_name, nested_prop_def in nested_props.items():
+                    for (
+                        nested_prop_name,
+                        nested_prop_def,
+                    ) in nested_props.items():
                         if "$ref" in nested_prop_def:
                             target_id = nested_prop_def["$ref"].split("/")[-1]
 
@@ -348,16 +382,19 @@ class SchemaRelationshipDiscovery:
                                     "parent_property": prop_name,
                                     "nested_property": nested_prop_name,
                                     "ref": nested_prop_def["$ref"],
-                                    "nesting_level": 2
+                                    "nesting_level": 2,
                                 },
                                 strength=0.5,  # Lower strength for nested references
-                                is_bidirectional=False
+                                is_bidirectional=False,
                             )
                             relationships.append(relationship)
 
             # Check additional properties
             additional_props = schema.get("additionalProperties")
-            if isinstance(additional_props, dict) and "$ref" in additional_props:
+            if (
+                isinstance(additional_props, dict)
+                and "$ref" in additional_props
+            ):
                 target_id = additional_props["$ref"].split("/")[-1]
 
                 relationship = SchemaRelationship(
@@ -367,18 +404,17 @@ class SchemaRelationshipDiscovery:
                     context="additional_properties",
                     details={
                         "ref": additional_props["$ref"],
-                        "allows_additional": True
+                        "allows_additional": True,
                     },
                     strength=0.4,  # Lower strength for additional properties
-                    is_bidirectional=False
+                    is_bidirectional=False,
                 )
                 relationships.append(relationship)
 
         return relationships
 
     def _analyze_dependency_chains(
-        self,
-        relationships: List[SchemaRelationship]
+        self, relationships: List[SchemaRelationship]
     ) -> List[List[str]]:
         """Analyze dependency chains between schemas.
 
@@ -399,7 +435,9 @@ class SchemaRelationshipDiscovery:
         chains = []
         visited_global = set()
 
-        def dfs_chains(node: str, current_chain: List[str], visited_local: Set[str]):
+        def dfs_chains(
+            node: str, current_chain: List[str], visited_local: Set[str]
+        ):
             if node in visited_local:  # Cycle detected
                 return
 
@@ -409,7 +447,9 @@ class SchemaRelationshipDiscovery:
             # If node has dependencies, continue the chain
             if node in graph and graph[node]:
                 for neighbor in graph[node]:
-                    dfs_chains(neighbor, current_chain.copy(), visited_local.copy())
+                    dfs_chains(
+                        neighbor, current_chain.copy(), visited_local.copy()
+                    )
             else:
                 # End of chain, add if meaningful length
                 if len(current_chain) > 1:
@@ -427,8 +467,7 @@ class SchemaRelationshipDiscovery:
         return chains[:20]  # Return top 20 longest chains
 
     def _detect_circular_dependencies(
-        self,
-        relationships: List[SchemaRelationship]
+        self, relationships: List[SchemaRelationship]
     ) -> List[List[str]]:
         """Detect circular dependencies between schemas.
 
@@ -479,8 +518,7 @@ class SchemaRelationshipDiscovery:
         return cycles
 
     def _build_inheritance_trees(
-        self,
-        inheritance_relationships: List[SchemaRelationship]
+        self, inheritance_relationships: List[SchemaRelationship]
     ) -> Dict[str, List[str]]:
         """Build inheritance trees from inheritance relationships.
 
@@ -532,7 +570,9 @@ class SchemaRelationshipDiscovery:
         # Nested references
         nested_refs = 0
         for prop in properties.values():
-            if "$ref" in prop or (prop.get("type") == "array" and "$ref" in prop.get("items", {})):
+            if "$ref" in prop or (
+                prop.get("type") == "array" and "$ref" in prop.get("items", {})
+            ):
                 nested_refs += 1
         complexity_score += min(nested_refs, 3)
 
@@ -551,7 +591,21 @@ class SchemaRelationshipDiscovery:
         # Validation complexity
         validation_rules = 0
         for prop in properties.values():
-            validation_rules += len([k for k in prop.keys() if k in ["minimum", "maximum", "minLength", "maxLength", "pattern", "enum"]])
+            validation_rules += len(
+                [
+                    k
+                    for k in prop.keys()
+                    if k
+                    in [
+                        "minimum",
+                        "maximum",
+                        "minLength",
+                        "maxLength",
+                        "pattern",
+                        "enum",
+                    ]
+                ]
+            )
         complexity_score += min(validation_rules // 5, 2)
 
         # Classify complexity

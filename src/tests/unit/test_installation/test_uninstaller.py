@@ -1,19 +1,23 @@
 """Tests for UninstallationManager."""
 
-import os
-import sys
-import tempfile
-import pytest
 import asyncio
 import json
-from pathlib import Path
-from unittest.mock import Mock, patch, AsyncMock, MagicMock
+import os
 import shutil
+import sys
+import tempfile
+from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
+
+import pytest
 
 # Add src to path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../../..'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../../.."))
 
-from swagger_mcp_server.installation.uninstaller import UninstallationManager, UninstallationError
+from swagger_mcp_server.installation.uninstaller import (
+    UninstallationError,
+    UninstallationManager,
+)
 
 
 class TestUninstallationManager:
@@ -28,7 +32,7 @@ class TestUninstallationManager:
     @pytest.fixture
     def manager(self, temp_home):
         """Create UninstallationManager with temporary home."""
-        with patch('pathlib.Path.home', return_value=temp_home):
+        with patch("pathlib.Path.home", return_value=temp_home):
             return UninstallationManager()
 
     @pytest.fixture
@@ -45,7 +49,9 @@ class TestUninstallationManager:
         (manager.config_dir / "config.yaml").write_text("test config")
         (manager.config_dir / "servers.json").write_text('{"test": "data"}')
         (manager.data_dir / "database" / "test.db").mkdir(parents=True)
-        (manager.data_dir / "database" / "test.db" / "data.sqlite").write_text("test db")
+        (manager.data_dir / "database" / "test.db" / "data.sqlite").write_text(
+            "test db"
+        )
         (manager.logs_dir / "server.log").write_text("test log")
 
         return manager
@@ -61,7 +67,10 @@ class TestUninstallationManager:
         manager = setup_installation
 
         # Mock server manager to avoid import issues
-        with patch('swagger_mcp_server.management.MCPServerManager', side_effect=ImportError):
+        with patch(
+            "swagger_mcp_server.management.MCPServerManager",
+            side_effect=ImportError,
+        ):
             result = await manager.perform_uninstallation()
 
         assert "removed_items" in result
@@ -74,35 +83,55 @@ class TestUninstallationManager:
         assert not manager.install_dir.exists()
 
     @pytest.mark.asyncio
-    async def test_perform_uninstallation_preserve_config(self, setup_installation):
+    async def test_perform_uninstallation_preserve_config(
+        self, setup_installation
+    ):
         """Test uninstallation with config preservation."""
         manager = setup_installation
 
-        with patch('swagger_mcp_server.management.MCPServerManager', side_effect=ImportError):
+        with patch(
+            "swagger_mcp_server.management.MCPServerManager",
+            side_effect=ImportError,
+        ):
             result = await manager.perform_uninstallation(preserve_config=True)
 
         # Check that config files are in preserved items
-        preserved_files = [item for item in result["preserved_items"] if "config" in item]
+        preserved_files = [
+            item for item in result["preserved_items"] if "config" in item
+        ]
         assert len(preserved_files) > 0
 
     @pytest.mark.asyncio
-    async def test_perform_uninstallation_preserve_data(self, setup_installation):
+    async def test_perform_uninstallation_preserve_data(
+        self, setup_installation
+    ):
         """Test uninstallation with data preservation."""
         manager = setup_installation
 
-        with patch('swagger_mcp_server.management.MCPServerManager', side_effect=ImportError):
+        with patch(
+            "swagger_mcp_server.management.MCPServerManager",
+            side_effect=ImportError,
+        ):
             result = await manager.perform_uninstallation(preserve_data=True)
 
         # Should create backup directory
-        backup_created = any("backed up to" in item for item in result["preserved_items"])
+        backup_created = any(
+            "backed up to" in item for item in result["preserved_items"]
+        )
         assert backup_created
 
     @pytest.mark.asyncio
     async def test_perform_uninstallation_error_handling(self, manager):
         """Test error handling during uninstallation."""
         # Mock an error condition
-        with patch.object(manager, '_stop_running_servers', side_effect=Exception("Test error")):
-            with pytest.raises(UninstallationError, match="Uninstallation failed"):
+        with patch.object(
+            manager,
+            "_stop_running_servers",
+            side_effect=Exception("Test error"),
+        ):
+            with pytest.raises(
+                UninstallationError, match="Uninstallation failed"
+            ):
                 await manager.perform_uninstallation()
 
     @pytest.mark.asyncio
@@ -114,7 +143,10 @@ class TestUninstallationManager:
         mock_manager = Mock()
         mock_manager.get_all_servers_status = AsyncMock(return_value=[])
 
-        with patch('swagger_mcp_server.management.MCPServerManager', return_value=mock_manager):
+        with patch(
+            "swagger_mcp_server.management.MCPServerManager",
+            return_value=mock_manager,
+        ):
             await manager._stop_running_servers(results)
 
         # Should not add any warnings or items
@@ -129,13 +161,18 @@ class TestUninstallationManager:
         # Mock server list
         mock_servers = [
             {"server": {"id": "server1"}},
-            {"server": {"id": "server2"}}
+            {"server": {"id": "server2"}},
         ]
         mock_manager = Mock()
-        mock_manager.get_all_servers_status = AsyncMock(return_value=mock_servers)
+        mock_manager.get_all_servers_status = AsyncMock(
+            return_value=mock_servers
+        )
         mock_manager.stop_server = AsyncMock()
 
-        with patch('swagger_mcp_server.management.MCPServerManager', return_value=mock_manager):
+        with patch(
+            "swagger_mcp_server.management.MCPServerManager",
+            return_value=mock_manager,
+        ):
             await manager._stop_running_servers(results)
 
         # Should add warning about stopping servers
@@ -151,7 +188,10 @@ class TestUninstallationManager:
         results = {"warnings": [], "removed_items": []}
 
         # Mock ImportError for server manager
-        with patch('swagger_mcp_server.management.MCPServerManager', side_effect=ImportError):
+        with patch(
+            "swagger_mcp_server.management.MCPServerManager",
+            side_effect=ImportError,
+        ):
             await manager._stop_running_servers(results)
 
         # Should not fail and not add any items
@@ -179,7 +219,7 @@ class TestUninstallationManager:
         results = {"preserved_items": [], "warnings": []}
 
         # Mock shutil.copytree to raise error
-        with patch('shutil.copytree', side_effect=Exception("Copy error")):
+        with patch("shutil.copytree", side_effect=Exception("Copy error")):
             await manager._preserve_user_data(results)
 
         # Should add warnings about failed backups
@@ -205,7 +245,7 @@ class TestUninstallationManager:
         results = {"removed_items": [], "warnings": []}
 
         # Mock rmtree to raise error
-        with patch('shutil.rmtree', side_effect=Exception("Remove error")):
+        with patch("shutil.rmtree", side_effect=Exception("Remove error")):
             await manager._remove_all_data(results)
 
         # Should add warning about failed removal
@@ -220,7 +260,9 @@ class TestUninstallationManager:
         await manager._selective_cleanup(results)
 
         # Should preserve config files
-        config_preserved = any("config:" in item for item in results["preserved_items"])
+        config_preserved = any(
+            "config:" in item for item in results["preserved_items"]
+        )
         assert config_preserved
 
         # Should remove cache and logs
@@ -246,12 +288,13 @@ class TestUninstallationManager:
 
         # Mock rmtree to fail on main directory but succeed on subdirectories
         original_rmtree = shutil.rmtree
+
         def mock_rmtree(path, *args, **kwargs):
             if path == manager.install_dir:
                 raise Exception("Cannot remove main directory")
             return original_rmtree(path, *args, **kwargs)
 
-        with patch('shutil.rmtree', side_effect=mock_rmtree):
+        with patch("shutil.rmtree", side_effect=mock_rmtree):
             await manager._complete_cleanup(results)
 
         # Should add warning and try individual removal
@@ -264,7 +307,7 @@ class TestUninstallationManager:
         mock_result = Mock()
         mock_result.returncode = 1
 
-        with patch('subprocess.run', return_value=mock_result):
+        with patch("subprocess.run", return_value=mock_result):
             result = await manager._uninstall_pip_package()
 
         assert result["success"] is True
@@ -281,7 +324,10 @@ class TestUninstallationManager:
         mock_uninstall_result = Mock()
         mock_uninstall_result.returncode = 0
 
-        with patch('subprocess.run', side_effect=[mock_show_result, mock_uninstall_result]):
+        with patch(
+            "subprocess.run",
+            side_effect=[mock_show_result, mock_uninstall_result],
+        ):
             result = await manager._uninstall_pip_package()
 
         assert result["success"] is True
@@ -299,7 +345,10 @@ class TestUninstallationManager:
         mock_uninstall_result.returncode = 1
         mock_uninstall_result.stderr = "Uninstall failed"
 
-        with patch('subprocess.run', side_effect=[mock_show_result, mock_uninstall_result]):
+        with patch(
+            "subprocess.run",
+            side_effect=[mock_show_result, mock_uninstall_result],
+        ):
             result = await manager._uninstall_pip_package()
 
         assert result["success"] is False
@@ -325,7 +374,7 @@ class TestUninstallationManager:
         temp_dir = Path.home() / ".swagger_mcp_temp"
         temp_dir.mkdir(parents=True)
 
-        with patch('shutil.rmtree', side_effect=Exception("Remove error")):
+        with patch("shutil.rmtree", side_effect=Exception("Remove error")):
             result = await manager._cleanup_temp_files()
 
         # Should not raise error, just ignore failures
@@ -339,13 +388,15 @@ class TestUninstallationManager:
             "removed_items": ["item1", "item2"],
             "preserved_items": ["config.yaml"],
             "warnings": ["warning1"],
-            "errors": []
+            "errors": [],
         }
 
         await manager._create_uninstall_log(results)
 
         # Check that log file was created
-        log_files = list(Path.home().glob("swagger-mcp-server-uninstall-*.log"))
+        log_files = list(
+            Path.home().glob("swagger-mcp-server-uninstall-*.log")
+        )
         assert len(log_files) > 0
 
         # Check log content
@@ -357,10 +408,16 @@ class TestUninstallationManager:
     @pytest.mark.asyncio
     async def test_create_uninstall_log_error(self, manager):
         """Test uninstallation log creation with error."""
-        results = {"timestamp": "2023-01-01T12:00:00", "removed_items": [], "preserved_items": [], "warnings": [], "errors": []}
+        results = {
+            "timestamp": "2023-01-01T12:00:00",
+            "removed_items": [],
+            "preserved_items": [],
+            "warnings": [],
+            "errors": [],
+        }
 
         # Mock open to raise error
-        with patch('builtins.open', side_effect=Exception("Write error")):
+        with patch("builtins.open", side_effect=Exception("Write error")):
             # Should not raise error
             await manager._create_uninstall_log(results)
 
@@ -373,12 +430,17 @@ class TestUninstallationManager:
         assert "Installation directory does not exist" in result["warnings"]
 
     @pytest.mark.asyncio
-    async def test_get_uninstall_preview_with_installation(self, setup_installation):
+    async def test_get_uninstall_preview_with_installation(
+        self, setup_installation
+    ):
         """Test uninstall preview with existing installation."""
         manager = setup_installation
 
         # Mock server manager
-        with patch('swagger_mcp_server.management.MCPServerManager', side_effect=ImportError):
+        with patch(
+            "swagger_mcp_server.management.MCPServerManager",
+            side_effect=ImportError,
+        ):
             result = await manager.get_uninstall_preview()
 
         assert "will_remove" in result
@@ -386,30 +448,47 @@ class TestUninstallationManager:
         assert len(result["will_remove"]) > 0
 
     @pytest.mark.asyncio
-    async def test_get_uninstall_preview_preserve_config(self, setup_installation):
+    async def test_get_uninstall_preview_preserve_config(
+        self, setup_installation
+    ):
         """Test uninstall preview with config preservation."""
         manager = setup_installation
 
-        with patch('swagger_mcp_server.management.MCPServerManager', side_effect=ImportError):
+        with patch(
+            "swagger_mcp_server.management.MCPServerManager",
+            side_effect=ImportError,
+        ):
             result = await manager.get_uninstall_preview(preserve_config=True)
 
         # Config should be in preserved items
-        config_preserved = any("config" in item for item in result["will_preserve"])
+        config_preserved = any(
+            "config" in item for item in result["will_preserve"]
+        )
         assert config_preserved
 
     @pytest.mark.asyncio
-    async def test_get_uninstall_preview_with_running_servers(self, setup_installation):
+    async def test_get_uninstall_preview_with_running_servers(
+        self, setup_installation
+    ):
         """Test uninstall preview with running servers."""
         manager = setup_installation
 
         # Mock running servers
         mock_servers = [{"server": {"id": "server1"}}]
         mock_manager = Mock()
-        mock_manager.get_all_servers_status = AsyncMock(return_value=mock_servers)
+        mock_manager.get_all_servers_status = AsyncMock(
+            return_value=mock_servers
+        )
 
-        with patch('swagger_mcp_server.management.MCPServerManager', return_value=mock_manager):
+        with patch(
+            "swagger_mcp_server.management.MCPServerManager",
+            return_value=mock_manager,
+        ):
             result = await manager.get_uninstall_preview()
 
         # Should warn about stopping servers
-        server_warning = any("running servers will be stopped" in warning for warning in result["warnings"])
+        server_warning = any(
+            "running servers will be stopped" in warning
+            for warning in result["warnings"]
+        )
         assert server_warning

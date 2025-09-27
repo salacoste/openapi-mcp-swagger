@@ -2,12 +2,13 @@
 
 import asyncio
 import json
+import os
 import time
+import tracemalloc
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
-import tracemalloc
+
 import psutil
-import os
 
 try:
     import ijson
@@ -17,16 +18,16 @@ except ImportError:
         "Install with: pip install ijson"
     )
 
+from swagger_mcp_server.config.logging import get_logger
 from swagger_mcp_server.parser.base import (
     BaseParser,
-    ParserConfig,
-    ParserType,
-    ParseResult,
-    ParseStatus,
     ParseMetrics,
-    SwaggerParseError
+    ParserConfig,
+    ParseResult,
+    ParserType,
+    ParseStatus,
+    SwaggerParseError,
 )
-from swagger_mcp_server.config.logging import get_logger
 
 logger = get_logger(__name__)
 
@@ -49,7 +50,7 @@ class SwaggerStreamParser(BaseParser):
         Returns:
             List of supported extensions
         """
-        return ['.json']
+        return [".json"]
 
     def get_parser_type(self) -> ParserType:
         """Get parser type.
@@ -88,14 +89,12 @@ class SwaggerStreamParser(BaseParser):
             self.logger.info(
                 "Starting stream parsing",
                 file_path=str(path),
-                file_size_mb=metrics.file_size_bytes / (1024 * 1024)
+                file_size_mb=metrics.file_size_bytes / (1024 * 1024),
             )
 
             # Parse file using streaming approach
             result = ParseResult(
-                status=ParseStatus.PARSING,
-                file_path=path,
-                metrics=metrics
+                status=ParseStatus.PARSING, file_path=path, metrics=metrics
             )
 
             # Use ijson for memory-efficient parsing
@@ -106,13 +105,15 @@ class SwaggerStreamParser(BaseParser):
             metrics.parse_duration_ms = (end_time - start_time) * 1000
             metrics.memory_peak_mb = max(
                 metrics.memory_peak_mb,
-                self._get_memory_usage_mb() - start_memory
+                self._get_memory_usage_mb() - start_memory,
             )
 
             # Extract basic API info
             if parsed_data:
                 result.data = parsed_data
-                result.openapi_version = self._extract_openapi_version(parsed_data)
+                result.openapi_version = self._extract_openapi_version(
+                    parsed_data
+                )
                 result.api_title = self._extract_api_title(parsed_data)
                 result.api_version = self._extract_api_version(parsed_data)
 
@@ -128,7 +129,7 @@ class SwaggerStreamParser(BaseParser):
                 duration_ms=metrics.parse_duration_ms,
                 memory_peak_mb=metrics.memory_peak_mb,
                 endpoints_found=metrics.endpoints_found,
-                schemas_found=metrics.schemas_found
+                schemas_found=metrics.schemas_found,
             )
 
             return result
@@ -141,7 +142,7 @@ class SwaggerStreamParser(BaseParser):
                 "Stream parsing failed",
                 file_path=str(path),
                 error=error_msg,
-                error_type=type(e).__name__
+                error_type=type(e).__name__,
             )
 
             if isinstance(e, SwaggerParseError):
@@ -151,21 +152,21 @@ class SwaggerStreamParser(BaseParser):
                 parse_error = SwaggerParseError(
                     error_msg,
                     "StreamParsingError",
-                    suggestion="Check if file is valid JSON and not corrupted"
+                    suggestion="Check if file is valid JSON and not corrupted",
                 )
                 metrics.errors.append(parse_error.to_parse_error())
 
                 return ParseResult(
-                    status=ParseStatus.FAILED,
-                    file_path=path,
-                    metrics=metrics
+                    status=ParseStatus.FAILED, file_path=path, metrics=metrics
                 )
 
         finally:
             if tracemalloc.is_tracing():
                 tracemalloc.stop()
 
-    async def _stream_parse_file(self, file_path: Path, metrics: ParseMetrics) -> Dict[str, Any]:
+    async def _stream_parse_file(
+        self, file_path: Path, metrics: ParseMetrics
+    ) -> Dict[str, Any]:
         """Parse file using ijson streaming parser.
 
         Args:
@@ -180,9 +181,11 @@ class SwaggerStreamParser(BaseParser):
         """
         try:
             # Open file and create parser
-            with open(file_path, 'rb') as file:
+            with open(file_path, "rb") as file:
                 # Use ijson to parse the JSON incrementally
-                parser = ijson.parse(file, buf_size=self.config.chunk_size_bytes)
+                parser = ijson.parse(
+                    file, buf_size=self.config.chunk_size_bytes
+                )
 
                 # Build the JSON structure incrementally
                 result = await self._build_json_structure(parser, metrics)
@@ -193,22 +196,20 @@ class SwaggerStreamParser(BaseParser):
             raise SwaggerParseError(
                 f"Invalid JSON: {e.msg}",
                 "InvalidJSON",
-                line_number=getattr(e, 'lineno', None),
-                column_number=getattr(e, 'colno', None),
-                context=f"Position {e.pos}" if hasattr(e, 'pos') else None,
-                suggestion="Validate JSON syntax using a JSON validator"
+                line_number=getattr(e, "lineno", None),
+                column_number=getattr(e, "colno", None),
+                context=f"Position {e.pos}" if hasattr(e, "pos") else None,
+                suggestion="Validate JSON syntax using a JSON validator",
             )
         except IOError as e:
             raise SwaggerParseError(
                 f"File I/O error: {str(e)}",
                 "FileIOError",
-                suggestion="Check file permissions and disk space"
+                suggestion="Check file permissions and disk space",
             )
 
     async def _build_json_structure(
-        self,
-        parser,
-        metrics: ParseMetrics
+        self, parser, metrics: ParseMetrics
     ) -> Dict[str, Any]:
         """Build JSON structure from ijson parser events.
 
@@ -229,24 +230,30 @@ class SwaggerStreamParser(BaseParser):
 
         try:
             for event_type, value in parser:
-                bytes_processed += len(str(value).encode('utf-8'))
+                bytes_processed += len(str(value).encode("utf-8"))
 
                 # Report progress if configured
-                if (self.config.progress_callback and
-                    bytes_processed - last_progress_report >= self.config.progress_interval_bytes):
-
-                    self.config.progress_callback(bytes_processed, metrics.file_size_bytes)
+                if (
+                    self.config.progress_callback
+                    and bytes_processed - last_progress_report
+                    >= self.config.progress_interval_bytes
+                ):
+                    self.config.progress_callback(
+                        bytes_processed, metrics.file_size_bytes
+                    )
                     last_progress_report = bytes_processed
 
                     # Check memory usage
                     current_memory = self._get_memory_usage_mb()
-                    metrics.memory_peak_mb = max(metrics.memory_peak_mb, current_memory)
+                    metrics.memory_peak_mb = max(
+                        metrics.memory_peak_mb, current_memory
+                    )
 
                     if current_memory > self.config.max_memory_mb:
                         raise SwaggerParseError(
                             f"Memory usage {current_memory:.1f}MB exceeds limit {self.config.max_memory_mb}MB",
                             "MemoryLimitExceeded",
-                            suggestion="Increase memory limit or use a smaller file"
+                            suggestion="Increase memory limit or use a smaller file",
                         )
 
                 # Allow other tasks to run
@@ -254,34 +261,34 @@ class SwaggerStreamParser(BaseParser):
                     await asyncio.sleep(0)  # Yield control
 
                 # Process ijson events
-                if event_type == 'start_map':
+                if event_type == "start_map":
                     new_obj = {}
                     if current_key is not None:
                         stack[-1][current_key] = new_obj
                         current_key = None
                     stack.append(new_obj)
 
-                elif event_type == 'end_map':
+                elif event_type == "end_map":
                     if len(stack) > 1:
                         completed_obj = stack.pop()
                         if len(stack) == 1:  # Root object completed
                             stack[0] = completed_obj
 
-                elif event_type == 'start_array':
+                elif event_type == "start_array":
                     new_array = []
                     if current_key is not None:
                         stack[-1][current_key] = new_array
                         current_key = None
                     stack.append(new_array)
 
-                elif event_type == 'end_array':
+                elif event_type == "end_array":
                     if len(stack) > 1:
                         stack.pop()
 
-                elif event_type == 'map_key':
+                elif event_type == "map_key":
                     current_key = value
 
-                elif event_type in ['string', 'number', 'boolean', 'null']:
+                elif event_type in ["string", "number", "boolean", "null"]:
                     if current_key is not None:
                         stack[-1][current_key] = value
                         current_key = None
@@ -292,7 +299,9 @@ class SwaggerStreamParser(BaseParser):
 
             # Final progress report
             if self.config.progress_callback:
-                self.config.progress_callback(bytes_processed, metrics.file_size_bytes)
+                self.config.progress_callback(
+                    bytes_processed, metrics.file_size_bytes
+                )
 
             return stack[0] if stack else {}
 
@@ -302,7 +311,7 @@ class SwaggerStreamParser(BaseParser):
             raise SwaggerParseError(
                 f"Failed to build JSON structure: {str(e)}",
                 "StructureBuildError",
-                suggestion="File may be corrupted or contain invalid JSON structure"
+                suggestion="File may be corrupted or contain invalid JSON structure",
             )
 
     def _get_memory_usage_mb(self) -> float:
@@ -331,7 +340,7 @@ class SwaggerStreamParser(BaseParser):
         Returns:
             OpenAPI version string if found
         """
-        return data.get('openapi') or data.get('swagger')
+        return data.get("openapi") or data.get("swagger")
 
     def _extract_api_title(self, data: Dict[str, Any]) -> Optional[str]:
         """Extract API title from parsed data.
@@ -342,8 +351,8 @@ class SwaggerStreamParser(BaseParser):
         Returns:
             API title if found
         """
-        info = data.get('info', {})
-        return info.get('title') if isinstance(info, dict) else None
+        info = data.get("info", {})
+        return info.get("title") if isinstance(info, dict) else None
 
     def _extract_api_version(self, data: Dict[str, Any]) -> Optional[str]:
         """Extract API version from parsed data.
@@ -354,10 +363,12 @@ class SwaggerStreamParser(BaseParser):
         Returns:
             API version if found
         """
-        info = data.get('info', {})
-        return info.get('version') if isinstance(info, dict) else None
+        info = data.get("info", {})
+        return info.get("version") if isinstance(info, dict) else None
 
-    def _update_quality_metrics(self, data: Dict[str, Any], metrics: ParseMetrics) -> None:
+    def _update_quality_metrics(
+        self, data: Dict[str, Any], metrics: ParseMetrics
+    ) -> None:
         """Update quality metrics based on parsed data.
 
         Args:
@@ -366,25 +377,40 @@ class SwaggerStreamParser(BaseParser):
         """
         try:
             # Count endpoints
-            paths = data.get('paths', {})
+            paths = data.get("paths", {})
             if isinstance(paths, dict):
                 endpoint_count = 0
                 for path_data in paths.values():
                     if isinstance(path_data, dict):
                         # Count HTTP methods
-                        http_methods = {'get', 'post', 'put', 'delete', 'patch', 'head', 'options', 'trace'}
-                        endpoint_count += len([m for m in path_data.keys() if m.lower() in http_methods])
+                        http_methods = {
+                            "get",
+                            "post",
+                            "put",
+                            "delete",
+                            "patch",
+                            "head",
+                            "options",
+                            "trace",
+                        }
+                        endpoint_count += len(
+                            [
+                                m
+                                for m in path_data.keys()
+                                if m.lower() in http_methods
+                            ]
+                        )
                 metrics.endpoints_found = endpoint_count
 
             # Count schemas
-            components = data.get('components', {})
+            components = data.get("components", {})
             if isinstance(components, dict):
-                schemas = components.get('schemas', {})
+                schemas = components.get("schemas", {})
                 if isinstance(schemas, dict):
                     metrics.schemas_found = len(schemas)
 
                 # Count security schemes
-                security_schemes = components.get('securitySchemes', {})
+                security_schemes = components.get("securitySchemes", {})
                 if isinstance(security_schemes, dict):
                     metrics.security_schemes_found = len(security_schemes)
 
@@ -395,7 +421,7 @@ class SwaggerStreamParser(BaseParser):
             self.logger.warning(
                 "Failed to update quality metrics",
                 error=str(e),
-                error_type=type(e).__name__
+                error_type=type(e).__name__,
             )
 
     def _count_extensions(self, obj: Any, count: int = 0) -> int:
@@ -410,7 +436,7 @@ class SwaggerStreamParser(BaseParser):
         """
         if isinstance(obj, dict):
             for key, value in obj.items():
-                if isinstance(key, str) and key.startswith('x-'):
+                if isinstance(key, str) and key.startswith("x-"):
                     count += 1
                 count = self._count_extensions(value, count)
         elif isinstance(obj, list):

@@ -6,17 +6,20 @@ including REST, e-commerce, social media, and enterprise APIs.
 """
 
 import asyncio
-import tempfile
-import shutil
 import json
+import shutil
+import tempfile
 from pathlib import Path
 from unittest.mock import AsyncMock
+
 import pytest
 
+from swagger_mcp_server.config.settings import SearchConfig
 from swagger_mcp_server.search.index_manager import SearchIndexManager
 from swagger_mcp_server.search.search_engine import SearchEngine
-from swagger_mcp_server.config.settings import SearchConfig
-from swagger_mcp_server.storage.repositories.endpoint_repository import EndpointRepository
+from swagger_mcp_server.storage.repositories.endpoint_repository import (
+    EndpointRepository,
+)
 
 
 @pytest.fixture
@@ -48,19 +51,35 @@ def sample_rest_api_data():
             "summary": "List users",
             "description": "Retrieve a paginated list of all users in the system",
             "parameters": [
-                {"name": "page", "type": "integer", "description": "Page number for pagination"},
-                {"name": "limit", "type": "integer", "description": "Number of users per page"},
-                {"name": "filter", "type": "string", "description": "Filter users by name or email"}
+                {
+                    "name": "page",
+                    "type": "integer",
+                    "description": "Page number for pagination",
+                },
+                {
+                    "name": "limit",
+                    "type": "integer",
+                    "description": "Number of users per page",
+                },
+                {
+                    "name": "filter",
+                    "type": "string",
+                    "description": "Filter users by name or email",
+                },
             ],
             "tags": ["users", "management"],
             "security": [{"bearer_auth": []}],
             "responses": {
                 "200": {
                     "description": "List of users",
-                    "content": {"application/json": {"schema": {"$ref": "#/components/schemas/UserList"}}}
+                    "content": {
+                        "application/json": {
+                            "schema": {"$ref": "#/components/schemas/UserList"}
+                        }
+                    },
                 }
             },
-            "deprecated": False
+            "deprecated": False,
         },
         {
             "id": "users_post",
@@ -74,9 +93,9 @@ def sample_rest_api_data():
             "security": [{"api_key": []}],
             "responses": {
                 "201": {"description": "User created successfully"},
-                "400": {"description": "Invalid user data"}
+                "400": {"description": "Invalid user data"},
             },
-            "deprecated": False
+            "deprecated": False,
         },
         {
             "id": "products_search",
@@ -86,18 +105,32 @@ def sample_rest_api_data():
             "summary": "Search products",
             "description": "Full-text search across product catalog with filters",
             "parameters": [
-                {"name": "q", "type": "string", "description": "Search query text"},
-                {"name": "category", "type": "string", "description": "Product category filter"},
-                {"name": "price_min", "type": "number", "description": "Minimum price filter"},
-                {"name": "price_max", "type": "number", "description": "Maximum price filter"}
+                {
+                    "name": "q",
+                    "type": "string",
+                    "description": "Search query text",
+                },
+                {
+                    "name": "category",
+                    "type": "string",
+                    "description": "Product category filter",
+                },
+                {
+                    "name": "price_min",
+                    "type": "number",
+                    "description": "Minimum price filter",
+                },
+                {
+                    "name": "price_max",
+                    "type": "number",
+                    "description": "Maximum price filter",
+                },
             ],
             "tags": ["products", "search", "catalog"],
             "security": [],
-            "responses": {
-                "200": {"description": "Search results"}
-            },
-            "deprecated": False
-        }
+            "responses": {"200": {"description": "Search results"}},
+            "deprecated": False,
+        },
     ]
 
 
@@ -113,18 +146,39 @@ def sample_enterprise_api_data():
             "summary": "Generate analytics report",
             "description": "Create comprehensive analytics report for organization with custom metrics and time ranges",
             "parameters": [
-                {"name": "orgId", "type": "string", "description": "Organization identifier"},
-                {"name": "report_type", "type": "string", "description": "Type of analytics report"},
-                {"name": "date_from", "type": "string", "description": "Start date for report data"},
-                {"name": "date_to", "type": "string", "description": "End date for report data"}
+                {
+                    "name": "orgId",
+                    "type": "string",
+                    "description": "Organization identifier",
+                },
+                {
+                    "name": "report_type",
+                    "type": "string",
+                    "description": "Type of analytics report",
+                },
+                {
+                    "name": "date_from",
+                    "type": "string",
+                    "description": "Start date for report data",
+                },
+                {
+                    "name": "date_to",
+                    "type": "string",
+                    "description": "End date for report data",
+                },
             ],
-            "tags": ["enterprise", "analytics", "reports", "business-intelligence"],
+            "tags": [
+                "enterprise",
+                "analytics",
+                "reports",
+                "business-intelligence",
+            ],
             "security": [{"oauth2": ["reports:read", "analytics:access"]}],
             "responses": {
                 "202": {"description": "Report generation started"},
-                "403": {"description": "Insufficient permissions"}
+                "403": {"description": "Insufficient permissions"},
             },
-            "deprecated": False
+            "deprecated": False,
         },
         {
             "id": "workflow_automation",
@@ -134,17 +188,30 @@ def sample_enterprise_api_data():
             "summary": "Execute workflow",
             "description": "Trigger automated business workflow with input parameters and callback configuration",
             "parameters": [
-                {"name": "workflowId", "type": "string", "description": "Workflow template identifier"},
-                {"name": "async", "type": "boolean", "description": "Execute workflow asynchronously"}
+                {
+                    "name": "workflowId",
+                    "type": "string",
+                    "description": "Workflow template identifier",
+                },
+                {
+                    "name": "async",
+                    "type": "boolean",
+                    "description": "Execute workflow asynchronously",
+                },
             ],
-            "tags": ["enterprise", "workflow", "automation", "business-process"],
+            "tags": [
+                "enterprise",
+                "workflow",
+                "automation",
+                "business-process",
+            ],
             "security": [{"oauth2": ["workflows:execute"]}],
             "responses": {
                 "200": {"description": "Workflow executed successfully"},
-                "422": {"description": "Workflow validation failed"}
+                "422": {"description": "Workflow validation failed"},
             },
-            "deprecated": False
-        }
+            "deprecated": False,
+        },
     ]
 
 
@@ -160,16 +227,26 @@ def sample_social_api_data():
             "summary": "Get user timeline",
             "description": "Retrieve personalized timeline feed with posts from followed users",
             "parameters": [
-                {"name": "limit", "type": "integer", "description": "Maximum number of posts to return"},
-                {"name": "since_id", "type": "string", "description": "Return posts newer than this ID"},
-                {"name": "include_replies", "type": "boolean", "description": "Include reply posts in timeline"}
+                {
+                    "name": "limit",
+                    "type": "integer",
+                    "description": "Maximum number of posts to return",
+                },
+                {
+                    "name": "since_id",
+                    "type": "string",
+                    "description": "Return posts newer than this ID",
+                },
+                {
+                    "name": "include_replies",
+                    "type": "boolean",
+                    "description": "Include reply posts in timeline",
+                },
             ],
             "tags": ["social", "feed", "timeline", "posts"],
             "security": [{"user_token": []}],
-            "responses": {
-                "200": {"description": "Timeline posts"}
-            },
-            "deprecated": False
+            "responses": {"200": {"description": "Timeline posts"}},
+            "deprecated": False,
         },
         {
             "id": "posts_create",
@@ -183,10 +260,10 @@ def sample_social_api_data():
             "security": [{"user_token": []}],
             "responses": {
                 "201": {"description": "Post created"},
-                "413": {"description": "Content too large"}
+                "413": {"description": "Content too large"},
             },
-            "deprecated": False
-        }
+            "deprecated": False,
+        },
     ]
 
 
@@ -202,15 +279,21 @@ def sample_deprecated_api_data():
             "summary": "Legacy authentication",
             "description": "Legacy authentication method - use OAuth2 instead",
             "parameters": [
-                {"name": "username", "type": "string", "description": "User name"},
-                {"name": "password", "type": "string", "description": "User password"}
+                {
+                    "name": "username",
+                    "type": "string",
+                    "description": "User name",
+                },
+                {
+                    "name": "password",
+                    "type": "string",
+                    "description": "User password",
+                },
             ],
             "tags": ["auth", "legacy"],
             "security": [],
-            "responses": {
-                "200": {"description": "Authentication successful"}
-            },
-            "deprecated": True
+            "responses": {"200": {"description": "Authentication successful"}},
+            "deprecated": True,
         }
     ]
 
@@ -237,11 +320,14 @@ class TestUniversalAPIIndexing:
             endpoint_repo=endpoint_repo,
             schema_repo=schema_repo,
             metadata_repo=metadata_repo,
-            config=search_config
+            config=search_config,
         )
 
         # Create index from data
-        total_indexed, elapsed_time = await index_manager.create_index_from_database()
+        (
+            total_indexed,
+            elapsed_time,
+        ) = await index_manager.create_index_from_database()
 
         # Verify indexing
         assert total_indexed == len(sample_rest_api_data)
@@ -272,11 +358,14 @@ class TestUniversalAPIIndexing:
             endpoint_repo=endpoint_repo,
             schema_repo=schema_repo,
             metadata_repo=metadata_repo,
-            config=search_config
+            config=search_config,
         )
 
         # Index enterprise endpoints
-        total_indexed, elapsed_time = await index_manager.create_index_from_database()
+        (
+            total_indexed,
+            elapsed_time,
+        ) = await index_manager.create_index_from_database()
 
         assert total_indexed == len(sample_enterprise_api_data)
 
@@ -286,15 +375,19 @@ class TestUniversalAPIIndexing:
 
     @pytest.mark.asyncio
     async def test_index_mixed_api_types(
-        self, temp_search_dir, search_config,
-        sample_rest_api_data, sample_enterprise_api_data, sample_social_api_data
+        self,
+        temp_search_dir,
+        search_config,
+        sample_rest_api_data,
+        sample_enterprise_api_data,
+        sample_social_api_data,
     ):
         """Test indexing mixed API types in single index."""
         # Combine all sample data types
         all_endpoints = (
-            sample_rest_api_data +
-            sample_enterprise_api_data +
-            sample_social_api_data
+            sample_rest_api_data
+            + sample_enterprise_api_data
+            + sample_social_api_data
         )
 
         endpoint_repo = AsyncMock(spec=EndpointRepository)
@@ -309,11 +402,14 @@ class TestUniversalAPIIndexing:
             endpoint_repo=endpoint_repo,
             schema_repo=schema_repo,
             metadata_repo=metadata_repo,
-            config=search_config
+            config=search_config,
         )
 
         # Index all endpoint types
-        total_indexed, elapsed_time = await index_manager.create_index_from_database()
+        (
+            total_indexed,
+            elapsed_time,
+        ) = await index_manager.create_index_from_database()
 
         assert total_indexed == len(all_endpoints)
 
@@ -338,11 +434,14 @@ class TestUniversalAPIIndexing:
             endpoint_repo=endpoint_repo,
             schema_repo=schema_repo,
             metadata_repo=metadata_repo,
-            config=search_config
+            config=search_config,
         )
 
         # Index deprecated endpoints
-        total_indexed, elapsed_time = await index_manager.create_index_from_database()
+        (
+            total_indexed,
+            elapsed_time,
+        ) = await index_manager.create_index_from_database()
 
         assert total_indexed == len(sample_deprecated_api_data)
 
@@ -354,7 +453,9 @@ class TestUniversalAPIIndexing:
 class TestUniversalAPISearch:
     """Test search capabilities across different API types."""
 
-    async def setup_search_engine_with_data(self, temp_search_dir, search_config, endpoint_data):
+    async def setup_search_engine_with_data(
+        self, temp_search_dir, search_config, endpoint_data
+    ):
         """Helper method to setup search engine with test data."""
         endpoint_repo = AsyncMock(spec=EndpointRepository)
         schema_repo = AsyncMock()
@@ -368,7 +469,7 @@ class TestUniversalAPISearch:
             endpoint_repo=endpoint_repo,
             schema_repo=schema_repo,
             metadata_repo=metadata_repo,
-            config=search_config
+            config=search_config,
         )
 
         # Create index
@@ -380,14 +481,18 @@ class TestUniversalAPISearch:
 
     @pytest.mark.asyncio
     async def test_search_across_different_api_types(
-        self, temp_search_dir, search_config,
-        sample_rest_api_data, sample_enterprise_api_data, sample_social_api_data
+        self,
+        temp_search_dir,
+        search_config,
+        sample_rest_api_data,
+        sample_enterprise_api_data,
+        sample_social_api_data,
     ):
         """Test searching across different API types."""
         all_endpoints = (
-            sample_rest_api_data +
-            sample_enterprise_api_data +
-            sample_social_api_data
+            sample_rest_api_data
+            + sample_enterprise_api_data
+            + sample_social_api_data
         )
 
         search_engine = await self.setup_search_engine_with_data(
@@ -397,19 +502,27 @@ class TestUniversalAPISearch:
         # Test search for "users" - should find REST API endpoints
         response = await search_engine.search("users")
         assert response.total_results > 0
-        user_results = [r for r in response.results if "user" in r.endpoint_path.lower()]
+        user_results = [
+            r for r in response.results if "user" in r.endpoint_path.lower()
+        ]
         assert len(user_results) > 0
 
         # Test search for "analytics" - should find enterprise endpoints
         response = await search_engine.search("analytics")
         assert response.total_results > 0
-        analytics_results = [r for r in response.results if "analytics" in r.description.lower()]
+        analytics_results = [
+            r for r in response.results if "analytics" in r.description.lower()
+        ]
         assert len(analytics_results) > 0
 
         # Test search for "timeline" - should find social media endpoints
         response = await search_engine.search("timeline")
         assert response.total_results > 0
-        timeline_results = [r for r in response.results if "timeline" in r.endpoint_path.lower()]
+        timeline_results = [
+            r
+            for r in response.results
+            if "timeline" in r.endpoint_path.lower()
+        ]
         assert len(timeline_results) > 0
 
     @pytest.mark.asyncio
@@ -422,12 +535,16 @@ class TestUniversalAPISearch:
         )
 
         # Search for GET endpoints
-        get_results = await search_engine.search_by_path("", http_methods=["GET"])
+        get_results = await search_engine.search_by_path(
+            "", http_methods=["GET"]
+        )
         assert len(get_results) > 0
         assert all(r.http_method == "GET" for r in get_results)
 
         # Search for POST endpoints
-        post_results = await search_engine.search_by_path("", http_methods=["POST"])
+        post_results = await search_engine.search_by_path(
+            "", http_methods=["POST"]
+        )
         assert len(post_results) > 0
         assert all(r.http_method == "POST" for r in post_results)
 
@@ -449,7 +566,9 @@ class TestUniversalAPISearch:
         assert len(analytics_results) > 0
 
         # Search by multiple tags
-        workflow_results = await search_engine.search_by_tag(["workflow", "automation"])
+        workflow_results = await search_engine.search_by_tag(
+            ["workflow", "automation"]
+        )
         assert len(workflow_results) > 0
 
     @pytest.mark.asyncio
@@ -463,8 +582,7 @@ class TestUniversalAPISearch:
 
         # Search with method filter
         response = await search_engine.search(
-            "posts",
-            filters={"http_method": "GET"}
+            "posts", filters={"http_method": "GET"}
         )
 
         get_results = [r for r in response.results if r.http_method == "GET"]
@@ -472,11 +590,14 @@ class TestUniversalAPISearch:
 
         # Search with deprecation filter
         response = await search_engine.search(
-            "posts",
-            filters={"deprecated": False}
+            "posts", filters={"deprecated": False}
         )
 
-        non_deprecated = [r for r in response.results if not r.metadata.get("deprecated", False)]
+        non_deprecated = [
+            r
+            for r in response.results
+            if not r.metadata.get("deprecated", False)
+        ]
         assert len(non_deprecated) > 0
 
     @pytest.mark.asyncio
@@ -530,7 +651,7 @@ class TestUniversalAPISearch:
             endpoint_repo=endpoint_repo,
             schema_repo=schema_repo,
             metadata_repo=metadata_repo,
-            config=search_config
+            config=search_config,
         )
 
         # Create initial index
@@ -540,7 +661,7 @@ class TestUniversalAPISearch:
         updated_endpoint = {
             **sample_rest_api_data[0],
             "summary": "Updated user endpoint",
-            "description": "Updated description for user management"
+            "description": "Updated description for user management",
         }
 
         endpoint_repo.get_by_id.return_value = updated_endpoint
@@ -561,18 +682,20 @@ class TestUniversalAPICompatibility:
     @pytest.mark.asyncio
     async def test_minimal_endpoint_data(self, temp_search_dir, search_config):
         """Test indexing with minimal required endpoint data."""
-        minimal_endpoint = [{
-            "id": "minimal_test",
-            "path": "/test",
-            "method": "GET",
-            "summary": "",
-            "description": "",
-            "parameters": [],
-            "tags": [],
-            "security": [],
-            "responses": {},
-            "deprecated": False
-        }]
+        minimal_endpoint = [
+            {
+                "id": "minimal_test",
+                "path": "/test",
+                "method": "GET",
+                "summary": "",
+                "description": "",
+                "parameters": [],
+                "tags": [],
+                "security": [],
+                "responses": {},
+                "deprecated": False,
+            }
+        ]
 
         search_engine = await self.setup_search_engine_with_data(
             temp_search_dir, search_config, minimal_endpoint
@@ -582,7 +705,9 @@ class TestUniversalAPICompatibility:
         response = await search_engine.search("test")
         assert response.total_results >= 0  # May or may not find results
 
-    async def setup_search_engine_with_data(self, temp_search_dir, search_config, endpoint_data):
+    async def setup_search_engine_with_data(
+        self, temp_search_dir, search_config, endpoint_data
+    ):
         """Helper method to setup search engine with test data."""
         endpoint_repo = AsyncMock(spec=EndpointRepository)
         schema_repo = AsyncMock()
@@ -596,7 +721,7 @@ class TestUniversalAPICompatibility:
             endpoint_repo=endpoint_repo,
             schema_repo=schema_repo,
             metadata_repo=metadata_repo,
-            config=search_config
+            config=search_config,
         )
 
         await index_manager.create_index_from_database()

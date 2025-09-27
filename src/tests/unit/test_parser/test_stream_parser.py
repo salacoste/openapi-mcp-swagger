@@ -1,12 +1,17 @@
 """Tests for stream-based JSON parser."""
 
 import json
-import pytest
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
+import pytest
+
+from swagger_mcp_server.parser.base import (
+    ParserConfig,
+    ParseStatus,
+    SwaggerParseError,
+)
 from swagger_mcp_server.parser.stream_parser import SwaggerStreamParser
-from swagger_mcp_server.parser.base import ParserConfig, ParseStatus, SwaggerParseError
 
 
 class TestSwaggerStreamParser:
@@ -23,7 +28,7 @@ class TestSwaggerStreamParser:
         config = ParserConfig(
             chunk_size_bytes=4096,
             max_memory_mb=1024,
-            progress_interval_bytes=512 * 1024
+            progress_interval_bytes=512 * 1024,
         )
         return SwaggerStreamParser(config)
 
@@ -35,7 +40,7 @@ class TestSwaggerStreamParser:
             "info": {
                 "title": "Test API",
                 "version": "1.0.0",
-                "description": "A test API"
+                "description": "A test API",
             },
             "paths": {
                 "/users": {
@@ -48,19 +53,19 @@ class TestSwaggerStreamParser:
                                     "application/json": {
                                         "schema": {
                                             "type": "array",
-                                            "items": {"$ref": "#/components/schemas/User"}
+                                            "items": {
+                                                "$ref": "#/components/schemas/User"
+                                            },
                                         }
                                     }
-                                }
+                                },
                             }
-                        }
+                        },
                     },
                     "post": {
                         "summary": "Create user",
-                        "responses": {
-                            "201": {"description": "Created"}
-                        }
-                    }
+                        "responses": {"201": {"description": "Created"}},
+                    },
                 },
                 "/users/{id}": {
                     "get": {
@@ -70,15 +75,15 @@ class TestSwaggerStreamParser:
                                 "name": "id",
                                 "in": "path",
                                 "required": True,
-                                "schema": {"type": "integer"}
+                                "schema": {"type": "integer"},
                             }
                         ],
                         "responses": {
                             "200": {"description": "Success"},
-                            "404": {"description": "Not found"}
-                        }
+                            "404": {"description": "Not found"},
+                        },
                     }
-                }
+                },
             },
             "components": {
                 "schemas": {
@@ -87,23 +92,20 @@ class TestSwaggerStreamParser:
                         "properties": {
                             "id": {"type": "integer"},
                             "name": {"type": "string"},
-                            "email": {"type": "string", "format": "email"}
+                            "email": {"type": "string", "format": "email"},
                         },
-                        "required": ["id", "name", "email"]
+                        "required": ["id", "name", "email"],
                     }
                 },
                 "securitySchemes": {
-                    "bearerAuth": {
-                        "type": "http",
-                        "scheme": "bearer"
-                    }
-                }
+                    "bearerAuth": {"type": "http", "scheme": "bearer"}
+                },
             },
-            "x-custom-extension": "test-value"
+            "x-custom-extension": "test-value",
         }
 
         json_file = tmp_path / "simple_api.json"
-        with open(json_file, 'w') as f:
+        with open(json_file, "w") as f:
             json.dump(data, f, indent=2)
 
         return json_file
@@ -121,17 +123,17 @@ class TestSwaggerStreamParser:
                     "description": f"Retrieve resource {i} with detailed information",
                     "responses": {
                         "200": {"description": "Success"},
-                        "404": {"description": "Not found"}
-                    }
+                        "404": {"description": "Not found"},
+                    },
                 },
                 "post": {
                     "summary": f"Create resource {i}",
                     "description": f"Create a new instance of resource {i}",
                     "responses": {
                         "201": {"description": "Created"},
-                        "400": {"description": "Bad request"}
-                    }
-                }
+                        "400": {"description": "Bad request"},
+                    },
+                },
             }
 
         # Create schemas for each resource
@@ -143,9 +145,12 @@ class TestSwaggerStreamParser:
                 "properties": {
                     "id": {"type": "integer"},
                     "name": {"type": "string"},
-                    f"field{i}": {"type": "string", "description": f"Field {i} description"}
+                    f"field{i}": {
+                        "type": "string",
+                        "description": f"Field {i} description",
+                    },
                 },
-                "required": ["id", "name"]
+                "required": ["id", "name"],
             }
 
         data = {
@@ -153,16 +158,14 @@ class TestSwaggerStreamParser:
             "info": {
                 "title": "Large Test API",
                 "version": "1.0.0",
-                "description": "A large API for performance testing"
+                "description": "A large API for performance testing",
             },
             "paths": paths,
-            "components": {
-                "schemas": schemas
-            }
+            "components": {"schemas": schemas},
         }
 
         json_file = tmp_path / "large_api.json"
-        with open(json_file, 'w') as f:
+        with open(json_file, "w") as f:
             json.dump(data, f, indent=2)
 
         return json_file
@@ -170,7 +173,7 @@ class TestSwaggerStreamParser:
     @pytest.fixture
     def malformed_json_file(self, tmp_path):
         """Create malformed JSON file for error testing."""
-        malformed_content = '''{
+        malformed_content = """{
             "openapi": "3.0.0",
             "info": {
                 "title": "Test API",
@@ -187,7 +190,7 @@ class TestSwaggerStreamParser:
                     }
                 }
             }
-        }'''
+        }"""
 
         json_file = tmp_path / "malformed.json"
         json_file.write_text(malformed_content)
@@ -196,7 +199,7 @@ class TestSwaggerStreamParser:
     def test_parser_initialization(self, parser):
         """Test parser initialization with defaults."""
         assert parser.config is not None
-        assert parser.get_supported_extensions() == ['.json']
+        assert parser.get_supported_extensions() == [".json"]
         assert parser.get_parser_type().value == "openapi_json"
 
     def test_parser_custom_config(self, parser_with_config):
@@ -204,7 +207,9 @@ class TestSwaggerStreamParser:
         assert parser_with_config.config.chunk_size_bytes == 4096
         assert parser_with_config.config.max_memory_mb == 1024
 
-    async def test_parse_simple_file_success(self, parser, simple_openapi_file):
+    async def test_parse_simple_file_success(
+        self, parser, simple_openapi_file
+    ):
         """Test parsing simple OpenAPI file successfully."""
         result = await parser.parse(simple_openapi_file)
 
@@ -217,13 +222,15 @@ class TestSwaggerStreamParser:
 
         # Check quality metrics
         assert result.metrics.endpoints_found == 3  # 2 GET, 1 POST
-        assert result.metrics.schemas_found == 1    # User schema
+        assert result.metrics.schemas_found == 1  # User schema
         assert result.metrics.security_schemes_found == 1  # bearerAuth
         assert result.metrics.extensions_found == 1  # x-custom-extension
         assert result.metrics.file_size_bytes > 0
         assert result.metrics.parse_duration_ms >= 0
 
-    async def test_parse_large_file_performance(self, parser, large_openapi_file):
+    async def test_parse_large_file_performance(
+        self, parser, large_openapi_file
+    ):
         """Test parsing large file within performance limits."""
         result = await parser.parse(large_openapi_file)
 
@@ -231,14 +238,20 @@ class TestSwaggerStreamParser:
         assert result.status == ParseStatus.COMPLETED
 
         # Performance checks
-        assert result.metrics.parse_duration_ms < 5000  # Should be under 5 seconds
-        assert result.metrics.memory_peak_mb < 100      # Should use reasonable memory
+        assert (
+            result.metrics.parse_duration_ms < 5000
+        )  # Should be under 5 seconds
+        assert (
+            result.metrics.memory_peak_mb < 100
+        )  # Should use reasonable memory
 
         # Quality metrics
-        assert result.metrics.endpoints_found == 200   # 100 GET + 100 POST
-        assert result.metrics.schemas_found == 50      # 50 schemas
+        assert result.metrics.endpoints_found == 200  # 100 GET + 100 POST
+        assert result.metrics.schemas_found == 50  # 50 schemas
 
-    async def test_parse_with_progress_callback(self, parser_with_config, simple_openapi_file):
+    async def test_parse_with_progress_callback(
+        self, parser_with_config, simple_openapi_file
+    ):
         """Test parsing with progress callback."""
         progress_calls = []
 
@@ -267,7 +280,9 @@ class TestSwaggerStreamParser:
         # Should stay well under the 2GB limit
         assert result.metrics.memory_peak_mb < 100
 
-    async def test_parse_malformed_json_error(self, parser, malformed_json_file):
+    async def test_parse_malformed_json_error(
+        self, parser, malformed_json_file
+    ):
         """Test parsing malformed JSON file."""
         result = await parser.parse(malformed_json_file)
 
@@ -293,7 +308,7 @@ class TestSwaggerStreamParser:
         """Test parsing file that exceeds size limit."""
         # Create file larger than default 10MB limit
         large_file = tmp_path / "huge.json"
-        huge_content = '{"data": "' + 'x' * (11 * 1024 * 1024) + '"}'
+        huge_content = '{"data": "' + "x" * (11 * 1024 * 1024) + '"}'
         large_file.write_text(huge_content)
 
         with pytest.raises(SwaggerParseError) as exc_info:
@@ -301,7 +316,9 @@ class TestSwaggerStreamParser:
 
         assert "exceeds maximum" in str(exc_info.value)
 
-    async def test_extract_api_info_complete(self, parser, simple_openapi_file):
+    async def test_extract_api_info_complete(
+        self, parser, simple_openapi_file
+    ):
         """Test extraction of complete API information."""
         result = await parser.parse(simple_openapi_file)
 
@@ -314,11 +331,11 @@ class TestSwaggerStreamParser:
         minimal_data = {
             "openapi": "3.0.1",
             "info": {"title": "Minimal API", "version": "0.1.0"},
-            "paths": {}
+            "paths": {},
         }
 
         minimal_file = tmp_path / "minimal.json"
-        with open(minimal_file, 'w') as f:
+        with open(minimal_file, "w") as f:
             json.dump(minimal_data, f)
 
         result = await parser.parse(minimal_file)
@@ -343,16 +360,16 @@ class TestSwaggerStreamParser:
                         "properties": {
                             "name": {
                                 "type": "string",
-                                "x-property-extension": "value3"
+                                "x-property-extension": "value3",
                             }
-                        }
+                        },
                     }
                 }
-            }
+            },
         }
 
         ext_file = tmp_path / "extensions.json"
-        with open(ext_file, 'w') as f:
+        with open(ext_file, "w") as f:
             json.dump(data_with_extensions, f)
 
         result = await parser.parse(ext_file)
@@ -361,8 +378,10 @@ class TestSwaggerStreamParser:
         # Should find 3 extensions: x-root-extension, x-schema-extension, x-property-extension
         assert result.metrics.extensions_found == 3
 
-    @patch('swagger_mcp_server.parser.stream_parser.ijson')
-    async def test_ijson_unavailable_error(self, mock_ijson, parser, simple_openapi_file):
+    @patch("swagger_mcp_server.parser.stream_parser.ijson")
+    async def test_ijson_unavailable_error(
+        self, mock_ijson, parser, simple_openapi_file
+    ):
         """Test behavior when ijson is not available."""
         # This test would need to be adapted based on how we handle missing ijson
         # Currently, the import error is raised at module level
@@ -380,16 +399,12 @@ class TestSwaggerStreamParser:
             "empty_array": [],
             "nested_array": [1, 2, {"nested": "value"}],
             "complex_nesting": {
-                "level1": {
-                    "level2": {
-                        "level3": ["item1", "item2"]
-                    }
-                }
-            }
+                "level1": {"level2": {"level3": ["item1", "item2"]}}
+            },
         }
 
         edge_file = tmp_path / "edge_cases.json"
-        with open(edge_file, 'w') as f:
+        with open(edge_file, "w") as f:
             json.dump(edge_cases_data, f)
 
         result = await parser.parse(edge_file)
@@ -415,7 +430,7 @@ class TestSwaggerStreamParser:
         large_data = {"large_field": "x" * (2 * 1024 * 1024)}  # 2MB string
         large_file = tmp_path / "memory_test.json"
 
-        with open(large_file, 'w') as f:
+        with open(large_file, "w") as f:
             json.dump(large_data, f)
 
         # This should either succeed with memory monitoring or fail gracefully

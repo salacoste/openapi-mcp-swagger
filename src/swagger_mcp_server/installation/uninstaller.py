@@ -1,14 +1,14 @@
 """Uninstallation and cleanup management."""
 
-import os
-import sys
-import shutil
-import platform
-import subprocess
-from pathlib import Path
-from typing import Dict, Any, List, Optional
-from datetime import datetime
 import json
+import os
+import platform
+import shutil
+import subprocess
+import sys
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 
 class UninstallationError(Exception):
@@ -31,14 +31,16 @@ class UninstallationManager:
         self.logs_dir = self.install_dir / "logs"
         self.backup_dir = self.install_dir / "backups"
 
-    async def perform_uninstallation(self, preserve_config: bool = False, preserve_data: bool = False) -> Dict[str, Any]:
+    async def perform_uninstallation(
+        self, preserve_config: bool = False, preserve_data: bool = False
+    ) -> Dict[str, Any]:
         """Perform complete system uninstallation."""
         uninstall_results = {
             "removed_items": [],
             "preserved_items": [],
             "warnings": [],
             "errors": [],
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
 
         try:
@@ -75,7 +77,9 @@ class UninstallationManager:
 
         except Exception as e:
             uninstall_results["errors"].append(str(e))
-            raise UninstallationError(f"Uninstallation failed: {str(e)}", uninstall_results)
+            raise UninstallationError(
+                f"Uninstallation failed: {str(e)}", uninstall_results
+            )
 
     async def _stop_running_servers(self, results: Dict[str, Any]) -> None:
         """Stop any running MCP servers before uninstallation."""
@@ -86,15 +90,23 @@ class UninstallationManager:
             all_servers = await manager.get_all_servers_status()
 
             if all_servers:
-                results["warnings"].append(f"Stopping {len(all_servers)} running servers")
+                results["warnings"].append(
+                    f"Stopping {len(all_servers)} running servers"
+                )
 
                 for server_status in all_servers:
                     server_id = server_status["server"]["id"]
                     try:
-                        await manager.stop_server(server_id, force=True, timeout=10)
-                        results["removed_items"].append(f"stopped server: {server_id}")
+                        await manager.stop_server(
+                            server_id, force=True, timeout=10
+                        )
+                        results["removed_items"].append(
+                            f"stopped server: {server_id}"
+                        )
                     except Exception as e:
-                        results["warnings"].append(f"Could not stop server {server_id}: {e}")
+                        results["warnings"].append(
+                            f"Could not stop server {server_id}: {e}"
+                        )
 
         except ImportError:
             # Server management not available
@@ -110,7 +122,10 @@ class UninstallationManager:
             (self.config_dir / "servers.json", "server registry"),
         ]
 
-        backup_dir = Path.home() / f".swagger-mcp-server-backup-{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        backup_dir = (
+            Path.home()
+            / f".swagger-mcp-server-backup-{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        )
         backup_dir.mkdir(exist_ok=True)
 
         for item_path, description in preserve_items:
@@ -122,18 +137,26 @@ class UninstallationManager:
                     else:
                         shutil.copy2(item_path, backup_path)
 
-                    results["preserved_items"].append(f"{description}: backed up to {backup_path}")
+                    results["preserved_items"].append(
+                        f"{description}: backed up to {backup_path}"
+                    )
                 except Exception as e:
-                    results["warnings"].append(f"Could not backup {description}: {e}")
+                    results["warnings"].append(
+                        f"Could not backup {description}: {e}"
+                    )
 
     async def _remove_all_data(self, results: Dict[str, Any]) -> None:
         """Remove all data directories."""
         if self.data_dir.exists():
             try:
                 shutil.rmtree(self.data_dir)
-                results["removed_items"].append(f"data directory: {self.data_dir}")
+                results["removed_items"].append(
+                    f"data directory: {self.data_dir}"
+                )
             except Exception as e:
-                results["warnings"].append(f"Could not remove data directory: {e}")
+                results["warnings"].append(
+                    f"Could not remove data directory: {e}"
+                )
 
     async def _selective_cleanup(self, results: Dict[str, Any]) -> None:
         """Selective cleanup preserving user configuration."""
@@ -142,7 +165,7 @@ class UninstallationManager:
             self.data_dir / "search_index",
             self.data_dir / "temp",
             self.install_dir / "__pycache__",
-            self.install_dir / ".cache"
+            self.install_dir / ".cache",
         ]
 
         for cache_dir in cache_dirs:
@@ -151,7 +174,9 @@ class UninstallationManager:
                     shutil.rmtree(cache_dir)
                     results["removed_items"].append(f"cache: {cache_dir.name}")
                 except Exception as e:
-                    results["warnings"].append(f"Could not remove cache {cache_dir.name}: {e}")
+                    results["warnings"].append(
+                        f"Could not remove cache {cache_dir.name}: {e}"
+                    )
 
         # Remove log files
         if self.logs_dir.exists():
@@ -174,7 +199,9 @@ class UninstallationManager:
                 shutil.rmtree(self.backup_dir)
                 results["removed_items"].append("backup directory")
             except Exception as e:
-                results["warnings"].append(f"Could not remove backup directory: {e}")
+                results["warnings"].append(
+                    f"Could not remove backup directory: {e}"
+                )
 
         # Preserve configuration files
         config_files = ["config.yaml", "servers.json"]
@@ -189,18 +216,31 @@ class UninstallationManager:
             try:
                 # Remove the entire installation directory
                 shutil.rmtree(self.install_dir)
-                results["removed_items"].append(f"installation directory: {self.install_dir}")
+                results["removed_items"].append(
+                    f"installation directory: {self.install_dir}"
+                )
             except Exception as e:
-                results["warnings"].append(f"Could not remove installation directory: {e}")
+                results["warnings"].append(
+                    f"Could not remove installation directory: {e}"
+                )
 
                 # Try to remove individual components
-                for subdir in [self.config_dir, self.data_dir, self.logs_dir, self.backup_dir]:
+                for subdir in [
+                    self.config_dir,
+                    self.data_dir,
+                    self.logs_dir,
+                    self.backup_dir,
+                ]:
                     if subdir.exists():
                         try:
                             shutil.rmtree(subdir)
-                            results["removed_items"].append(f"directory: {subdir.name}")
+                            results["removed_items"].append(
+                                f"directory: {subdir.name}"
+                            )
                         except Exception as sub_e:
-                            results["warnings"].append(f"Could not remove {subdir.name}: {sub_e}")
+                            results["warnings"].append(
+                                f"Could not remove {subdir.name}: {sub_e}"
+                            )
 
     async def _uninstall_pip_package(self) -> Dict[str, Any]:
         """Attempt to uninstall the pip package."""
@@ -210,43 +250,50 @@ class UninstallationManager:
                 [sys.executable, "-m", "pip", "show", "swagger-mcp-server"],
                 capture_output=True,
                 text=True,
-                timeout=30
+                timeout=30,
             )
 
             if result.returncode != 0:
                 return {
                     "success": True,
-                    "message": "Package not installed via pip"
+                    "message": "Package not installed via pip",
                 }
 
             # Uninstall the package
             uninstall_result = subprocess.run(
-                [sys.executable, "-m", "pip", "uninstall", "swagger-mcp-server", "-y"],
+                [
+                    sys.executable,
+                    "-m",
+                    "pip",
+                    "uninstall",
+                    "swagger-mcp-server",
+                    "-y",
+                ],
                 capture_output=True,
                 text=True,
-                timeout=60
+                timeout=60,
             )
 
             if uninstall_result.returncode == 0:
                 return {
                     "success": True,
-                    "message": "Package uninstalled successfully"
+                    "message": "Package uninstalled successfully",
                 }
             else:
                 return {
                     "success": False,
-                    "message": f"Failed to uninstall package: {uninstall_result.stderr}"
+                    "message": f"Failed to uninstall package: {uninstall_result.stderr}",
                 }
 
         except subprocess.TimeoutExpired:
             return {
                 "success": False,
-                "message": "Package uninstallation timed out"
+                "message": "Package uninstallation timed out",
             }
         except Exception as e:
             return {
                 "success": False,
-                "message": f"Error during package uninstallation: {str(e)}"
+                "message": f"Error during package uninstallation: {str(e)}",
             }
 
     async def _cleanup_temp_files(self) -> List[str]:
@@ -256,8 +303,12 @@ class UninstallationManager:
         # Common temporary locations
         temp_locations = [
             Path.home() / ".swagger_mcp_temp",
-            Path("/tmp") / "swagger_mcp_server" if self.platform != "windows" else None,
-            Path(os.getenv("TEMP", "")) / "swagger_mcp_server" if self.platform == "windows" else None,
+            Path("/tmp") / "swagger_mcp_server"
+            if self.platform != "windows"
+            else None,
+            Path(os.getenv("TEMP", "")) / "swagger_mcp_server"
+            if self.platform == "windows"
+            else None,
         ]
 
         temp_locations = [loc for loc in temp_locations if loc is not None]
@@ -279,7 +330,10 @@ class UninstallationManager:
     async def _create_uninstall_log(self, results: Dict[str, Any]) -> None:
         """Create a log of the uninstallation process."""
         try:
-            uninstall_log = Path.home() / f"swagger-mcp-server-uninstall-{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+            uninstall_log = (
+                Path.home()
+                / f"swagger-mcp-server-uninstall-{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+            )
 
             log_content = f"""Swagger MCP Server Uninstallation Log
 =====================================
@@ -302,20 +356,18 @@ Errors:
 Uninstallation Status: {'Completed' if not results['errors'] else 'Completed with errors'}
 """
 
-            with open(uninstall_log, 'w') as f:
+            with open(uninstall_log, "w") as f:
                 f.write(log_content)
 
         except Exception:
             # Don't fail uninstallation if we can't write log
             pass
 
-    async def get_uninstall_preview(self, preserve_config: bool = False, preserve_data: bool = False) -> Dict[str, Any]:
+    async def get_uninstall_preview(
+        self, preserve_config: bool = False, preserve_data: bool = False
+    ) -> Dict[str, Any]:
         """Preview what would be removed during uninstallation."""
-        preview = {
-            "will_remove": [],
-            "will_preserve": [],
-            "warnings": []
-        }
+        preview = {"will_remove": [], "will_preserve": [], "warnings": []}
 
         if not self.install_dir.exists():
             preview["warnings"].append("Installation directory does not exist")
@@ -341,10 +393,13 @@ Uninstallation Status: {'Completed' if not results['errors'] else 'Completed wit
         # Check for running servers
         try:
             from ..management import MCPServerManager
+
             manager = MCPServerManager()
             all_servers = await manager.get_all_servers_status()
             if all_servers:
-                preview["warnings"].append(f"{len(all_servers)} running servers will be stopped")
+                preview["warnings"].append(
+                    f"{len(all_servers)} running servers will be stopped"
+                )
         except Exception:
             pass
 

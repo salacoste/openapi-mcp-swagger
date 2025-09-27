@@ -1,8 +1,8 @@
 """Configuration template management for different deployment scenarios."""
 
-from typing import Dict, Any, Optional
-from datetime import datetime
 import copy
+from datetime import datetime
+from typing import Any, Dict, Optional
 
 
 class ConfigurationTemplateManager:
@@ -23,12 +23,14 @@ class ConfigurationTemplateManager:
         templates = {
             "development": self.get_development_template,
             "staging": self.get_staging_template,
-            "production": self.get_production_template
+            "production": self.get_production_template,
         }
 
         if template_name not in templates:
             available = ", ".join(templates.keys())
-            raise ValueError(f"Unknown template '{template_name}'. Available: {available}")
+            raise ValueError(
+                f"Unknown template '{template_name}'. Available: {available}"
+            )
 
         return templates[template_name]()
 
@@ -48,11 +50,7 @@ class ConfigurationTemplateManager:
                 "port": 8080,
                 "max_connections": 10,
                 "timeout": 60,
-                "ssl": {
-                    "enabled": False,
-                    "cert_file": None,
-                    "key_file": None
-                }
+                "ssl": {"enabled": False, "cert_file": None, "key_file": None},
             },
             "database": {
                 "path": "./dev_mcp_server.db",
@@ -61,8 +59,8 @@ class ConfigurationTemplateManager:
                 "backup": {
                     "enabled": False,
                     "interval": 86400,
-                    "retention": 1
-                }
+                    "retention": 1,
+                },
             },
             "search": {
                 "engine": "whoosh",
@@ -72,13 +70,13 @@ class ConfigurationTemplateManager:
                     "summary": 1.2,
                     "description": 1.0,
                     "parameters": 0.8,
-                    "tags": 0.6
+                    "tags": 0.6,
                 },
                 "performance": {
                     "cache_size_mb": 32,
                     "max_results": 100,
-                    "search_timeout": 30
-                }
+                    "search_timeout": 30,
+                },
             },
             "logging": {
                 "level": "DEBUG",
@@ -87,23 +85,17 @@ class ConfigurationTemplateManager:
                 "rotation": {
                     "enabled": False,
                     "max_size_mb": 5,
-                    "backup_count": 2
-                }
+                    "backup_count": 2,
+                },
             },
             "features": {
-                "metrics": {
-                    "enabled": True,
-                    "endpoint": "/metrics"
-                },
-                "health_check": {
-                    "enabled": True,
-                    "endpoint": "/health"
-                },
+                "metrics": {"enabled": True, "endpoint": "/metrics"},
+                "health_check": {"enabled": True, "endpoint": "/health"},
                 "rate_limiting": {
                     "enabled": False,
-                    "requests_per_minute": 1000
-                }
-            }
+                    "requests_per_minute": 1000,
+                },
+            },
         }
 
     def get_production_template(self) -> Dict[str, Any]:
@@ -125,8 +117,8 @@ class ConfigurationTemplateManager:
                 "ssl": {
                     "enabled": True,
                     "cert_file": "/etc/ssl/certs/mcp-server.crt",
-                    "key_file": "/etc/ssl/private/mcp-server.key"
-                }
+                    "key_file": "/etc/ssl/private/mcp-server.key",
+                },
             },
             "database": {
                 "path": "/var/lib/mcp-server/mcp_server.db",
@@ -135,8 +127,8 @@ class ConfigurationTemplateManager:
                 "backup": {
                     "enabled": True,
                     "interval": 86400,  # 24 hours
-                    "retention": 7
-                }
+                    "retention": 7,
+                },
             },
             "search": {
                 "engine": "whoosh",
@@ -146,13 +138,13 @@ class ConfigurationTemplateManager:
                     "summary": 1.2,
                     "description": 1.0,
                     "parameters": 0.8,
-                    "tags": 0.6
+                    "tags": 0.6,
                 },
                 "performance": {
                     "cache_size_mb": 128,
                     "max_results": 1000,
-                    "search_timeout": 10
-                }
+                    "search_timeout": 10,
+                },
             },
             "logging": {
                 "level": "INFO",
@@ -161,23 +153,14 @@ class ConfigurationTemplateManager:
                 "rotation": {
                     "enabled": True,
                     "max_size_mb": 10,
-                    "backup_count": 5
-                }
+                    "backup_count": 5,
+                },
             },
             "features": {
-                "metrics": {
-                    "enabled": True,
-                    "endpoint": "/metrics"
-                },
-                "health_check": {
-                    "enabled": True,
-                    "endpoint": "/health"
-                },
-                "rate_limiting": {
-                    "enabled": True,
-                    "requests_per_minute": 100
-                }
-            }
+                "metrics": {"enabled": True, "endpoint": "/metrics"},
+                "health_check": {"enabled": True, "endpoint": "/health"},
+                "rate_limiting": {"enabled": True, "requests_per_minute": 100},
+            },
         }
 
     def get_staging_template(self) -> Dict[str, Any]:
@@ -199,8 +182,8 @@ class ConfigurationTemplateManager:
                 "ssl": {
                     "enabled": False,  # Often disabled in staging for easier testing
                     "cert_file": None,
-                    "key_file": None
-                }
+                    "key_file": None,
+                },
             },
             "database": {
                 "path": "/opt/mcp-server/staging_mcp_server.db",
@@ -209,8 +192,8 @@ class ConfigurationTemplateManager:
                 "backup": {
                     "enabled": True,
                     "interval": 43200,  # 12 hours
-                    "retention": 3
-                }
+                    "retention": 3,
+                },
             },
             "search": {
                 "engine": "whoosh",
@@ -220,13 +203,13 @@ class ConfigurationTemplateManager:
                     "summary": 1.2,
                     "description": 1.0,
                     "parameters": 0.8,
-                    "tags": 0.6
+                    "tags": 0.6,
                 },
                 "performance": {
                     "cache_size_mb": 64,
                     "max_results": 500,
-                    "search_timeout": 15
-                }
+                    "search_timeout": 15,
+                },
             },
             "logging": {
                 "level": "INFO",
@@ -235,23 +218,14 @@ class ConfigurationTemplateManager:
                 "rotation": {
                     "enabled": True,
                     "max_size_mb": 5,
-                    "backup_count": 3
-                }
+                    "backup_count": 3,
+                },
             },
             "features": {
-                "metrics": {
-                    "enabled": True,
-                    "endpoint": "/metrics"
-                },
-                "health_check": {
-                    "enabled": True,
-                    "endpoint": "/health"
-                },
-                "rate_limiting": {
-                    "enabled": True,
-                    "requests_per_minute": 200
-                }
-            }
+                "metrics": {"enabled": True, "endpoint": "/metrics"},
+                "health_check": {"enabled": True, "endpoint": "/health"},
+                "rate_limiting": {"enabled": True, "requests_per_minute": 200},
+            },
         }
 
     def get_container_template(self) -> Dict[str, Any]:
@@ -273,8 +247,8 @@ class ConfigurationTemplateManager:
                 "ssl": {
                     "enabled": False,  # Usually handled by ingress/load balancer
                     "cert_file": None,
-                    "key_file": None
-                }
+                    "key_file": None,
+                },
             },
             "database": {
                 "path": "/data/mcp_server.db",
@@ -283,8 +257,8 @@ class ConfigurationTemplateManager:
                 "backup": {
                     "enabled": False,  # Usually handled externally in containers
                     "interval": 86400,
-                    "retention": 1
-                }
+                    "retention": 1,
+                },
             },
             "search": {
                 "engine": "whoosh",
@@ -294,13 +268,13 @@ class ConfigurationTemplateManager:
                     "summary": 1.2,
                     "description": 1.0,
                     "parameters": 0.8,
-                    "tags": 0.6
+                    "tags": 0.6,
                 },
                 "performance": {
                     "cache_size_mb": 64,
                     "max_results": 1000,
-                    "search_timeout": 10
-                }
+                    "search_timeout": 10,
+                },
             },
             "logging": {
                 "level": "INFO",
@@ -309,23 +283,17 @@ class ConfigurationTemplateManager:
                 "rotation": {
                     "enabled": False,
                     "max_size_mb": 10,
-                    "backup_count": 1
-                }
+                    "backup_count": 1,
+                },
             },
             "features": {
-                "metrics": {
-                    "enabled": True,
-                    "endpoint": "/metrics"
-                },
-                "health_check": {
-                    "enabled": True,
-                    "endpoint": "/health"
-                },
+                "metrics": {"enabled": True, "endpoint": "/metrics"},
+                "health_check": {"enabled": True, "endpoint": "/health"},
                 "rate_limiting": {
                     "enabled": False,  # Usually handled by ingress
-                    "requests_per_minute": 100
-                }
-            }
+                    "requests_per_minute": 100,
+                },
+            },
         }
 
     def get_available_templates(self) -> Dict[str, str]:
@@ -338,10 +306,12 @@ class ConfigurationTemplateManager:
             "development": "Local development with debugging and relaxed settings",
             "staging": "Testing environment balancing production settings with debugging",
             "production": "Production deployment with security and performance optimization",
-            "container": "Container deployment optimized for Docker/Kubernetes"
+            "container": "Container deployment optimized for Docker/Kubernetes",
         }
 
-    def customize_template(self, template: Dict[str, Any], customizations: Dict[str, Any]) -> Dict[str, Any]:
+    def customize_template(
+        self, template: Dict[str, Any], customizations: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Apply customizations to a template.
 
         Args:
@@ -378,7 +348,9 @@ class ConfigurationTemplateManager:
             return f"Error: {e}"
 
         descriptions = self.get_available_templates()
-        description = descriptions.get(template_name, "No description available")
+        description = descriptions.get(
+            template_name, "No description available"
+        )
 
         doc = f"""# {template_name.title()} Configuration Template
 
@@ -427,7 +399,9 @@ Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 """
         return doc
 
-    def validate_template(self, template: Dict[str, Any]) -> tuple[bool, list[str]]:
+    def validate_template(
+        self, template: Dict[str, Any]
+    ) -> tuple[bool, list[str]]:
         """Validate a configuration template.
 
         Args:
@@ -443,11 +417,17 @@ Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
         # Validate each configuration value
         for key in ConfigurationSchema.get_all_configuration_keys():
             from .env_extractor import EnvironmentConfigExtractor
+
             extractor = EnvironmentConfigExtractor()
             value = extractor.get_nested_config_value(template, key)
 
             if value is not None:
-                is_valid, error_msg = ConfigurationSchema.validate_configuration_value(key, value)
+                (
+                    is_valid,
+                    error_msg,
+                ) = ConfigurationSchema.validate_configuration_value(
+                    key, value
+                )
                 if not is_valid:
                     errors.append(f"{key}: {error_msg}")
 

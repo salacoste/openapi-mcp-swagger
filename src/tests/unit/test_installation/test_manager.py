@@ -1,18 +1,22 @@
 """Tests for InstallationManager."""
 
+import asyncio
+import json
 import os
 import sys
 import tempfile
-import pytest
-import asyncio
 from pathlib import Path
-from unittest.mock import Mock, patch, AsyncMock, MagicMock
-import json
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
+
+import pytest
 
 # Add src to path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../../..'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../../.."))
 
-from swagger_mcp_server.installation.manager import InstallationManager, InstallationError
+from swagger_mcp_server.installation.manager import (
+    InstallationError,
+    InstallationManager,
+)
 
 
 class TestInstallationManager:
@@ -27,19 +31,21 @@ class TestInstallationManager:
     @pytest.fixture
     def manager(self, temp_home):
         """Create InstallationManager with temporary home."""
-        with patch('pathlib.Path.home', return_value=temp_home):
+        with patch("pathlib.Path.home", return_value=temp_home):
             return InstallationManager()
 
     @pytest.fixture
     def mock_compatibility_checker(self):
         """Mock compatibility checker."""
         mock = Mock()
-        mock.check_system_compatibility = AsyncMock(return_value={
-            "compatible": True,
-            "issues": [],
-            "warnings": [],
-            "system_info": {}
-        })
+        mock.check_system_compatibility = AsyncMock(
+            return_value={
+                "compatible": True,
+                "issues": [],
+                "warnings": [],
+                "system_info": {},
+            }
+        )
         return mock
 
     def test_init(self, manager):
@@ -65,32 +71,41 @@ class TestInstallationManager:
     @pytest.mark.asyncio
     async def test_perform_setup_compatibility_failure(self, manager):
         """Test setup fails when compatibility check fails."""
-        with patch.object(manager.compatibility_checker, 'check_system_compatibility',
-                         return_value={"compatible": False, "issues": ["Python too old"]}):
-
-            with pytest.raises(InstallationError, match="System compatibility check failed"):
+        with patch.object(
+            manager.compatibility_checker,
+            "check_system_compatibility",
+            return_value={"compatible": False, "issues": ["Python too old"]},
+        ):
+            with pytest.raises(
+                InstallationError, match="System compatibility check failed"
+            ):
                 await manager.perform_setup()
 
     @pytest.mark.asyncio
     async def test_perform_setup_success(self, manager):
         """Test successful setup process."""
         # Mock compatibility checker
-        with patch.object(manager.compatibility_checker, 'check_system_compatibility',
-                         return_value={
-                             "compatible": True,
-                             "issues": [],
-                             "warnings": ["Low disk space"],
-                             "system_info": {}
-                         }):
-
+        with patch.object(
+            manager.compatibility_checker,
+            "check_system_compatibility",
+            return_value={
+                "compatible": True,
+                "issues": [],
+                "warnings": ["Low disk space"],
+                "system_info": {},
+            },
+        ):
             # Mock configuration manager
             mock_config_manager = Mock()
             mock_config_manager.initialize_configuration = AsyncMock()
-            mock_config_manager.validate_configuration = AsyncMock(return_value=(True, [], []))
+            mock_config_manager.validate_configuration = AsyncMock(
+                return_value=(True, [], [])
+            )
 
-            with patch('swagger_mcp_server.config.ConfigurationManager',
-                      return_value=mock_config_manager):
-
+            with patch(
+                "swagger_mcp_server.config.ConfigurationManager",
+                return_value=mock_config_manager,
+            ):
                 result = await manager.perform_setup()
 
         # Verify result structure
@@ -143,8 +158,10 @@ class TestInstallationManager:
         mock_config_manager = Mock()
         mock_config_manager.initialize_configuration = AsyncMock()
 
-        with patch('swagger_mcp_server.config.ConfigurationManager',
-                  return_value=mock_config_manager):
+        with patch(
+            "swagger_mcp_server.config.ConfigurationManager",
+            return_value=mock_config_manager,
+        ):
             await manager.initialize_configuration()
 
         # Check servers.json was created
@@ -189,11 +206,14 @@ class TestInstallationManager:
 
         # Mock configuration validation
         mock_config_manager = Mock()
-        mock_config_manager.validate_configuration = AsyncMock(return_value=(True, [], []))
+        mock_config_manager.validate_configuration = AsyncMock(
+            return_value=(True, [], [])
+        )
 
-        with patch('swagger_mcp_server.installation.manager.ConfigurationManager',
-                  return_value=mock_config_manager):
-
+        with patch(
+            "swagger_mcp_server.installation.manager.ConfigurationManager",
+            return_value=mock_config_manager,
+        ):
             result = await manager.verify_installation()
 
         assert result["status"] == "success"
@@ -232,11 +252,14 @@ class TestInstallationManager:
     async def test_verify_configuration_success(self, manager):
         """Test configuration verification success."""
         mock_config_manager = Mock()
-        mock_config_manager.validate_configuration = AsyncMock(return_value=(True, [], []))
+        mock_config_manager.validate_configuration = AsyncMock(
+            return_value=(True, [], [])
+        )
 
-        with patch('swagger_mcp_server.installation.manager.ConfigurationManager',
-                  return_value=mock_config_manager):
-
+        with patch(
+            "swagger_mcp_server.installation.manager.ConfigurationManager",
+            return_value=mock_config_manager,
+        ):
             result = await manager._verify_configuration()
 
         assert result["working"] is True
@@ -246,11 +269,14 @@ class TestInstallationManager:
     async def test_verify_configuration_failure(self, manager):
         """Test configuration verification failure."""
         mock_config_manager = Mock()
-        mock_config_manager.validate_configuration = AsyncMock(return_value=(False, ["Error"], []))
+        mock_config_manager.validate_configuration = AsyncMock(
+            return_value=(False, ["Error"], [])
+        )
 
-        with patch('swagger_mcp_server.installation.manager.ConfigurationManager',
-                  return_value=mock_config_manager):
-
+        with patch(
+            "swagger_mcp_server.installation.manager.ConfigurationManager",
+            return_value=mock_config_manager,
+        ):
             result = await manager._verify_configuration()
 
         assert result["working"] is False
@@ -270,7 +296,7 @@ class TestInstallationManager:
     async def test_verify_dependencies_success(self, manager):
         """Test dependency verification success."""
         # Mock successful imports
-        with patch('builtins.__import__', return_value=Mock()):
+        with patch("builtins.__import__", return_value=Mock()):
             result = await manager._verify_dependencies()
 
         assert result["working"] is True
@@ -279,12 +305,13 @@ class TestInstallationManager:
     @pytest.mark.asyncio
     async def test_verify_dependencies_failure(self, manager):
         """Test dependency verification with missing modules."""
+
         def mock_import(name, *args, **kwargs):
             if name in ["click", "yaml"]:
                 raise ImportError(f"No module named '{name}'")
             return Mock()
 
-        with patch('builtins.__import__', side_effect=mock_import):
+        with patch("builtins.__import__", side_effect=mock_import):
             result = await manager._verify_dependencies()
 
         assert result["working"] is False
@@ -343,11 +370,14 @@ class TestInstallationManager:
 
         # Mock configuration manager
         mock_config_manager = Mock()
-        mock_config_manager.validate_configuration = AsyncMock(return_value=(True, [], []))
+        mock_config_manager.validate_configuration = AsyncMock(
+            return_value=(True, [], [])
+        )
 
-        with patch('swagger_mcp_server.installation.manager.ConfigurationManager',
-                  return_value=mock_config_manager):
-
+        with patch(
+            "swagger_mcp_server.installation.manager.ConfigurationManager",
+            return_value=mock_config_manager,
+        ):
             result = await manager.get_installation_info()
 
         assert result["installed"] is True
@@ -358,8 +388,10 @@ class TestInstallationManager:
     async def test_setup_error_handling(self, manager):
         """Test error handling during setup."""
         # Mock compatibility checker to raise exception
-        with patch.object(manager.compatibility_checker, 'check_system_compatibility',
-                         side_effect=Exception("Test error")):
-
+        with patch.object(
+            manager.compatibility_checker,
+            "check_system_compatibility",
+            side_effect=Exception("Test error"),
+        ):
             with pytest.raises(InstallationError, match="Setup failed"):
                 await manager.perform_setup()

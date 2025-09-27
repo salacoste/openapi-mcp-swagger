@@ -2,23 +2,24 @@
 
 import hashlib
 import os
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
-from datetime import datetime, timezone
 
-from sqlalchemy import text, select
-from sqlalchemy.ext.asyncio import AsyncSession
 import aiosqlite
+from sqlalchemy import select, text
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from swagger_mcp_server.config.logging import get_logger
 from swagger_mcp_server.storage.database import DatabaseManager
 from swagger_mcp_server.storage.models import DatabaseMigration
-from swagger_mcp_server.config.logging import get_logger
 
 logger = get_logger(__name__)
 
 
 class MigrationError(Exception):
     """Base exception for migration operations."""
+
     pass
 
 
@@ -31,7 +32,7 @@ class Migration:
         name: str,
         up_sql: str,
         down_sql: Optional[str] = None,
-        description: Optional[str] = None
+        description: Optional[str] = None,
     ):
         self.version = version
         self.name = name
@@ -42,18 +43,20 @@ class Migration:
 
     def _calculate_checksum(self) -> str:
         """Calculate SHA-256 checksum of the migration content."""
-        content = f"{self.version}{self.name}{self.up_sql}{self.down_sql or ''}"
-        return hashlib.sha256(content.encode('utf-8')).hexdigest()
+        content = (
+            f"{self.version}{self.name}{self.up_sql}{self.down_sql or ''}"
+        )
+        return hashlib.sha256(content.encode("utf-8")).hexdigest()
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert migration to dictionary."""
         return {
-            'version': self.version,
-            'name': self.name,
-            'up_sql': self.up_sql,
-            'down_sql': self.down_sql,
-            'description': self.description,
-            'checksum': self.checksum,
+            "version": self.version,
+            "name": self.name,
+            "up_sql": self.up_sql,
+            "down_sql": self.down_sql,
+            "description": self.description,
+            "checksum": self.checksum,
         }
 
 
@@ -92,25 +95,25 @@ class MigrationManager:
 
         except Exception as e:
             self.logger.error(
-                "Failed to initialize migration system",
-                error=str(e)
+                "Failed to initialize migration system", error=str(e)
             )
-            raise MigrationError(f"Failed to initialize migration system: {str(e)}")
+            raise MigrationError(
+                f"Failed to initialize migration system: {str(e)}"
+            )
 
     async def get_applied_migrations(self) -> List[DatabaseMigration]:
         """Get list of applied migrations."""
         try:
             async with self.db_manager.get_session() as session:
-                stmt = select(DatabaseMigration).order_by(DatabaseMigration.version)
+                stmt = select(DatabaseMigration).order_by(
+                    DatabaseMigration.version
+                )
                 result = await session.execute(stmt)
                 migrations = result.scalars().all()
                 return list(migrations)
 
         except Exception as e:
-            self.logger.error(
-                "Failed to get applied migrations",
-                error=str(e)
-            )
+            self.logger.error("Failed to get applied migrations", error=str(e))
             raise MigrationError(f"Failed to get applied migrations: {str(e)}")
 
     async def get_current_version(self) -> Optional[str]:
@@ -122,10 +125,7 @@ class MigrationManager:
             return None
 
         except Exception as e:
-            self.logger.error(
-                "Failed to get current version",
-                error=str(e)
-            )
+            self.logger.error("Failed to get current version", error=str(e))
             raise MigrationError(f"Failed to get current version: {str(e)}")
 
     def get_builtin_migrations(self) -> List[Migration]:
@@ -136,21 +136,21 @@ class MigrationManager:
                 name="initial_schema",
                 description="Create initial database schema with all tables",
                 up_sql=self._get_initial_schema_sql(),
-                down_sql=self._get_drop_all_tables_sql()
+                down_sql=self._get_drop_all_tables_sql(),
             ),
             Migration(
                 version="002",
                 name="add_fts5_indexes",
                 description="Add FTS5 full-text search indexes",
                 up_sql=self._get_fts5_setup_sql(),
-                down_sql=self._get_fts5_teardown_sql()
+                down_sql=self._get_fts5_teardown_sql(),
             ),
             Migration(
                 version="003",
                 name="add_performance_indexes",
                 description="Add performance-optimized indexes",
                 up_sql=self._get_performance_indexes_sql(),
-                down_sql=self._get_drop_performance_indexes_sql()
+                down_sql=self._get_drop_performance_indexes_sql(),
             ),
         ]
         return migrations
@@ -298,15 +298,17 @@ class MigrationManager:
     def _get_fts5_setup_sql(self) -> str:
         """Get SQL for FTS5 setup."""
         from swagger_mcp_server.storage.models import (
-            ENDPOINTS_FTS_SQL, SCHEMAS_FTS_SQL,
-            ENDPOINTS_FTS_TRIGGERS, SCHEMAS_FTS_TRIGGERS
+            ENDPOINTS_FTS_SQL,
+            ENDPOINTS_FTS_TRIGGERS,
+            SCHEMAS_FTS_SQL,
+            SCHEMAS_FTS_TRIGGERS,
         )
 
         sql_parts = [
             ENDPOINTS_FTS_SQL,
             SCHEMAS_FTS_SQL,
             *ENDPOINTS_FTS_TRIGGERS,
-            *SCHEMAS_FTS_TRIGGERS
+            *SCHEMAS_FTS_TRIGGERS,
         ]
 
         return "\n\n".join(sql_parts)
@@ -373,20 +375,24 @@ class MigrationManager:
         DROP INDEX IF EXISTS ix_schemas_api_deprecated;
         """
 
-    async def apply_migration(self, migration: Migration, dry_run: bool = False) -> bool:
+    async def apply_migration(
+        self, migration: Migration, dry_run: bool = False
+    ) -> bool:
         """Apply a single migration."""
         try:
             self.logger.info(
                 "Applying migration",
                 version=migration.version,
                 name=migration.name,
-                dry_run=dry_run
+                dry_run=dry_run,
             )
 
             if dry_run:
                 self.logger.info(
                     "DRY RUN - Would execute SQL",
-                    sql=migration.up_sql[:200] + "..." if len(migration.up_sql) > 200 else migration.up_sql
+                    sql=migration.up_sql[:200] + "..."
+                    if len(migration.up_sql) > 200
+                    else migration.up_sql,
                 )
                 return True
 
@@ -406,7 +412,7 @@ class MigrationManager:
                         name=migration.name,
                         applied_at=datetime.now(timezone.utc),
                         rollback_sql=migration.down_sql,
-                        checksum=migration.checksum
+                        checksum=migration.checksum,
                     )
 
                     session.add(migration_record)
@@ -415,7 +421,7 @@ class MigrationManager:
                 self.logger.info(
                     "Migration applied successfully",
                     version=migration.version,
-                    name=migration.name
+                    name=migration.name,
                 )
 
                 return True
@@ -425,7 +431,7 @@ class MigrationManager:
                     "Migration failed, restoring backup",
                     version=migration.version,
                     name=migration.name,
-                    error=str(e)
+                    error=str(e),
                 )
 
                 # Restore from backup
@@ -437,22 +443,26 @@ class MigrationManager:
                 "Failed to apply migration",
                 version=migration.version,
                 name=migration.name,
-                error=str(e)
+                error=str(e),
             )
-            raise MigrationError(f"Failed to apply migration {migration.version}: {str(e)}")
+            raise MigrationError(
+                f"Failed to apply migration {migration.version}: {str(e)}"
+            )
 
-    async def rollback_migration(self, version: str, dry_run: bool = False) -> bool:
+    async def rollback_migration(
+        self, version: str, dry_run: bool = False
+    ) -> bool:
         """Rollback a migration."""
         try:
             self.logger.info(
-                "Rolling back migration",
-                version=version,
-                dry_run=dry_run
+                "Rolling back migration", version=version, dry_run=dry_run
             )
 
             # Get migration record
             async with self.db_manager.get_session() as session:
-                stmt = select(DatabaseMigration).where(DatabaseMigration.version == version)
+                stmt = select(DatabaseMigration).where(
+                    DatabaseMigration.version == version
+                )
                 result = await session.execute(stmt)
                 migration_record = result.scalar_one_or_none()
 
@@ -460,13 +470,16 @@ class MigrationManager:
                     raise MigrationError(f"Migration {version} not found")
 
                 if not migration_record.rollback_sql:
-                    raise MigrationError(f"Migration {version} does not have rollback SQL")
+                    raise MigrationError(
+                        f"Migration {version} does not have rollback SQL"
+                    )
 
                 if dry_run:
                     self.logger.info(
                         "DRY RUN - Would execute rollback SQL",
                         sql=migration_record.rollback_sql[:200] + "..."
-                        if len(migration_record.rollback_sql) > 200 else migration_record.rollback_sql
+                        if len(migration_record.rollback_sql) > 200
+                        else migration_record.rollback_sql,
                     )
                     return True
 
@@ -477,15 +490,16 @@ class MigrationManager:
 
                 try:
                     # Execute rollback SQL
-                    await self.db_manager.execute_raw_sql(migration_record.rollback_sql)
+                    await self.db_manager.execute_raw_sql(
+                        migration_record.rollback_sql
+                    )
 
                     # Remove migration record
                     await session.delete(migration_record)
                     await session.commit()
 
                     self.logger.info(
-                        "Migration rolled back successfully",
-                        version=version
+                        "Migration rolled back successfully", version=version
                     )
 
                     return True
@@ -494,7 +508,7 @@ class MigrationManager:
                     self.logger.error(
                         "Rollback failed, restoring backup",
                         version=version,
-                        error=str(e)
+                        error=str(e),
                     )
 
                     # Restore from backup
@@ -503,11 +517,11 @@ class MigrationManager:
 
         except Exception as e:
             self.logger.error(
-                "Failed to rollback migration",
-                version=version,
-                error=str(e)
+                "Failed to rollback migration", version=version, error=str(e)
             )
-            raise MigrationError(f"Failed to rollback migration {version}: {str(e)}")
+            raise MigrationError(
+                f"Failed to rollback migration {version}: {str(e)}"
+            )
 
     async def migrate_to_latest(self, dry_run: bool = False) -> List[str]:
         """Apply all pending migrations to bring database to latest version."""
@@ -519,7 +533,8 @@ class MigrationManager:
 
             available_migrations = self.get_builtin_migrations()
             pending_migrations = [
-                m for m in available_migrations
+                m
+                for m in available_migrations
                 if m.version not in applied_versions
             ]
 
@@ -543,16 +558,13 @@ class MigrationManager:
                 self.logger.info(
                     "Migrations completed",
                     applied_versions=applied_versions_list,
-                    dry_run=dry_run
+                    dry_run=dry_run,
                 )
 
             return applied_versions_list
 
         except Exception as e:
-            self.logger.error(
-                "Failed to migrate to latest",
-                error=str(e)
-            )
+            self.logger.error("Failed to migrate to latest", error=str(e))
             raise MigrationError(f"Failed to migrate to latest: {str(e)}")
 
     async def get_migration_status(self) -> Dict[str, Any]:
@@ -573,47 +585,55 @@ class MigrationManager:
             for version, migration in available_versions.items():
                 if version in applied_versions:
                     applied_record = applied_versions[version]
-                    applied.append({
-                        'version': version,
-                        'name': migration.name,
-                        'description': migration.description,
-                        'applied_at': applied_record.applied_at.isoformat() if applied_record.applied_at else None,
-                        'checksum_matches': applied_record.checksum == migration.checksum
-                    })
+                    applied.append(
+                        {
+                            "version": version,
+                            "name": migration.name,
+                            "description": migration.description,
+                            "applied_at": applied_record.applied_at.isoformat()
+                            if applied_record.applied_at
+                            else None,
+                            "checksum_matches": applied_record.checksum
+                            == migration.checksum,
+                        }
+                    )
                 else:
-                    pending.append({
-                        'version': version,
-                        'name': migration.name,
-                        'description': migration.description
-                    })
+                    pending.append(
+                        {
+                            "version": version,
+                            "name": migration.name,
+                            "description": migration.description,
+                        }
+                    )
 
             # Check for unknown applied migrations
             for version, applied_record in applied_versions.items():
                 if version not in available_versions:
-                    unknown.append({
-                        'version': version,
-                        'name': applied_record.name,
-                        'applied_at': applied_record.applied_at.isoformat() if applied_record.applied_at else None
-                    })
+                    unknown.append(
+                        {
+                            "version": version,
+                            "name": applied_record.name,
+                            "applied_at": applied_record.applied_at.isoformat()
+                            if applied_record.applied_at
+                            else None,
+                        }
+                    )
 
             current_version = await self.get_current_version()
 
             return {
-                'current_version': current_version,
-                'applied_count': len(applied),
-                'pending_count': len(pending),
-                'unknown_count': len(unknown),
-                'applied': applied,
-                'pending': pending,
-                'unknown': unknown,
-                'is_up_to_date': len(pending) == 0
+                "current_version": current_version,
+                "applied_count": len(applied),
+                "pending_count": len(pending),
+                "unknown_count": len(unknown),
+                "applied": applied,
+                "pending": pending,
+                "unknown": unknown,
+                "is_up_to_date": len(pending) == 0,
             }
 
         except Exception as e:
-            self.logger.error(
-                "Failed to get migration status",
-                error=str(e)
-            )
+            self.logger.error("Failed to get migration status", error=str(e))
             raise MigrationError(f"Failed to get migration status: {str(e)}")
 
     async def validate_database_integrity(self) -> Dict[str, Any]:
@@ -622,13 +642,24 @@ class MigrationManager:
             integrity_results = {}
 
             # SQLite integrity check
-            integrity_result = await self.db_manager.execute_raw_sql("PRAGMA integrity_check")
-            integrity_results['sqlite_integrity'] = [row[0] for row in integrity_result]
+            integrity_result = await self.db_manager.execute_raw_sql(
+                "PRAGMA integrity_check"
+            )
+            integrity_results["sqlite_integrity"] = [
+                row[0] for row in integrity_result
+            ]
 
             # Foreign key check
-            fk_result = await self.db_manager.execute_raw_sql("PRAGMA foreign_key_check")
-            integrity_results['foreign_key_violations'] = [
-                {'table': row[0], 'rowid': row[1], 'parent': row[2], 'fkid': row[3]}
+            fk_result = await self.db_manager.execute_raw_sql(
+                "PRAGMA foreign_key_check"
+            )
+            integrity_results["foreign_key_violations"] = [
+                {
+                    "table": row[0],
+                    "rowid": row[1],
+                    "parent": row[2],
+                    "fkid": row[3],
+                }
                 for row in fk_result
             ]
 
@@ -639,40 +670,47 @@ class MigrationManager:
             existing_tables = {row[0] for row in tables_result}
 
             required_tables = {
-                'api_metadata', 'endpoints', 'schemas', 'security_schemes',
-                'endpoint_dependencies', 'database_migrations'
+                "api_metadata",
+                "endpoints",
+                "schemas",
+                "security_schemes",
+                "endpoint_dependencies",
+                "database_migrations",
             }
 
             missing_tables = required_tables - existing_tables
-            integrity_results['missing_tables'] = list(missing_tables)
+            integrity_results["missing_tables"] = list(missing_tables)
 
             # Check for FTS tables if applicable
-            fts_tables = {'endpoints_fts', 'schemas_fts'}
+            fts_tables = {"endpoints_fts", "schemas_fts"}
             existing_fts = fts_tables & existing_tables
-            integrity_results['fts_tables'] = list(existing_fts)
+            integrity_results["fts_tables"] = list(existing_fts)
 
             # Overall status
             is_healthy = (
-                integrity_results['sqlite_integrity'] == ['ok'] and
-                len(integrity_results['foreign_key_violations']) == 0 and
-                len(integrity_results['missing_tables']) == 0
+                integrity_results["sqlite_integrity"] == ["ok"]
+                and len(integrity_results["foreign_key_violations"]) == 0
+                and len(integrity_results["missing_tables"]) == 0
             )
 
-            integrity_results['is_healthy'] = is_healthy
+            integrity_results["is_healthy"] = is_healthy
 
             return integrity_results
 
         except Exception as e:
             self.logger.error(
-                "Failed to validate database integrity",
-                error=str(e)
+                "Failed to validate database integrity", error=str(e)
             )
-            raise MigrationError(f"Failed to validate database integrity: {str(e)}")
+            raise MigrationError(
+                f"Failed to validate database integrity: {str(e)}"
+            )
 
     async def reset_database(self, confirm: bool = False) -> None:
         """Reset database to initial state (WARNING: destroys all data)."""
         if not confirm:
-            raise MigrationError("Database reset requires explicit confirmation")
+            raise MigrationError(
+                "Database reset requires explicit confirmation"
+            )
 
         try:
             self.logger.warning("RESETTING DATABASE - ALL DATA WILL BE LOST")
@@ -693,7 +731,9 @@ class MigrationManager:
             await self.db_manager.execute_raw_sql(fts_drop_sql)
 
             # Drop migrations table
-            await self.db_manager.execute_raw_sql("DROP TABLE IF EXISTS database_migrations")
+            await self.db_manager.execute_raw_sql(
+                "DROP TABLE IF EXISTS database_migrations"
+            )
 
             # Reinitialize
             await self.initialize_migration_system()
@@ -701,8 +741,5 @@ class MigrationManager:
             self.logger.info("Database reset completed successfully")
 
         except Exception as e:
-            self.logger.error(
-                "Failed to reset database",
-                error=str(e)
-            )
+            self.logger.error("Failed to reset database", error=str(e))
             raise MigrationError(f"Failed to reset database: {str(e)}")
