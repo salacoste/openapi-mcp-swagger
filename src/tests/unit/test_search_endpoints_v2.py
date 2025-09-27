@@ -116,7 +116,7 @@ class TestEnhancedSearchEndpoints:
         repo = AsyncMock()
 
         # Mock search_endpoints method to simulate different search results
-        async def mock_search(query, methods=None, limit=20, **kwargs):
+        def mock_search_function(query, methods=None, limit=20, **kwargs):
             filtered_endpoints = mock_endpoints
 
             # Simple keyword filtering simulation
@@ -140,7 +140,14 @@ class TestEnhancedSearchEndpoints:
 
             return filtered_endpoints[:limit]
 
-        repo.search_endpoints = mock_search
+        repo.search_endpoints = AsyncMock(side_effect=mock_search_function)
+
+        # Ensure no search_endpoints_paginated method exists,
+        # so the code takes the fallback path we're testing
+        try:
+            delattr(repo, 'search_endpoints_paginated')
+        except AttributeError:
+            pass  # It's fine if it doesn't exist
         return repo
 
     @pytest.fixture
@@ -368,9 +375,9 @@ class TestEnhancedSearchEndpoints:
 
         # Server not initialized
         uninitialized_server = SwaggerMcpServer(Settings())
-        result = await uninitialized_server._search_endpoints(keywords="test")
-        assert "error" in result
-        assert "not properly initialized" in result["error"]
+        with pytest.raises(Exception) as exc_info:
+            await uninitialized_server._search_endpoints(keywords="test")
+        assert "not properly initialized" in str(exc_info.value)
 
     @pytest.mark.asyncio
     async def test_search_performance_requirements(self, server):

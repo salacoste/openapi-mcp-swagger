@@ -146,6 +146,26 @@ class EnvironmentConfigExtractor:
         # Set the final value
         current[keys[-1]] = value
 
+    def get_nested_config_value(self, config: Dict[str, Any], path: str) -> Any:
+        """Get nested configuration value using dot notation.
+
+        Args:
+            config: Configuration dictionary to read from
+            path: Dot-separated path (e.g., 'server.ssl.enabled')
+
+        Returns:
+            Value at the specified path, or None if not found
+        """
+        keys = path.split(".")
+        current = config
+
+        try:
+            for key in keys:
+                current = current[key]
+            return current
+        except (KeyError, TypeError):
+            return None
+
     def get_environment_documentation(self) -> Dict[str, str]:
         """Get documentation for all supported environment variables.
 

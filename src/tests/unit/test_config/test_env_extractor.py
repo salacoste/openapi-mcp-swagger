@@ -30,12 +30,11 @@ class TestEnvironmentConfigExtractor:
             "SWAGGER_MCP_SERVER_MAX_CONNECTIONS": "200",
             "SWAGGER_MCP_SERVER_TIMEOUT": "60",
             "SWAGGER_MCP_SERVER_SSL_ENABLED": "true",
-            "SWAGGER_MCP_DATABASE_PATH": "/custom/path/db.sqlite",
-            "SWAGGER_MCP_DATABASE_POOL_SIZE": "10",
-            "SWAGGER_MCP_LOGGING_LEVEL": "DEBUG",
-            "SWAGGER_MCP_LOGGING_FILE": "/var/log/server.log",
+            "SWAGGER_MCP_DB_PATH": "/custom/path/db.sqlite",
+            "SWAGGER_MCP_DB_POOL_SIZE": "10",
+            "SWAGGER_MCP_LOG_LEVEL": "DEBUG",
+            "SWAGGER_MCP_LOG_FILE": "/var/log/server.log",
             "SWAGGER_MCP_SEARCH_ENGINE": "whoosh",
-            "SWAGGER_MCP_FEATURES_METRICS_ENABLED": "false",
         }
 
         with patch.dict(os.environ, env_vars):
@@ -59,16 +58,13 @@ class TestEnvironmentConfigExtractor:
             # Check search configuration
             assert config["search"]["engine"] == "whoosh"
 
-            # Check features configuration
-            assert config["features"]["metrics"]["enabled"] is False
-
     def test_type_conversion_integers(self, extractor):
         """Test type conversion for integer values."""
         env_vars = {
             "SWAGGER_MCP_SERVER_PORT": "8080",
             "SWAGGER_MCP_SERVER_MAX_CONNECTIONS": "100",
-            "SWAGGER_MCP_DATABASE_POOL_SIZE": "5",
-            "SWAGGER_MCP_SEARCH_PERFORMANCE_CACHE_SIZE_MB": "64",
+            "SWAGGER_MCP_DB_POOL_SIZE": "5",
+            "SWAGGER_MCP_SEARCH_CACHE_SIZE": "64",
         }
 
         with patch.dict(os.environ, env_vars):

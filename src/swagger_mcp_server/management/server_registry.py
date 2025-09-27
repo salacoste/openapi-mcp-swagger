@@ -302,7 +302,7 @@ class ServerRegistry:
         except (psutil.NoSuchProcess, ImportError):
             return False
 
-    async def _registry_lock(self):
+    def _registry_lock(self):
         """Context manager for registry file locking."""
         return _RegistryLock(self.lock_file)
 

@@ -229,7 +229,7 @@ class SwaggerStreamParser(BaseParser):
         last_progress_report = 0
 
         try:
-            for event_type, value in parser:
+            for prefix, event_type, value in parser:
                 bytes_processed += len(str(value).encode("utf-8"))
 
                 # Report progress if configured

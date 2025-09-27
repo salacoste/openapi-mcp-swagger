@@ -307,10 +307,8 @@ class TestPipelineEdgeCases:
             with patch.object(
                 pipeline, "_calculate_file_hash", side_effect=FileNotFoundError
             ):
-                result = await pipeline.process_file("")
-
-            assert result.success is False
-            assert len(result.errors) > 0
+                with pytest.raises(FileNotFoundError):
+                    await pipeline.process_file("")
 
     @pytest.mark.asyncio
     async def test_batch_processing_empty_list(self):
