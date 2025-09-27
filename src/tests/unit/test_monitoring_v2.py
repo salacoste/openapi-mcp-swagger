@@ -51,7 +51,7 @@ class TestMethodMetrics:
         assert metrics.total_requests == 3
         assert metrics.total_errors == 0
         assert abs(metrics.total_response_time - 0.45) < 0.001
-        assert metrics.avg_response_time == 150.0  # (100+200+150)/3 = 150ms
+        assert abs(metrics.avg_response_time - 150.0) < 0.001  # (100+200+150)/3 = 150ms
         assert len(metrics.response_times) == 3
 
     def test_record_request_with_errors(self):
@@ -66,7 +66,7 @@ class TestMethodMetrics:
 
         assert metrics.total_requests == 4
         assert metrics.total_errors == 3
-        assert metrics.error_rate == 0.75  # 3/4 = 0.75
+        assert abs(metrics.error_rate - 0.75) < 0.001  # 3/4 = 0.75
         assert metrics.error_types["ValidationError"] == 2
         assert metrics.error_types["DatabaseError"] == 1
 
@@ -173,7 +173,7 @@ class TestSystemMetrics:
             assert field in metrics_dict
 
         assert metrics_dict["concurrent_connections"] == 5
-        assert metrics_dict["database_pool_utilization"] == 0.75
+        assert abs(metrics_dict["database_pool_utilization"] - 0.75) < 0.001
 
 
 class TestPerformanceMonitor:
@@ -199,7 +199,7 @@ class TestPerformanceMonitor:
         metrics = monitor.method_metrics["searchEndpoints"]
         assert metrics.total_requests == 1
         assert metrics.total_errors == 0
-        assert metrics.avg_response_time == 150.0
+        assert abs(metrics.avg_response_time - 150.0) < 0.001
 
     def test_record_request_with_error(self):
         """Test recording requests with errors."""
@@ -210,7 +210,7 @@ class TestPerformanceMonitor:
         metrics = monitor.method_metrics["getSchema"]
         assert metrics.total_requests == 1
         assert metrics.total_errors == 1
-        assert metrics.error_rate == 1.0
+        assert abs(metrics.error_rate - 1.0) < 0.001
 
     def test_threshold_violation_detection(self):
         """Test performance threshold violation detection."""
@@ -256,7 +256,7 @@ class TestPerformanceMonitor:
         monitor = PerformanceMonitor()
 
         monitor.update_database_pool_utilization(0.8)
-        assert monitor.system_metrics.database_pool_utilization == 0.8
+        assert abs(monitor.system_metrics.database_pool_utilization - 0.8) < 0.001
 
     def test_get_performance_metrics(self):
         """Test getting performance metrics."""
@@ -648,10 +648,9 @@ class TestMCPServerMonitoringIntegration:
 
         # Test update database pool utilization
         server.update_database_pool_utilization(0.7)
-        assert (
+        assert abs(
             server.performance_monitor.system_metrics.database_pool_utilization
-            == 0.7
-        )
+            - 0.7) < 0.001
 
         # Test stop monitoring
         await server.stop_monitoring()
