@@ -1105,6 +1105,78 @@ wheels = [
 ]
 
 [[package]]
+name = "openapi-mcp-swagger"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "aiohttp" },
+    { name = "aiosqlite" },
+    { name = "click" },
+    { name = "greenlet" },
+    { name = "ijson" },
+    { name = "jinja2" },
+    { name = "jsonref" },
+    { name = "mcp" },
+    { name = "openapi-spec-validator" },
+    { name = "pydantic" },
+    { name = "pyyaml" },
+    { name = "rank-bm25" },
+    { name = "sqlalchemy" },
+    { name = "structlog" },
+    { name = "whoosh" },
+]
+
+[package.optional-dependencies]
+dev = [
+    { name = "black" },
+    { name = "faker" },
+    { name = "flake8" },
+    { name = "flake8-docstrings" },
+    { name = "flake8-type-checking" },
+    { name = "isort" },
+    { name = "mypy" },
+    { name = "pre-commit" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "pytest-benchmark" },
+    { name = "pytest-cov" },
+    { name = "tox" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "aiohttp", specifier = ">=3.12.15,<4.0.0" },
+    { name = "aiosqlite", specifier = ">=0.19.0" },
+    { name = "black", marker = "extra == 'dev'", specifier = ">=23.11.0" },
+    { name = "click", specifier = ">=8.1.7" },
+    { name = "faker", marker = "extra == 'dev'", specifier = ">=20.1.0" },
+    { name = "flake8", marker = "extra == 'dev'", specifier = ">=6.1.0" },
+    { name = "flake8-docstrings", marker = "extra == 'dev'", specifier = ">=1.7.0" },
+    { name = "flake8-type-checking", marker = "extra == 'dev'", specifier = ">=2.7.0" },
+    { name = "greenlet", specifier = ">=3.0.0" },
+    { name = "ijson", specifier = ">=3.2.3" },
+    { name = "isort", marker = "extra == 'dev'", specifier = ">=5.12.0" },
+    { name = "jinja2", specifier = ">=3.1.2" },
+    { name = "jsonref", specifier = ">=1.1.0" },
+    { name = "mcp", specifier = ">=1.0.0" },
+    { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.7.0" },
+    { name = "openapi-spec-validator", specifier = ">=0.7.1" },
+    { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=3.5.0" },
+    { name = "pydantic", specifier = ">=2.5.0" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.4.3" },
+    { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.21.1" },
+    { name = "pytest-benchmark", marker = "extra == 'dev'", specifier = ">=4.0.0" },
+    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=4.1.0" },
+    { name = "pyyaml", specifier = ">=6.0.1" },
+    { name = "rank-bm25", specifier = ">=0.2.2" },
+    { name = "sqlalchemy", specifier = ">=2.0.0" },
+    { name = "structlog", specifier = ">=23.2.0" },
+    { name = "tox", marker = "extra == 'dev'", specifier = ">=4.11.0" },
+    { name = "whoosh", specifier = ">=2.7.4" },
+]
+provides-extras = ["dev"]
+
+[[package]]
 name = "openapi-schema-validator"
 version = "0.6.3"
 source = { registry = "https://pypi.org/simple" }
@@ -1816,78 +1888,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/79/b9/6e672db4fec07349e
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a0/4a/97ee6973e3a73c74c8120d59829c3861ea52210667ec3e7a16045c62b64d/structlog-25.4.0-py3-none-any.whl", hash = "sha256:fe809ff5c27e557d14e613f45ca441aabda051d119ee5a0102aaba6ce40eed2c", size = 68720 },
 ]
-
-[[package]]
-name = "swagger-mcp-server"
-version = "0.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "aiohttp" },
-    { name = "aiosqlite" },
-    { name = "click" },
-    { name = "greenlet" },
-    { name = "ijson" },
-    { name = "jinja2" },
-    { name = "jsonref" },
-    { name = "mcp" },
-    { name = "openapi-spec-validator" },
-    { name = "pydantic" },
-    { name = "pyyaml" },
-    { name = "rank-bm25" },
-    { name = "sqlalchemy" },
-    { name = "structlog" },
-    { name = "whoosh" },
-]
-
-[package.optional-dependencies]
-dev = [
-    { name = "black" },
-    { name = "faker" },
-    { name = "flake8" },
-    { name = "flake8-docstrings" },
-    { name = "flake8-type-checking" },
-    { name = "isort" },
-    { name = "mypy" },
-    { name = "pre-commit" },
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-    { name = "pytest-benchmark" },
-    { name = "pytest-cov" },
-    { name = "tox" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "aiohttp", specifier = ">=3.12.15,<4.0.0" },
-    { name = "aiosqlite", specifier = ">=0.19.0" },
-    { name = "black", marker = "extra == 'dev'", specifier = ">=23.11.0" },
-    { name = "click", specifier = ">=8.1.7" },
-    { name = "faker", marker = "extra == 'dev'", specifier = ">=20.1.0" },
-    { name = "flake8", marker = "extra == 'dev'", specifier = ">=6.1.0" },
-    { name = "flake8-docstrings", marker = "extra == 'dev'", specifier = ">=1.7.0" },
-    { name = "flake8-type-checking", marker = "extra == 'dev'", specifier = ">=2.7.0" },
-    { name = "greenlet", specifier = ">=3.0.0" },
-    { name = "ijson", specifier = ">=3.2.3" },
-    { name = "isort", marker = "extra == 'dev'", specifier = ">=5.12.0" },
-    { name = "jinja2", specifier = ">=3.1.2" },
-    { name = "jsonref", specifier = ">=1.1.0" },
-    { name = "mcp", specifier = ">=1.0.0" },
-    { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.7.0" },
-    { name = "openapi-spec-validator", specifier = ">=0.7.1" },
-    { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=3.5.0" },
-    { name = "pydantic", specifier = ">=2.5.0" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.4.3" },
-    { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.21.1" },
-    { name = "pytest-benchmark", marker = "extra == 'dev'", specifier = ">=4.0.0" },
-    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=4.1.0" },
-    { name = "pyyaml", specifier = ">=6.0.1" },
-    { name = "rank-bm25", specifier = ">=0.2.2" },
-    { name = "sqlalchemy", specifier = ">=2.0.0" },
-    { name = "structlog", specifier = ">=23.2.0" },
-    { name = "tox", marker = "extra == 'dev'", specifier = ">=4.11.0" },
-    { name = "whoosh", specifier = ">=2.7.4" },
-]
-provides-extras = ["dev"]
 
 [[package]]
 name = "tomli"
