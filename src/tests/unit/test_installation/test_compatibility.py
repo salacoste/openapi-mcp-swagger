@@ -209,7 +209,6 @@ class TestSystemCompatibilityChecker:
         )  # Assumes sufficient if can't check
         assert "Could not check memory usage" in result["message"]
 
-
     def test_check_permissions_adequate(self, checker):
         """Test permission check with adequate permissions."""
         with tempfile.TemporaryDirectory() as temp_dir:
