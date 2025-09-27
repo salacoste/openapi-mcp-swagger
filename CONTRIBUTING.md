@@ -8,8 +8,8 @@ Thank you for your interest in contributing! This guide will help you get starte
 
 ```bash
 # Fork and clone the repository
-git clone https://github.com/YOUR_USERNAME/swagger-mcp-server.git
-cd swagger-mcp-server
+git clone https://github.com/salacoste/openapi-mcp-swagger.git
+cd openapi-mcp-swagger
 
 # Install Poetry (if not already installed)
 curl -sSL https://install.python-poetry.org | python3 -

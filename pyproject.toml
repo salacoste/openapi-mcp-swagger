@@ -3,10 +3,10 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [project]
-name = "swagger-mcp-server"
+name = "openapi-mcp-swagger"
 version = "0.1.0"
 description = "Universal Swagger → MCP Server Converter"
-authors = [{name = "BMAD Development Team"}]
+authors = [{name = "salacoste"}, {name = "BMAD Development Team"}]
 readme = "README.md"
 requires-python = ">=3.11"
 classifiers = [
@@ -60,13 +60,14 @@ dev = [
 ]
 
 [project.scripts]
-swagger-mcp-server = "swagger_mcp_server.main:cli"
+openapi-mcp-swagger = "swagger_mcp_server.main:cli"
+swagger-mcp-server = "swagger_mcp_server.main:cli"  # Backward compatibility
 
 [tool.poetry]
-name = "swagger-mcp-server"
+name = "openapi-mcp-swagger"
 version = "0.1.0"
 description = "Universal Swagger → MCP Server Converter"
-authors = ["BMAD Development Team"]
+authors = ["salacoste", "BMAD Development Team"]
 readme = "README.md"
 packages = [{include = "swagger_mcp_server", from = "src"}]
 

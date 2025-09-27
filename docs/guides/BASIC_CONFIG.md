@@ -2,7 +2,7 @@
 
 > Essential configuration setup for new users
 
-This guide covers the fundamental configuration options you need to get started with swagger-mcp-server. For advanced configuration, see the [Configuration Reference](../reference/CONFIGURATION.md).
+This guide covers the fundamental configuration options you need to get started with openapi-mcp-swagger. For advanced configuration, see the [Configuration Reference](../reference/CONFIGURATION.md).
 
 ## Configuration File Location
 

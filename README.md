@@ -284,8 +284,8 @@ pipx install poetry
 
 1. **Clone and setup:**
    ```bash
-   git clone https://github.com/bmad-dev/swagger-mcp-server.git
-   cd swagger-mcp-server
+   git clone https://github.com/salacoste/openapi-mcp-swagger.git
+   cd openapi-mcp-swagger
    ```
 
 2. **Setup virtual environment and install dependencies:**
@@ -641,13 +641,13 @@ rm -rf search_index/ && swagger-mcp-server serve
 - **🤖 AI Integration**: Follow [Integration Guides](docs/examples/integrations/)
 
 ### Community Support
-- **🐛 Issues**: [GitHub Issues](https://github.com/bmad-dev/swagger-mcp-server/issues) for bugs and feature requests
-- **💬 Discussions**: [GitHub Discussions](https://github.com/bmad-dev/swagger-mcp-server/discussions) for questions and community support
+- **🐛 Issues**: [GitHub Issues](https://github.com/salacoste/openapi-mcp-swagger/issues) for bugs and feature requests
+- **💬 Discussions**: [GitHub Discussions](https://github.com/salacoste/openapi-mcp-swagger/discussions) for questions and community support
 - **📖 Documentation**: [Complete docs](docs/README.md) with searchable content
 - **💡 Examples**: [Working examples](docs/examples/) for common use cases
 
 ### Before Reporting Issues
 1. ✅ Check [Common Issues](docs/troubleshooting/COMMON_ISSUES.md)
-2. ✅ Search [existing issues](https://github.com/bmad-dev/swagger-mcp-server/issues)
+2. ✅ Search [existing issues](https://github.com/salacoste/openapi-mcp-swagger/issues)
 3. ✅ Try with [minimal configuration](docs/guides/BASIC_CONFIG.md)
 4. ✅ Include system info and logs in your report

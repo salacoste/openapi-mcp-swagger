@@ -37,14 +37,14 @@ def get_version():
     return "1.0.0"
 
 setup(
-    name="swagger-mcp-server",
+    name="openapi-mcp-swagger",
     version=get_version(),
-    author="Universal Swagger MCP Server Team",
-    author_email="support@swagger-mcp-server.com",
+    author="salacoste",
+    author_email="salacoste@github.com",
     description="Universal Swagger → MCP Server Converter",
     long_description=read_long_description(),
     long_description_content_type="text/markdown",
-    url="https://github.com/swagger-mcp-server/swagger-mcp-server",
+    url="https://github.com/salacoste/openapi-mcp-swagger",
 
     packages=find_packages(where="src"),
     package_dir={"": "src"},
@@ -101,7 +101,8 @@ setup(
 
     entry_points={
         "console_scripts": [
-            "swagger-mcp-server=swagger_mcp_server.main:cli",
+            "openapi-mcp-swagger=swagger_mcp_server.main:cli",
+            "swagger-mcp-server=swagger_mcp_server.main:cli",  # Backward compatibility
         ],
     },
 
@@ -118,10 +119,10 @@ setup(
     keywords="swagger openapi mcp server converter api documentation",
 
     project_urls={
-        "Homepage": "https://github.com/swagger-mcp-server/swagger-mcp-server",
-        "Documentation": "https://docs.swagger-mcp-server.com",
-        "Repository": "https://github.com/swagger-mcp-server/swagger-mcp-server",
-        "Issues": "https://github.com/swagger-mcp-server/swagger-mcp-server/issues",
-        "Changelog": "https://github.com/swagger-mcp-server/swagger-mcp-server/blob/main/CHANGELOG.md",
+        "Homepage": "https://github.com/salacoste/openapi-mcp-swagger",
+        "Documentation": "https://github.com/salacoste/openapi-mcp-swagger/tree/main/docs",
+        "Repository": "https://github.com/salacoste/openapi-mcp-swagger",
+        "Issues": "https://github.com/salacoste/openapi-mcp-swagger/issues",
+        "Changelog": "https://github.com/salacoste/openapi-mcp-swagger/blob/main/CHANGELOG.md",
     },
 )
