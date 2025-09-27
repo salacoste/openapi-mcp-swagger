@@ -44,6 +44,27 @@ class SecurityType(str, Enum):
     MUTUAL_TLS = "mutualTLS"
 
 
+# Alias for compatibility
+SecuritySchemeType = SecurityType
+
+
+class SecuritySchemeLocation(str, Enum):
+    """Security scheme locations in OpenAPI."""
+
+    QUERY = "query"
+    HEADER = "header"
+    COOKIE = "cookie"
+
+
+class SecurityFlowType(str, Enum):
+    """OAuth2 flow types in OpenAPI."""
+
+    AUTHORIZATION_CODE = "authorizationCode"
+    IMPLICIT = "implicit"
+    PASSWORD = "password"
+    CLIENT_CREDENTIALS = "clientCredentials"
+
+
 class SchemaType(str, Enum):
     """Schema types in OpenAPI."""
 
@@ -630,6 +651,67 @@ class NormalizedAPI(BaseModel):
 
 
 # Utility dataclasses for processing
+
+
+class NormalizedSecurityFlow(BaseModel):
+    """Normalized OAuth2 flow."""
+
+    type: SecurityFlowType = Field(..., description="Flow type")
+    authorization_url: Optional[str] = Field(
+        None, description="Authorization URL"
+    )
+    token_url: Optional[str] = Field(None, description="Token URL")
+    refresh_url: Optional[str] = Field(None, description="Refresh URL")
+    scopes: Dict[str, str] = Field(
+        default_factory=dict, description="Available scopes"
+    )
+
+    class Config:
+        allow_population_by_field_name = True
+
+
+class NormalizedSecurityScheme(BaseModel):
+    """Normalized security scheme."""
+
+    name: str = Field(..., description="Security scheme name")
+    type: SecuritySchemeType = Field(..., description="Security scheme type")
+    description: Optional[str] = Field(
+        None, description="Security scheme description"
+    )
+
+    # API Key specific
+    api_key_name: Optional[str] = Field(
+        None, description="API key parameter name"
+    )
+    api_key_location: Optional[SecuritySchemeLocation] = Field(
+        None, description="API key location"
+    )
+
+    # HTTP specific
+    http_scheme: Optional[str] = Field(
+        None, description="HTTP authentication scheme"
+    )
+    bearer_format: Optional[str] = Field(
+        None, description="Bearer token format"
+    )
+
+    # OAuth2 specific
+    oauth2_flows: List[NormalizedSecurityFlow] = Field(
+        default_factory=list, description="OAuth2 flows"
+    )
+
+    # OpenID Connect specific
+    openid_connect_url: Optional[str] = Field(
+        None, description="OpenID Connect discovery URL"
+    )
+
+    # Extensions
+    extensions: Dict[str, Any] = Field(
+        default_factory=dict, description="Security scheme extensions"
+    )
+
+    class Config:
+        allow_population_by_field_name = True
 
 
 @dataclass
