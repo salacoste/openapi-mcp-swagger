@@ -129,7 +129,9 @@ class ProcessMonitor:
         """
         try:
             if psutil is None:
-                logger.warning("psutil not available, cannot get process metrics")
+                logger.warning(
+                    "psutil not available, cannot get process metrics"
+                )
                 return None
 
             process = psutil.Process(pid)

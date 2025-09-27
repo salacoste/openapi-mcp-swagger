@@ -232,7 +232,9 @@ class TestProcessMonitor:
         mock_session = Mock()
         # Create a proper OSError for ClientConnectorError
         os_error = OSError(61, "Connection refused")
-        mock_session.get.side_effect = aiohttp.ClientConnectorError(None, os_error)
+        mock_session.get.side_effect = aiohttp.ClientConnectorError(
+            None, os_error
+        )
 
         self.monitor.session = mock_session
 
