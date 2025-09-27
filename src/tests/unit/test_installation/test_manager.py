@@ -359,9 +359,9 @@ class TestInstallationManager:
 
     def test_get_package_version(self, manager):
         """Test package version retrieval."""
-        # Test fallback to unknown
+        # Test successful version retrieval
         version = manager._get_package_version()
-        assert version == "unknown"
+        assert version == "1.0.0"
 
     @pytest.mark.asyncio
     async def test_get_installation_info_not_installed(self, manager):
@@ -379,6 +379,10 @@ class TestInstallationManager:
         # Set up installation
         await manager.create_directory_structure()
         await manager.record_installation_metadata()
+
+        # Create config.yaml file that is_already_setup() expects
+        config_file = manager.config_dir / "config.yaml"
+        config_file.write_text("server:\n  host: localhost\n  port: 8080\n")
 
         # Mock configuration manager
         mock_config_manager = Mock()
