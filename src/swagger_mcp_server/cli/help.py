@@ -1,6 +1,6 @@
 """Enhanced help system with examples and interactive guidance."""
 
-from typing import Dict, List, Optional
+from typing import Optional
 
 import click
 
@@ -9,6 +9,7 @@ class EnhancedHelp:
     """Enhanced help system with examples and contextual guidance."""
 
     def __init__(self):
+        """Initialize the enhanced help system."""
         self.examples = {
             "convert": [
                 "Convert basic Swagger file:",

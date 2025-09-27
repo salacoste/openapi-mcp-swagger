@@ -2,9 +2,8 @@
 
 import json
 import os
-import sys
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Union
 
 import click
 
@@ -60,6 +59,7 @@ class ConfigurationManager:
     }
 
     def __init__(self):
+        """Initialize the configuration manager."""
         self.config_dirs = get_config_directories()
         self.config = self._load_configuration()
 

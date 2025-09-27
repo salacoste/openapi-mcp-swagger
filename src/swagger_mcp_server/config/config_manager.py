@@ -2,7 +2,6 @@
 
 import copy
 import json
-import os
 import shutil
 from datetime import datetime
 from pathlib import Path
@@ -232,7 +231,7 @@ class ConfigurationManager:
             else:
                 # Default to YAML
                 with open(file_path, "w", encoding="utf-8") as f:
-                    f.write(f"# MCP Server Configuration\n")
+                    f.write("# MCP Server Configuration\n")
                     f.write(f"# Generated on: {datetime.now().isoformat()}\n")
                     f.write(f"# File: {file_path}\n\n")
                     yaml.dump(

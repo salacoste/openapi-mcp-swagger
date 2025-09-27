@@ -1,7 +1,6 @@
 """CLI utility functions and helpers."""
 
 import os
-import subprocess
 import sys
 import time
 from pathlib import Path
@@ -222,7 +221,7 @@ def print_status_indicator(
 
 
 def measure_performance(func):
-    """Decorator to measure function execution time."""
+    """Measure function execution time."""
 
     def wrapper(*args, **kwargs):
         start_time = time.time()
@@ -240,7 +239,6 @@ def measure_performance(func):
 def get_system_info() -> Dict[str, Any]:
     """Get basic system information for debugging."""
     import platform
-    import sys
 
     return {
         "platform": platform.system(),
@@ -365,7 +363,7 @@ def get_config_directories() -> Dict[str, Path]:
 
 
 def setup_logging(verbose: bool = False, quiet: bool = False):
-    """Setup structured logging with appropriate levels."""
+    """Set up structured logging with appropriate levels."""
     import logging
 
     import structlog

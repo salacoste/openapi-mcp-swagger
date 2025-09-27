@@ -1,4 +1,4 @@
-"""Universal Swagger → MCP Server Converter
+"""Universal Swagger → MCP Server Converter.
 
 Build a system that transforms any Swagger (OpenAPI) JSON file into an MCP server
 with intelligent search and retrieval capabilities.
