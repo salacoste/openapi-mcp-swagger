@@ -2,6 +2,7 @@
 
 import asyncio
 import signal
+import socket
 import subprocess
 import sys
 import time
@@ -443,8 +444,6 @@ class MCPServerManager:
 
         while time.time() - start_time < timeout:
             try:
-                import socket
-
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 sock.settimeout(1)
                 result = sock.connect_ex((host, port))

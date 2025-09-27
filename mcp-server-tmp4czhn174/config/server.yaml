@@ -1,0 +1,26 @@
+api:
+  description: ''
+  title: Test API
+  version: '1.0'
+database:
+  backup_enabled: true
+  backup_interval: 3600
+  path: data/mcp_server.db
+logging:
+  file: null
+  format: console
+  level: INFO
+search:
+  cache_size: 1000
+  enable_fuzzy: true
+  index_path: data/search_index
+security:
+  allowed_hosts:
+  - localhost
+  - 127.0.0.1
+  api_key: null
+  enable_auth: false
+server:
+  host: localhost
+  name: test-api
+  port: 8080

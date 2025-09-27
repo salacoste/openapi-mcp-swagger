@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  mcp-server:
+    build: .
+    container_name: test-mcp
+    ports:
+      - "8080:8080"
+    environment:
+      - MCP_HOST=0.0.0.0
+      - MCP_PORT=8080
+    volumes:
+      - ./data:/app/data
+      - ./config:/app/config
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8080/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: Add a reverse proxy
+  # nginx:
+  #   image: nginx:alpine
+  #   ports:
+  #     - "80:80"
+  #   volumes:
+  #     - ./nginx.conf:/etc/nginx/nginx.conf
+  #   depends_on:
+  #     - mcp-server
