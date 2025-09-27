@@ -12,16 +12,8 @@ import yaml
 
 from .config_schema import ConfigurationSchema
 from .env_extractor import EnvironmentConfigExtractor
+from .exceptions import ConfigurationError
 from .template_manager import ConfigurationTemplateManager
-
-
-class ConfigurationError(Exception):
-    """Configuration-related error with user-friendly messages."""
-
-    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None):
-        self.message = message
-        self.details = details or {}
-        super().__init__(message)
 
 
 class ConfigurationManager:

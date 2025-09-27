@@ -3,7 +3,7 @@
 import os
 from typing import Any, Dict, Union
 
-from .config_schema import ConfigurationError
+from .exceptions import ConfigurationError
 
 
 class EnvironmentConfigExtractor:
