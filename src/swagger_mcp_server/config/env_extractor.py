@@ -146,7 +146,9 @@ class EnvironmentConfigExtractor:
         # Set the final value
         current[keys[-1]] = value
 
-    def get_nested_config_value(self, config: Dict[str, Any], path: str) -> Any:
+    def get_nested_config_value(
+        self, config: Dict[str, Any], path: str
+    ) -> Any:
         """Get nested configuration value using dot notation.
 
         Args:

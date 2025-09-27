@@ -341,10 +341,13 @@ class TestConfigurationEdgeCases:
             with open(config_file, "w") as f:
                 f.write("invalid: yaml: content: [")  # Invalid YAML
 
-            with patch("swagger_mcp_server.cli.config.get_config_directories", return_value={
-                "global_config": config_file,
-                "project_config": Path("/nonexistent"),
-            }):
+            with patch(
+                "swagger_mcp_server.cli.config.get_config_directories",
+                return_value={
+                    "global_config": config_file,
+                    "project_config": Path("/nonexistent"),
+                },
+            ):
                 # Should handle gracefully
                 manager = ConfigurationManager()
                 assert isinstance(manager.config, dict)
@@ -356,10 +359,13 @@ class TestConfigurationEdgeCases:
 
     def test_nonexistent_config_file(self):
         """Test handling of non-existent configuration files."""
-        with patch("swagger_mcp_server.cli.config.get_config_directories", return_value={
-            "global_config": Path("/nonexistent/config.yaml"),
-            "project_config": Path("/nonexistent/project.yaml"),
-        }):
+        with patch(
+            "swagger_mcp_server.cli.config.get_config_directories",
+            return_value={
+                "global_config": Path("/nonexistent/config.yaml"),
+                "project_config": Path("/nonexistent/project.yaml"),
+            },
+        ):
             # Should handle gracefully
             manager = ConfigurationManager()
             assert isinstance(manager.config, dict)
@@ -385,7 +391,7 @@ class TestConfigurationEdgeCases:
         """Test saving configuration when PyYAML is not available."""
         manager = ConfigurationManager()
 
-        with patch.object(manager, '_save_config_file', return_value=False):
+        with patch.object(manager, "_save_config_file", return_value=False):
             result = manager.set("test.key", "value")
             # Should fail to save but not crash
             assert isinstance(result, bool)

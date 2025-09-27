@@ -145,7 +145,7 @@ class TestEnhancedSearchEndpoints:
         # Ensure no search_endpoints_paginated method exists,
         # so the code takes the fallback path we're testing
         try:
-            delattr(repo, 'search_endpoints_paginated')
+            delattr(repo, "search_endpoints_paginated")
         except AttributeError:
             pass  # It's fine if it doesn't exist
         return repo

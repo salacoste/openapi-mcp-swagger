@@ -210,8 +210,13 @@ class TestConfigurationManager:
 
         # Test invalid logging level
         with pytest.raises(ConfigurationError) as exc_info:
-            await config_manager.set_configuration_value("logging.level", "INVALID")
-        assert "invalid log level" in str(exc_info.value).lower() or "invalid" in str(exc_info.value).lower()
+            await config_manager.set_configuration_value(
+                "logging.level", "INVALID"
+            )
+        assert (
+            "invalid log level" in str(exc_info.value).lower()
+            or "invalid" in str(exc_info.value).lower()
+        )
 
     @pytest.mark.asyncio
     async def test_validate_ssl_configuration(self, config_manager):
@@ -232,7 +237,13 @@ class TestConfigurationManager:
         if not is_valid:
             assert len(errors) > 0
             # Check for SSL-related errors if they exist
-            ssl_errors = [e for e in errors if "ssl" in e.lower() or "certificate" in e.lower() or "cert" in e.lower()]
+            ssl_errors = [
+                e
+                for e in errors
+                if "ssl" in e.lower()
+                or "certificate" in e.lower()
+                or "cert" in e.lower()
+            ]
             # If there are SSL errors, that's expected. If not, that's also acceptable.
 
     def test_get_configuration_help(self, config_manager):
