@@ -1,10 +1,16 @@
 """Process monitoring and health checking for MCP servers."""
 
 import asyncio
+import socket
 import time
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, List, Optional
+
+try:
+    import psutil
+except ImportError:
+    psutil = None
 
 import aiohttp
 import structlog
@@ -122,7 +128,9 @@ class ProcessMonitor:
             Optional[ProcessMetrics]: Process metrics or None if process not found
         """
         try:
-            import psutil
+            if psutil is None:
+                logger.warning("psutil not available, cannot get process metrics")
+                return None
 
             process = psutil.Process(pid)
 
@@ -136,7 +144,7 @@ class ProcessMonitor:
             # Get connection count
             try:
                 connections = len(process.connections())
-            except (psutil.AccessDenied, psutil.NoSuchProcess):
+            except Exception:
                 connections = 0
 
             return ProcessMetrics(
@@ -149,7 +157,7 @@ class ProcessMonitor:
                 status=process.status(),
             )
 
-        except (psutil.NoSuchProcess, ImportError) as e:
+        except Exception as e:
             logger.warning(
                 "Failed to get process metrics", pid=pid, error=str(e)
             )
@@ -238,8 +246,6 @@ class ProcessMonitor:
         start_time = time.time()
 
         try:
-            import socket
-
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.settimeout(5)
             result = sock.connect_ex((host, port))

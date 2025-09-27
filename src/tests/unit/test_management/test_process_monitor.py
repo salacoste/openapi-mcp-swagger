@@ -212,8 +212,11 @@ class TestProcessMonitor:
             return_value={"status": "healthy", "version": "1.0"}
         )
 
+        mock_context_manager = AsyncMock()
+        mock_context_manager.__aenter__.return_value = mock_response
+
         mock_session = Mock()
-        mock_session.get.return_value.__aenter__.return_value = mock_response
+        mock_session.get.return_value = mock_context_manager
 
         self.monitor.session = mock_session
 
@@ -227,7 +230,9 @@ class TestProcessMonitor:
     async def test_mcp_health_check_connection_error(self):
         """Test MCP health check with connection error."""
         mock_session = Mock()
-        mock_session.get.side_effect = aiohttp.ClientConnectorError(None, None)
+        # Create a proper OSError for ClientConnectorError
+        os_error = OSError(61, "Connection refused")
+        mock_session.get.side_effect = aiohttp.ClientConnectorError(None, os_error)
 
         self.monitor.session = mock_session
 
@@ -243,8 +248,11 @@ class TestProcessMonitor:
         mock_response = Mock()
         mock_response.status = 200
 
+        mock_context_manager = AsyncMock()
+        mock_context_manager.__aenter__.return_value = mock_response
+
         mock_session = Mock()
-        mock_session.get.return_value.__aenter__.return_value = mock_response
+        mock_session.get.return_value = mock_context_manager
 
         self.monitor.session = mock_session
 
@@ -266,8 +274,11 @@ class TestProcessMonitor:
         mock_response = Mock()
         mock_response.status = 200
 
+        mock_context_manager = AsyncMock()
+        mock_context_manager.__aenter__.return_value = mock_response
+
         mock_session = Mock()
-        mock_session.get.return_value.__aenter__.return_value = mock_response
+        mock_session.get.return_value = mock_context_manager
 
         self.monitor.session = mock_session
 
