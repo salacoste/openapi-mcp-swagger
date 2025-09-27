@@ -2,7 +2,6 @@
 
 import json
 import os
-import shutil
 import stat
 from datetime import datetime
 from pathlib import Path
@@ -19,6 +18,7 @@ class DeploymentPackageGenerator:
     """Generates complete MCP server deployment package."""
 
     def __init__(self, output_dir: str):
+        """Initialize package generator with output directory."""
         self.output_dir = output_dir
 
     async def create_deployment_package(

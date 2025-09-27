@@ -4,11 +4,9 @@ This module provides simplified mock implementations of the Epic 1, 2, and 3 com
 to demonstrate the conversion pipeline functionality without requiring full integration.
 """
 
-import asyncio
 import json
 import os
-from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 
 class MockSwaggerParser:
@@ -88,6 +86,7 @@ class MockDatabase:
     """Mock implementation of database from Epic 1."""
 
     def __init__(self, database_path: str):
+        """Initialize mock database with path."""
         self.database_path = database_path
 
     async def initialize(self):
@@ -114,6 +113,7 @@ class MockSearchIndexManager:
     """Mock implementation of search index manager from Epic 3."""
 
     def __init__(self, index_path: str):
+        """Initialize mock search index with path."""
         self.index_path = index_path
 
     async def initialize(self):
@@ -125,6 +125,7 @@ class MockSearchEngine:
     """Mock implementation of search engine from Epic 3."""
 
     def __init__(self, index_manager, config):
+        """Initialize mock search engine with index manager and config."""
         self.index_manager = index_manager
         self.config = config
 
@@ -151,6 +152,7 @@ class MockMCPServer:
     """Mock implementation of MCP server from Epic 2."""
 
     def __init__(self, database=None, search_engine=None, settings=None):
+        """Initialize mock MCP server with database, search engine and settings."""
         self.database = database
         self.search_engine = search_engine
         self.settings = settings
