@@ -103,40 +103,120 @@ swagger-mcp-server bridges the gap between API documentation and AI coding assis
 
 ## 🚀 Quick Start
 
-### Installation
+### Step 1: Get Your Swagger JSON File
+
+Before converting, you need to obtain the Swagger/OpenAPI JSON specification from any API documentation site:
+
+#### 🔍 **Finding the Swagger JSON (Most Common Method)**
+
+1. **Visit any API documentation website** (e.g., `docs.example.com/api`)
+2. **Open Browser DevTools** (`F12` or `Cmd/Ctrl + Shift + I`)
+3. **Go to Network tab** and refresh the page
+4. **Look for `swagger.json` or similar files** in the network requests
+5. **Click on the JSON file** and copy the response
+6. **Save it to your project** in the `swagger-openapi-data/` directory:
 
 ```bash
-# Option 1: Install from PyPI (coming soon)
-pip install swagger-mcp-server
+# Save the JSON content to the existing swagger-openapi-data directory
+# Either copy-paste or download directly:
+curl -o swagger-openapi-data/your-api.json "https://api.example.com/swagger.json"
 
-# Option 2: Install from source
-git clone https://github.com/bmad-dev/swagger-mcp-server.git
-cd swagger-mcp-server
-poetry install
-
-# Option 3: Development installation
-pip install -e .
+# Or save manually by copying the JSON content and pasting it into:
+# swagger-openapi-data/your-api.json
 ```
 
-> **📖 Complete Installation Guide**: See [docs/INSTALLATION.md](docs/INSTALLATION.md) for detailed installation instructions, system requirements, and troubleshooting.
+#### 📋 **Alternative Methods to Get Swagger JSON**
 
-### 5-Minute Tutorial
+**Method 2: Direct URL Access**
+```bash
+# Many APIs expose Swagger at common endpoints:
+curl -o swagger-openapi-data/your-api.json "https://api.example.com/swagger.json"
+curl -o swagger-openapi-data/your-api.json "https://api.example.com/v1/swagger.json"
+curl -o swagger-openapi-data/your-api.json "https://api.example.com/docs/swagger.json"
+```
+
+**Method 3: API Documentation Download**
+Most API documentation sites have a "Download OpenAPI" or "Export JSON" button.
+
+**Method 4: Use Our Sample API (Already Included)**
+```bash
+# We already include a sample Ozon Performance API for testing:
+ls swagger-openapi-data/swagger.json  # 262KB Ozon API ready to use
+```
+
+### Step 2: Installation
 
 ```bash
-# 1. Install the tool
-pip install swagger-mcp-server
+# Option 1: Install from source (recommended)
+git clone https://github.com/salacoste/openapi-mcp-swagger.git
+cd openapi-mcp-swagger
 
-# 2. Convert your Swagger file
-swagger-mcp-server convert your-api.json --name my-api
+# Option 2: Install dependencies
+pip install -r requirements.txt
 
-# 3. Start the MCP server
-cd mcp-server-my-api
+# Option 3: Use standalone script (no installation required)
+chmod +x scripts/standalone-mcp.py
+```
+
+### Step 3: Convert & Start
+
+```bash
+# Convert your Swagger file to MCP server
+swagger-mcp-server convert swagger-openapi-data/your-api.json --name your-api
+
+# Or use the included sample API
+swagger-mcp-server convert swagger-openapi-data/swagger.json --name ozon-api
+
+# Start the MCP server
+cd mcp-server-your-api  # or mcp-server-ozon-api
 swagger-mcp-server serve
 
 # 4. Test with AI agents or curl
 curl -X POST http://localhost:8080 \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","id":1,"method":"searchEndpoints","params":{"keywords":"user"}}'
+```
+
+### Step 4: What Happens Next
+
+🎉 **Congratulations!** Your API is now AI-ready. Here's what you get:
+
+#### 🧠 **Intelligent API Knowledge**
+- **Complete endpoint mapping** with search capability
+- **Schema relationships** preserved and queryable  
+- **Code examples** generated on-demand in multiple languages
+- **Context-aware responses** for any API size
+
+#### 🤖 **AI Assistant Integration**
+Connect to your favorite AI coding assistant:
+
+**For Cursor IDE:**
+```bash
+# Add to .cursor-mcp/config.json
+{
+  "mcpServers": {
+    "your-api": {
+      "command": "swagger-mcp-server",
+      "args": ["serve", "--port", "8080"]
+    }
+  }
+}
+```
+
+**For Claude/VS Code:**
+```bash
+# Server will automatically integrate via MCP protocol
+# Just point your AI assistant to: http://localhost:8080
+```
+
+#### ✨ **Start Building with AI Superpowers**
+Now you can ask your AI assistant:
+
+```
+"Create a TypeScript client for the user authentication endpoints"
+"Show me all endpoints that handle payment processing"  
+"Generate a React hook for real-time order status updates"
+"What are the required fields for creating a new product?"
 ```
 
 > **📖 Complete Quick Start**: Follow our step-by-step [Quick Start Tutorial](docs/guides/QUICKSTART.md) to get your first MCP server running in 5 minutes with sample data.

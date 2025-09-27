@@ -4,23 +4,47 @@
 
 ## ⚡ Мгновенная настройка
 
-### 1. Клонируйте и подготовьте
+### 1. Get Your Swagger JSON File First
+
+Before starting, you need the Swagger/OpenAPI JSON file from any API documentation:
+
+**🔍 Finding Swagger JSON from Any API Documentation:**
+
+1. **Visit the API docs** (e.g., `docs.ozon.ru/api/performance/`)
+2. **Open DevTools** (`F12` or `Cmd/Ctrl + Shift + I`) 
+3. **Go to Network tab** and refresh the page
+4. **Look for `swagger.json`** in network requests (see screenshot)
+5. **Download or copy the JSON** content
+
+```bash
+# Save your API's swagger.json file to the existing directory:
+# swagger-openapi-data/your-api.json
+```
+
+### 2. Clone and Setup
 
 ```bash
 git clone https://github.com/salacoste/openapi-mcp-swagger.git
 cd openapi-mcp-swagger
 chmod +x scripts/standalone-mcp.py
+
+# Put your swagger.json file in swagger-openapi-data/ directory
+cp /path/to/your/swagger.json swagger-openapi-data/your-api.json
 ```
 
-### 2. Проверьте работу
+### 3. Test with Your API
 
 ```bash
-# Тест поиска endpoints
-echo '{"method": "searchEndpoints", "params": {"keywords": "campaign"}}' | \
-python3 scripts/standalone-mcp.py swagger-openapi-data/swagger.json --stdio
+# Test endpoint search with your API
+echo '{"method": "searchEndpoints", "params": {"keywords": "user"}}' | \
+python3 scripts/standalone-mcp.py swagger-openapi-data/your-api.json --stdio
 
-# Тест генерации кода
+# Test code generation
 echo '{"method": "getExample", "params": {"endpointId": "auth", "language": "javascript"}}' | \
+python3 scripts/standalone-mcp.py swagger-openapi-data/your-api.json --stdio
+
+# Or use the sample Ozon API for testing:
+echo '{"method": "searchEndpoints", "params": {"keywords": "campaign"}}' | \
 python3 scripts/standalone-mcp.py swagger-openapi-data/swagger.json --stdio
 ```
 
@@ -67,8 +91,17 @@ cp configs/cursor-mcp.json .cursor-mcp/config.json
 {
   "claude.mcpServers": [
     {
-      "name": "ozon-performance",
+      "name": "your-api",
       "command": "python3",
+      "args": [
+        "./scripts/standalone-mcp.py",
+        "./swagger-openapi-data/your-api.json",
+        "--stdio"
+      ]
+    },
+    {
+      "name": "ozon-sample",
+      "command": "python3", 
       "args": [
         "./scripts/standalone-mcp.py",
         "./swagger-openapi-data/swagger.json",
