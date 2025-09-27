@@ -20,12 +20,12 @@ def test_configure_logging_basic():
     """Test basic logging configuration."""
     logger = configure_logging(level="DEBUG")
     # Check that logger has expected methods and is properly configured
-    assert hasattr(logger, 'info')
-    assert hasattr(logger, 'debug')
-    assert hasattr(logger, 'warning')
-    assert hasattr(logger, 'error')
+    assert hasattr(logger, "info")
+    assert hasattr(logger, "debug")
+    assert hasattr(logger, "warning")
+    assert hasattr(logger, "error")
     # Check it's a structlog logger instance (could be BoundLogger or BoundLoggerLazyProxy)
-    assert hasattr(logger, 'bind')
+    assert hasattr(logger, "bind")
 
 
 def test_configure_logging_with_file():
@@ -34,10 +34,12 @@ def test_configure_logging_with_file():
         temp_file = f.name
 
     try:
-        logger = configure_logging(level="INFO", log_file=temp_file, json_logs=False)
+        logger = configure_logging(
+            level="INFO", log_file=temp_file, json_logs=False
+        )
 
         # Check that logger has expected attributes and file was created
-        assert hasattr(logger, 'info')
+        assert hasattr(logger, "info")
         log_path = Path(temp_file)
         assert log_path.exists()
 
@@ -56,12 +58,12 @@ def test_get_logger_with_context():
     """Test logger creation with initial context."""
     logger = get_logger(__name__, component="test", version="1.0")
     # Check that logger has expected methods and is properly configured
-    assert hasattr(logger, 'info')
-    assert hasattr(logger, 'debug')
-    assert hasattr(logger, 'warning')
-    assert hasattr(logger, 'error')
+    assert hasattr(logger, "info")
+    assert hasattr(logger, "debug")
+    assert hasattr(logger, "warning")
+    assert hasattr(logger, "error")
     # Check it's a structlog logger instance (could be BoundLogger or BoundLoggerLazyProxy)
-    assert hasattr(logger, 'bind')
+    assert hasattr(logger, "bind")
 
 
 def test_log_performance():
@@ -102,7 +104,7 @@ def test_json_logging_format():
         )
 
         # Check that logger has expected attributes and file was created
-        assert hasattr(logger, 'info')
+        assert hasattr(logger, "info")
         log_path = Path(temp_file)
         assert log_path.exists()
 
