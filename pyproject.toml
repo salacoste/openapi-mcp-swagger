@@ -180,6 +180,8 @@ addopts = [
     "--cov-report=html:htmlcov",
     "--cov-fail-under=5",
     "--disable-warnings",
+    "-W", "ignore::DeprecationWarning",
+    "-W", "ignore::PendingDeprecationWarning",
 ]
 testpaths = ["src/tests"]
 norecursedirs = [".*", "build", "dist", "*.egg", "venv", ".venv"]
@@ -195,11 +197,14 @@ markers = [
 ]
 
 [tool.coverage.run]
-source = ["src"]
+source = ["src/swagger_mcp_server"]
+branch = true
 omit = [
     "*/tests/*",
     "*/conftest.py",
+    "*/__init__.py",
 ]
+disable_warnings = ["module-not-measured"]
 
 [tool.coverage.report]
 exclude_lines = [

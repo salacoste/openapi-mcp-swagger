@@ -145,7 +145,7 @@ class TestErrorResponseGeneration:
         assert "api_key" not in sanitized
         assert "database_url" not in sanitized
         assert sanitized["normal_field"] == "normal_value"
-        assert len(sanitized["long_field"]) == 503  # 500 + "... (truncated)"
+        assert len(sanitized["long_field"]) == 515  # 500 + "... (truncated)"
 
     def test_nested_data_sanitization(self):
         """Test sanitization of nested data structures."""
@@ -376,8 +376,11 @@ class TestHealthChecker:
         checker = HealthChecker()
 
         # Add healthy component
+        async def healthy_check():
+            return {"status": "ok"}
+
         await checker.check_component_health(
-            "healthy", lambda: {"status": "ok"}, cache_duration=0.1
+            "healthy", healthy_check, cache_duration=0.1
         )
 
         # Add unhealthy component
