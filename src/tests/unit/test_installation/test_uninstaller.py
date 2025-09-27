@@ -218,6 +218,13 @@ class TestUninstallationManager:
         """Test user data preservation with errors."""
         results = {"preserved_items": [], "warnings": []}
 
+        # Create test directories and files
+        manager.data_dir.mkdir(parents=True, exist_ok=True)
+        manager.config_dir.mkdir(parents=True, exist_ok=True)
+        (manager.data_dir / "database").mkdir(parents=True, exist_ok=True)
+        (manager.config_dir / "config.yaml").write_text("test config")
+        (manager.config_dir / "servers.json").write_text("{}")
+
         # Mock shutil.copytree to raise error
         with patch("shutil.copytree", side_effect=Exception("Copy error")):
             await manager._preserve_user_data(results)

@@ -1,0 +1,29 @@
+[Unit]
+Description=Test MCP Server
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=mcp
+Group=mcp
+WorkingDirectory=/opt/test
+Environment=PATH=/opt/test/venv/bin
+ExecStart=/opt/test/venv/bin/python server.py
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=always
+RestartSec=10
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/test/data
+
+# Environment variables
+Environment=MCP_HOST=0.0.0.0
+Environment=MCP_PORT=8080
+
+[Install]
+WantedBy=multi-user.target
