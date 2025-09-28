@@ -1,0 +1,80 @@
+# GitHub Pages configuration
+title: "Universal Swagger → MCP Server Converter"
+description: "Stop wrestling with massive API docs in your AI assistant's context window. Start having intelligent conversations about any API."
+url: "https://salacoste.github.io"
+baseurl: "/openapi-mcp-swagger"
+
+# Build settings
+markdown: kramdown
+highlighter: rouge
+theme: minima
+
+# Plugins
+plugins:
+  - jekyll-feed
+  - jekyll-sitemap
+  - jekyll-seo-tag
+
+# SEO and social
+author:
+  name: "salacoste"
+  email: ""
+
+social:
+  - https://github.com/salacoste/openapi-mcp-swagger
+
+# Navigation
+header_pages:
+  - docs/INSTALLATION.md
+  - docs/guides/QUICKSTART.md
+  - docs/api/MCP_PROTOCOL.md
+  - CONTRIBUTING.md
+
+# Exclude from processing
+exclude:
+  - .bmad-core/
+  - src/
+  - tests/
+  - scripts/
+  - vendor/
+  - Gemfile
+  - Gemfile.lock
+  - node_modules/
+  - "*.gemspec"
+  - "*.gem"
+  - .pytest_cache/
+  - __pycache__/
+  - "*.pyc"
+  - .coverage
+  - htmlcov/
+  - .venv/
+  - venv/
+  - .env
+
+# Include in processing
+include:
+  - _pages/
+  - docs/
+
+# Collections
+collections:
+  docs:
+    output: true
+    permalink: /:collection/:name/
+
+# Defaults
+defaults:
+  - scope:
+      path: ""
+      type: "posts"
+    values:
+      layout: "post"
+  - scope:
+      path: ""
+      type: "docs"
+    values:
+      layout: "page"
+  - scope:
+      path: ""
+    values:
+      layout: "default"
