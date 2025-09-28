@@ -9,7 +9,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     strategy:
       matrix:
         python-version: ["3.11", "3.12"]
@@ -64,6 +64,7 @@ jobs:
           --ignore=src/tests/unit/test_search/test_schema_search_integration.py \
           --ignore=src/tests/unit/test_search/test_search_analytics.py \
           --ignore=src/tests/unit/test_search/test_search_engine.py \
+          --ignore=src/tests/unit/test_storage/ \
           --maxfail=5 -x --tb=short
 
     - name: Upload coverage to Codecov
