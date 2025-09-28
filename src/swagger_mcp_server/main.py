@@ -186,7 +186,8 @@ def cli(ctx: click.Context, verbose: bool, quiet: bool, config: Optional[str]):
 
     \b
     Examples:
-      swagger-mcp-server convert api.json --output ./mcp-server
+      swagger-mcp-server convert api.json
+      swagger-mcp-server convert api.json --output custom-location
       swagger-mcp-server serve --port 8080
       swagger-mcp-server status --all
       swagger-mcp-server config show
@@ -288,7 +289,7 @@ def convert(
 
     \b
     Examples:
-      # Basic conversion
+      # Basic conversion (creates in generated-mcp-servers/)
       swagger-mcp-server convert api.json
 
       # Custom output directory and port

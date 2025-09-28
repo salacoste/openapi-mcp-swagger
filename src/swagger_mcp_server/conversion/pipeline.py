@@ -71,9 +71,11 @@ class ConversionPipeline:
         self.validator = ConversionValidator()
 
     def _generate_output_dir(self) -> str:
-        """Generate default output directory name."""
+        """Generate default output directory name in generated-mcp-servers folder."""
         base_name = Path(self.swagger_file).stem
-        return f"./mcp-server-{base_name}"
+        # Create generated MCP servers in dedicated directory
+        generated_dir = Path("./generated-mcp-servers")
+        return str(generated_dir / f"mcp-server-{base_name}")
 
     async def execute_conversion(self) -> Dict[str, Any]:
         """Execute complete conversion pipeline."""

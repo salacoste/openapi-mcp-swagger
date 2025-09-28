@@ -5,6 +5,11 @@ swagger-openapi-data/*
 CLAUDE.md
 AGENTS.md
 
+# Generated MCP servers
+generated-mcp-servers/
+mcp-servers/
+*-mcp-server/
+
 # Temporary MCP server directories
 mcp-server-tmp*/
 
