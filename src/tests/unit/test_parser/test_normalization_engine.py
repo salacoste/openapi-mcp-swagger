@@ -146,33 +146,24 @@ class TestEndpointNormalizer:
     def test_validate_path_parameters(self):
         """Test path parameter validation."""
         # Valid case
+        user_param = Mock(location=ParameterLocation.PATH, required=True)
+        user_param.name = "userId"
+        post_param = Mock(location=ParameterLocation.PATH, required=True)
+        post_param.name = "postId"
+
         errors = self.normalizer.validate_path_parameters(
             "/users/{userId}/posts/{postId}",
-            [
-                Mock(
-                    name="userId",
-                    location=ParameterLocation.PATH,
-                    required=True,
-                ),
-                Mock(
-                    name="postId",
-                    location=ParameterLocation.PATH,
-                    required=True,
-                ),
-            ],
+            [user_param, post_param],
         )
         assert len(errors) == 0
 
         # Missing parameter
+        missing_param = Mock(location=ParameterLocation.PATH, required=True)
+        missing_param.name = "userId"
+
         errors = self.normalizer.validate_path_parameters(
             "/users/{userId}/posts/{postId}",
-            [
-                Mock(
-                    name="userId",
-                    location=ParameterLocation.PATH,
-                    required=True,
-                )
-            ],
+            [missing_param],
         )
         assert len(errors) == 1
         assert "Missing path parameters" in errors[0]
@@ -311,24 +302,25 @@ class TestSchemaProcessor:
 
     def test_resolve_all_references(self):
         """Test comprehensive reference resolution."""
-        full_document = {
-            "components": {
-                "schemas": {
-                    "User": {"type": "object"},
-                    "Post": {"type": "object"},
-                }
+        components_data = {
+            "schemas": {
+                "User": {"type": "object"},
+                "Post": {"type": "object"},
             }
         }
+
+        # Process schemas first to load them into the processor
+        self.processor.process_schemas(components_data)
 
         # Test various reference formats
         test_cases = [
             ("#/components/schemas/User", "User"),
-            ("User", "User"),
+            ("#/components/schemas/Post", "Post"),
             ("#/components/schemas/NonExistent", None),
         ]
 
         for ref, expected in test_cases:
-            result = self.processor.resolve_reference(ref, full_document)
+            result = self.processor.resolve_schema_reference(ref)
             if expected:
                 assert result is not None
             else:
