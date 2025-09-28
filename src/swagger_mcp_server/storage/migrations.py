@@ -382,9 +382,11 @@ class MigrationManager:
             if dry_run:
                 self.logger.info(
                     "DRY RUN - Would execute SQL",
-                    sql=migration.up_sql[:200] + "..."
-                    if len(migration.up_sql) > 200
-                    else migration.up_sql,
+                    sql=(
+                        migration.up_sql[:200] + "..."
+                        if len(migration.up_sql) > 200
+                        else migration.up_sql
+                    ),
                 )
                 return True
 
@@ -465,9 +467,11 @@ class MigrationManager:
                 if dry_run:
                     self.logger.info(
                         "DRY RUN - Would execute rollback SQL",
-                        sql=migration_record.rollback_sql[:200] + "..."
-                        if len(migration_record.rollback_sql) > 200
-                        else migration_record.rollback_sql,
+                        sql=(
+                            migration_record.rollback_sql[:200] + "..."
+                            if len(migration_record.rollback_sql) > 200
+                            else migration_record.rollback_sql
+                        ),
                     )
                     return True
 
@@ -572,9 +576,11 @@ class MigrationManager:
                             "version": version,
                             "name": migration.name,
                             "description": migration.description,
-                            "applied_at": applied_record.applied_at.isoformat()
-                            if applied_record.applied_at
-                            else None,
+                            "applied_at": (
+                                applied_record.applied_at.isoformat()
+                                if applied_record.applied_at
+                                else None
+                            ),
                             "checksum_matches": applied_record.checksum
                             == migration.checksum,
                         }
@@ -595,9 +601,11 @@ class MigrationManager:
                         {
                             "version": version,
                             "name": applied_record.name,
-                            "applied_at": applied_record.applied_at.isoformat()
-                            if applied_record.applied_at
-                            else None,
+                            "applied_at": (
+                                applied_record.applied_at.isoformat()
+                                if applied_record.applied_at
+                                else None
+                            ),
                         }
                     )
 

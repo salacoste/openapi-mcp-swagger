@@ -116,34 +116,42 @@ async def large_dataset(performance_db):
             method = methods[i % len(methods)]
             endpoint = Endpoint(
                 api_id=api.id,
-                path=f"/api/v1/resources/{i}"
-                if method == "GET"
-                else f"/api/v1/resources",
+                path=(
+                    f"/api/v1/resources/{i}"
+                    if method == "GET"
+                    else f"/api/v1/resources"
+                ),
                 method=method,
                 operation_id=f"{method.lower()}Resource{i}",
                 summary=f"{method} resource {i}",
                 description=f"Perform {method} operation on resource {i}",
                 tags=[f"resource-{i % 10}", "api", "v1"],
-                parameters=[
-                    {
-                        "name": "id" if method != "POST" else "resource_id",
-                        "in": "path" if method != "POST" else "query",
-                        "required": True,
-                        "schema": {"type": "integer"},
-                    }
-                ]
-                if method != "POST"
-                else [],
-                request_body={
-                    "required": True,
-                    "content": {
-                        "application/json": {
-                            "schema": {"$ref": f"#/components/schemas/Model{i % 100}"}
+                parameters=(
+                    [
+                        {
+                            "name": "id" if method != "POST" else "resource_id",
+                            "in": "path" if method != "POST" else "query",
+                            "required": True,
+                            "schema": {"type": "integer"},
                         }
-                    },
-                }
-                if method in ["POST", "PUT", "PATCH"]
-                else None,
+                    ]
+                    if method != "POST"
+                    else []
+                ),
+                request_body=(
+                    {
+                        "required": True,
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": f"#/components/schemas/Model{i % 100}"
+                                }
+                            }
+                        },
+                    }
+                    if method in ["POST", "PUT", "PATCH"]
+                    else None
+                ),
                 responses={
                     "200": {
                         "description": f"Resource {i} operation successful",

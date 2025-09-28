@@ -522,9 +522,9 @@ class SwaggerProcessingPipeline:
             results=processed_results,
             batch_metrics={
                 "duration": batch_duration,
-                "throughput": len(file_paths) / batch_duration
-                if batch_duration > 0
-                else 0,
+                "throughput": (
+                    len(file_paths) / batch_duration if batch_duration > 0 else 0
+                ),
             },
             errors=errors,
         )

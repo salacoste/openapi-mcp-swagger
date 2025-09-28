@@ -408,9 +408,11 @@ class ConversionPipeline:
                 "storage": "completed",
                 "indexing": "completed",
                 "generation": "completed",
-                "validation": "completed"
-                if not self.options.get("skip_validation")
-                else "skipped",
+                "validation": (
+                    "completed"
+                    if not self.options.get("skip_validation")
+                    else "skipped"
+                ),
             },
             "next_steps": [
                 f"Start the server: cd {self.output_dir} && python server.py",

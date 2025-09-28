@@ -293,9 +293,11 @@ class ConversionTimer:
             if "duration" in timing:
                 report["phases"][phase_name] = {
                     "duration": timing["duration"],
-                    "percentage": (timing["duration"] / total_duration * 100)
-                    if total_duration > 0
-                    else 0,
+                    "percentage": (
+                        (timing["duration"] / total_duration * 100)
+                        if total_duration > 0
+                        else 0
+                    ),
                 }
 
         return report

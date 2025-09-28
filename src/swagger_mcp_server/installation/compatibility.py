@@ -239,9 +239,11 @@ class SystemCompatibilityChecker:
 
         return {
             "adequate": len(permission_issues) == 0,
-            "message": "Permissions adequate"
-            if not permission_issues
-            else f"Permission issues: {len(permission_issues)}",
+            "message": (
+                "Permissions adequate"
+                if not permission_issues
+                else f"Permission issues: {len(permission_issues)}"
+            ),
             "details": {"issues": permission_issues},
         }
 

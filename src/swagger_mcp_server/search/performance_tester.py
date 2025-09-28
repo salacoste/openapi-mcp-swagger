@@ -322,11 +322,11 @@ class SearchPerformanceTester:
             "overall_compliance_rate": compliance_rate,
             "compliant_tests": compliant_tests,
             "total_tests": total_tests,
-            "compliance_status": "pass"
-            if compliance_rate >= 0.9
-            else "warning"
-            if compliance_rate >= 0.7
-            else "fail",
+            "compliance_status": (
+                "pass"
+                if compliance_rate >= 0.9
+                else "warning" if compliance_rate >= 0.7 else "fail"
+            ),
             "detailed_results": results,
         }
 
@@ -400,9 +400,9 @@ class SearchPerformanceTester:
             )
             max_response_time = max(response_times)
         else:
-            avg_response_time = (
-                p95_response_time
-            ) = p99_response_time = max_response_time = 0
+            avg_response_time = p95_response_time = p99_response_time = (
+                max_response_time
+            ) = 0
 
         # Calculate NFR1 compliance
         nfr1_compliant_requests = len(
@@ -611,11 +611,11 @@ class SearchPerformanceTester:
             "total_tests": total_tests,
             "passed_tests": passed_tests,
             "pass_rate": passed_tests / total_tests if total_tests > 0 else 0,
-            "regression_status": "pass"
-            if passed_tests == total_tests
-            else "warning"
-            if passed_tests >= total_tests * 0.8
-            else "fail",
+            "regression_status": (
+                "pass"
+                if passed_tests == total_tests
+                else "warning" if passed_tests >= total_tests * 0.8 else "fail"
+            ),
             "detailed_results": current_results,
         }
 
@@ -706,9 +706,9 @@ class SearchPerformanceTester:
             "passed_tests": passed_tests,
             "nfr1_compliant_tests": nfr1_compliant_tests,
             "pass_rate": passed_tests / len(results) if results else 0,
-            "nfr1_compliance_rate": nfr1_compliant_tests / len(results)
-            if results
-            else 0,
+            "nfr1_compliance_rate": (
+                nfr1_compliant_tests / len(results) if results else 0
+            ),
             "avg_performance_ratio": statistics.mean(
                 [
                     r["performance_ratio"]

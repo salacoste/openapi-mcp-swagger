@@ -526,9 +526,11 @@ class SearchAnalyticsDashboard:
                 "document_count": size_stats.get("current_documents", 0),
                 "document_growth": size_stats.get("document_growth", 0),
                 "avg_size_per_doc": size_stats.get("avg_size_per_document_kb", 0),
-                "growth_trend": "increasing"
-                if size_stats.get("size_growth_mb", 0) > 0
-                else "stable",
+                "growth_trend": (
+                    "increasing"
+                    if size_stats.get("size_growth_mb", 0) > 0
+                    else "stable"
+                ),
             }
         except Exception:
             return {}
@@ -545,9 +547,11 @@ class SearchAnalyticsDashboard:
                     "avg_performance_improvement_percent", 0
                 ),
                 "size_reduction": optimization.get("avg_size_reduction_percent", 0),
-                "status": "up_to_date"
-                if optimization.get("optimization_in_progress")
-                else "available",
+                "status": (
+                    "up_to_date"
+                    if optimization.get("optimization_in_progress")
+                    else "available"
+                ),
             }
         except Exception:
             return {}
@@ -618,9 +622,11 @@ class SearchAnalyticsDashboard:
                     {
                         "title": alert.title,
                         "level": alert.level.value,
-                        "resolved_at": alert.resolution_time.isoformat()
-                        if alert.resolution_time
-                        else None,
+                        "resolved_at": (
+                            alert.resolution_time.isoformat()
+                            if alert.resolution_time
+                            else None
+                        ),
                         "resolution_time_minutes": resolution_time,
                     }
                 )

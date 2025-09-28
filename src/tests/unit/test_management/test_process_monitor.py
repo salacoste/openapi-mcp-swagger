@@ -75,13 +75,11 @@ class TestProcessMonitor:
     @pytest.mark.asyncio
     async def test_check_server_health_healthy(self):
         """Test health check for healthy server."""
-        with patch.object(
-            self.monitor, "_check_network_connectivity"
-        ) as mock_network, patch.object(
-            self.monitor, "_check_mcp_health"
-        ) as mock_mcp, patch.object(
-            self.monitor, "_check_response_time"
-        ) as mock_response:
+        with (
+            patch.object(self.monitor, "_check_network_connectivity") as mock_network,
+            patch.object(self.monitor, "_check_mcp_health") as mock_mcp,
+            patch.object(self.monitor, "_check_response_time") as mock_response,
+        ):
             # Mock all checks as healthy
             mock_network.return_value = HealthCheck(
                 name="network",
@@ -119,13 +117,11 @@ class TestProcessMonitor:
     @pytest.mark.asyncio
     async def test_check_server_health_unhealthy(self):
         """Test health check for unhealthy server."""
-        with patch.object(
-            self.monitor, "_check_network_connectivity"
-        ) as mock_network, patch.object(
-            self.monitor, "_check_mcp_health"
-        ) as mock_mcp, patch.object(
-            self.monitor, "_check_response_time"
-        ) as mock_response:
+        with (
+            patch.object(self.monitor, "_check_network_connectivity") as mock_network,
+            patch.object(self.monitor, "_check_mcp_health") as mock_mcp,
+            patch.object(self.monitor, "_check_response_time") as mock_response,
+        ):
             # Mock network check as failed
             mock_network.return_value = HealthCheck(
                 name="network",
@@ -310,9 +306,12 @@ class TestProcessMonitor:
             "error_rate": 0.01,
         }
 
-        with patch.object(
-            self.monitor, "get_process_metrics", return_value=process_metrics
-        ), patch.object(self.monitor, "_get_mcp_metrics", return_value=mcp_metrics):
+        with (
+            patch.object(
+                self.monitor, "get_process_metrics", return_value=process_metrics
+            ),
+            patch.object(self.monitor, "_get_mcp_metrics", return_value=mcp_metrics),
+        ):
             server_metrics = await self.monitor.get_server_metrics(
                 12345, "localhost", 8080
             )

@@ -259,12 +259,12 @@ class SearchPerformanceMonitor:
             "avg": statistics.mean(response_times),
             "median": statistics.median(response_times),
             "p50": response_times[int(count * 0.5)],
-            "p95": response_times[int(count * 0.95)]
-            if count > 20
-            else response_times[-1],
-            "p99": response_times[int(count * 0.99)]
-            if count > 100
-            else response_times[-1],
+            "p95": (
+                response_times[int(count * 0.95)] if count > 20 else response_times[-1]
+            ),
+            "p99": (
+                response_times[int(count * 0.99)] if count > 100 else response_times[-1]
+            ),
             "min": min(response_times),
             "max": max(response_times),
             "std_dev": statistics.stdev(response_times) if count > 1 else 0,
@@ -393,11 +393,9 @@ class SearchPerformanceMonitor:
             "total_queries": total_queries,
             "cached_avg_response_time": cached_avg_time,
             "non_cached_avg_response_time": non_cached_avg_time,
-            "cache_effectiveness": "high"
-            if hit_rate > 0.7
-            else "medium"
-            if hit_rate > 0.4
-            else "low",
+            "cache_effectiveness": (
+                "high" if hit_rate > 0.7 else "medium" if hit_rate > 0.4 else "low"
+            ),
             "performance_improvement": max(0, non_cached_avg_time - cached_avg_time),
         }
 

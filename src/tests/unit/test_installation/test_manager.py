@@ -215,17 +215,20 @@ class TestInstallationManager:
         )
 
         # Mock the dependencies check to return all dependencies available
-        with patch(
-            "swagger_mcp_server.config.ConfigurationManager",
-            return_value=mock_config_manager,
-        ), patch.object(
-            manager,
-            "_verify_dependencies",
-            return_value={
-                "working": True,
-                "message": "All dependencies available",
-                "details": {"required": 8, "available": 8, "missing": []},
-            },
+        with (
+            patch(
+                "swagger_mcp_server.config.ConfigurationManager",
+                return_value=mock_config_manager,
+            ),
+            patch.object(
+                manager,
+                "_verify_dependencies",
+                return_value={
+                    "working": True,
+                    "message": "All dependencies available",
+                    "details": {"required": 8, "available": 8, "missing": []},
+                },
+            ),
         ):
             result = await manager.verify_installation()
 

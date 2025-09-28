@@ -479,17 +479,17 @@ class UnifiedSearchInterface:
         for endpoint in endpoint_results:
             endpoint_id = endpoint["endpoint_id"]
             if endpoint_id in cross_refs.endpoint_to_schemas:
-                result_cross_refs["endpoint_to_schema"][
-                    endpoint_id
-                ] = cross_refs.endpoint_to_schemas[endpoint_id]
+                result_cross_refs["endpoint_to_schema"][endpoint_id] = (
+                    cross_refs.endpoint_to_schemas[endpoint_id]
+                )
 
         # Map schemas to their endpoints
         for schema in schema_results:
             schema_id = schema["schema_id"]
             if schema_id in cross_refs.schema_to_endpoints:
-                result_cross_refs["schema_to_endpoint"][
-                    schema_id
-                ] = cross_refs.schema_to_endpoints[schema_id]
+                result_cross_refs["schema_to_endpoint"][schema_id] = (
+                    cross_refs.schema_to_endpoints[schema_id]
+                )
 
         # Find related pairs
         for endpoint in endpoint_results:

@@ -263,9 +263,9 @@ class SwaggerMcpServer:
                     "description": endpoint.description,
                     "operationId": endpoint.operation_id,
                     "tags": endpoint.tags,
-                    "parameters": len(endpoint.parameters)
-                    if endpoint.parameters
-                    else 0,
+                    "parameters": (
+                        len(endpoint.parameters) if endpoint.parameters else 0
+                    ),
                     "responses": len(endpoint.responses) if endpoint.responses else 0,
                 }
                 results.append(result)
@@ -313,9 +313,11 @@ class SwaggerMcpServer:
                 "definition": schema.definition,
                 "description": schema.description,
                 "required_fields": schema.required_fields,
-                "properties_count": len(schema.definition.get("properties", {}))
-                if isinstance(schema.definition, dict)
-                else 0,
+                "properties_count": (
+                    len(schema.definition.get("properties", {}))
+                    if isinstance(schema.definition, dict)
+                    else 0
+                ),
             }
 
             if include_examples and schema.examples:

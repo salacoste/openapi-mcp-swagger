@@ -679,7 +679,7 @@ class TestParserPerformance:
             malformed_paths[f"/endpoint{i}"] = {
                 "get": {
                     "summary": f"Endpoint {i}",
-                    "responses": {"200": {"description": "Success"}}
+                    "responses": {"200": {"description": "Success"}},
                     # Intentionally missing comma in some cases
                 }
             }

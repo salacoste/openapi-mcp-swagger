@@ -542,9 +542,9 @@ class MetadataEnhancer:
                     parameter_summary=param_summary,
                     authentication_info=auth_info,
                     response_info=response_info,
-                    tags=result.get("tags", "").split(",")
-                    if result.get("tags")
-                    else [],
+                    tags=(
+                        result.get("tags", "").split(",") if result.get("tags") else []
+                    ),
                     resource_group=resource_group,
                     operation_type=operation_type,
                     deprecated=result.get("deprecated", False),
@@ -972,9 +972,11 @@ class ResultCache:
             "max_size": self.max_size,
             "total_accesses": total_accesses,
             "hit_rate": total_accesses / max(1, len(self.access_count)),
-            "oldest_entry_age": time.time() - min(self.access_times.values())
-            if self.access_times
-            else 0,
+            "oldest_entry_age": (
+                time.time() - min(self.access_times.values())
+                if self.access_times
+                else 0
+            ),
         }
 
 

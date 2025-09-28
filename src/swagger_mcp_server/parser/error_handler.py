@@ -123,9 +123,11 @@ class ErrorHandler:
             )
         else:
             recovery = RecoveryAction(
-                strategy=RecoveryStrategy.FAIL_FAST
-                if self.strict_mode
-                else RecoveryStrategy.PARTIAL_PARSE,
+                strategy=(
+                    RecoveryStrategy.FAIL_FAST
+                    if self.strict_mode
+                    else RecoveryStrategy.PARTIAL_PARSE
+                ),
                 description="Generic JSON error recovery",
             )
 

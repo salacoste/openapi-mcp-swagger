@@ -264,9 +264,11 @@ class SearchOptimizer:
             content=" ".join(content_parts),
             tags=tags,
             metadata={
-                "method": endpoint.method.value
-                if hasattr(endpoint.method, "value")
-                else str(endpoint.method),
+                "method": (
+                    endpoint.method.value
+                    if hasattr(endpoint.method, "value")
+                    else str(endpoint.method)
+                ),
                 "path": endpoint.path,
                 "operation_id": endpoint.operation_id,
                 "tags": list(endpoint.tags) if endpoint.tags else [],
@@ -405,9 +407,9 @@ class SearchOptimizer:
                 "api_key_name": scheme.api_key_name,
                 "http_scheme": scheme.http_scheme,
                 "has_oauth2": bool(scheme.oauth2_flows),
-                "oauth2_flow_count": len(scheme.oauth2_flows)
-                if scheme.oauth2_flows
-                else 0,
+                "oauth2_flow_count": (
+                    len(scheme.oauth2_flows) if scheme.oauth2_flows else 0
+                ),
             },
             boost=1.0,
         )

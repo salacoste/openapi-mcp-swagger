@@ -48,18 +48,18 @@ class TestMCPServerManager:
             "daemon": True,
         }
 
-        with patch.object(self.manager, "_validate_server_config"), patch.object(
-            self.manager.registry, "is_port_available", return_value=True
-        ), patch.object(self.manager.registry, "cleanup_dead_servers"), patch.object(
-            self.manager.daemon_manager,
-            "start_daemon_server",
-            return_value=mock_daemon_result,
-        ), patch.object(
-            self.manager.registry, "register_server"
-        ) as mock_register, patch.object(
-            self.manager, "_wait_for_server_ready"
-        ), patch.object(
-            self.manager.registry, "update_server_status"
+        with (
+            patch.object(self.manager, "_validate_server_config"),
+            patch.object(self.manager.registry, "is_port_available", return_value=True),
+            patch.object(self.manager.registry, "cleanup_dead_servers"),
+            patch.object(
+                self.manager.daemon_manager,
+                "start_daemon_server",
+                return_value=mock_daemon_result,
+            ),
+            patch.object(self.manager.registry, "register_server") as mock_register,
+            patch.object(self.manager, "_wait_for_server_ready"),
+            patch.object(self.manager.registry, "update_server_status"),
         ):
             mock_register.return_value = ServerInstance(
                 id="test-server-id",
@@ -86,8 +86,11 @@ class TestMCPServerManager:
             "port": 8080,
         }
 
-        with patch.object(self.manager, "_validate_server_config"), patch.object(
-            self.manager.registry, "is_port_available", return_value=False
+        with (
+            patch.object(self.manager, "_validate_server_config"),
+            patch.object(
+                self.manager.registry, "is_port_available", return_value=False
+            ),
         ):
             with pytest.raises(ServerError) as exc_info:
                 await self.manager.start_server(server_config)
@@ -99,7 +102,7 @@ class TestMCPServerManager:
         """Test server configuration validation with missing fields."""
         incomplete_config = {
             "name": "test-server",
-            "host": "localhost"
+            "host": "localhost",
             # Missing port
         }
 
@@ -135,12 +138,13 @@ class TestMCPServerManager:
             start_time=1234567890.0,
         )
 
-        with patch.object(
-            self.manager.registry, "get_server", return_value=server_instance
-        ), patch.object(self.manager.registry, "update_server_status"), patch.object(
-            self.manager, "_stop_daemon_server", return_value=True
-        ), patch.object(
-            self.manager.registry, "unregister_server"
+        with (
+            patch.object(
+                self.manager.registry, "get_server", return_value=server_instance
+            ),
+            patch.object(self.manager.registry, "update_server_status"),
+            patch.object(self.manager, "_stop_daemon_server", return_value=True),
+            patch.object(self.manager.registry, "unregister_server"),
         ):
             result = await self.manager.stop_server("test-server-id")
 
@@ -194,22 +198,26 @@ class TestMCPServerManager:
             issues=[],
         )
 
-        with patch.object(
-            self.manager.registry, "get_server", return_value=server_instance
-        ), patch.object(
-            self.manager.process_monitor,
-            "get_process_metrics",
-            return_value=process_metrics,
-        ), patch.object(
-            self.manager.process_monitor,
-            "check_server_health",
-            return_value=health_status,
-        ), patch.object(
-            self.manager.process_monitor,
-            "get_server_metrics",
-            return_value=None,
-        ), patch.object(
-            self.manager.registry, "update_server_status"
+        with (
+            patch.object(
+                self.manager.registry, "get_server", return_value=server_instance
+            ),
+            patch.object(
+                self.manager.process_monitor,
+                "get_process_metrics",
+                return_value=process_metrics,
+            ),
+            patch.object(
+                self.manager.process_monitor,
+                "check_server_health",
+                return_value=health_status,
+            ),
+            patch.object(
+                self.manager.process_monitor,
+                "get_server_metrics",
+                return_value=None,
+            ),
+            patch.object(self.manager.registry, "update_server_status"),
         ):
             status = await self.manager.get_server_status("test-server-id")
 
@@ -230,14 +238,16 @@ class TestMCPServerManager:
             start_time=1234567890.0,
         )
 
-        with patch.object(
-            self.manager.registry, "get_server", return_value=server_instance
-        ), patch.object(
-            self.manager.process_monitor,
-            "get_process_metrics",
-            return_value=None,
-        ), patch.object(
-            self.manager.registry, "update_server_status"
+        with (
+            patch.object(
+                self.manager.registry, "get_server", return_value=server_instance
+            ),
+            patch.object(
+                self.manager.process_monitor,
+                "get_process_metrics",
+                return_value=None,
+            ),
+            patch.object(self.manager.registry, "update_server_status"),
         ):
             status = await self.manager.get_server_status("test-server-id")
 
@@ -267,9 +277,13 @@ class TestMCPServerManager:
             ),
         ]
 
-        with patch.object(self.manager.registry, "cleanup_dead_servers"), patch.object(
-            self.manager.registry, "get_all_servers", return_value=servers
-        ), patch.object(self.manager, "get_server_status") as mock_get_status:
+        with (
+            patch.object(self.manager.registry, "cleanup_dead_servers"),
+            patch.object(
+                self.manager.registry, "get_all_servers", return_value=servers
+            ),
+            patch.object(self.manager, "get_server_status") as mock_get_status,
+        ):
             # Mock individual status calls
             mock_get_status.side_effect = [
                 {"server": {"id": "server-1"}, "status": "running"},
@@ -308,12 +322,12 @@ class TestMCPServerManager:
             "startup_time": 1.2,
         }
 
-        with patch.object(
-            self.manager.registry, "get_server", return_value=server_instance
-        ), patch.object(
-            self.manager, "stop_server", return_value=mock_stop_result
-        ), patch.object(
-            self.manager, "start_server", return_value=mock_start_result
+        with (
+            patch.object(
+                self.manager.registry, "get_server", return_value=server_instance
+            ),
+            patch.object(self.manager, "stop_server", return_value=mock_stop_result),
+            patch.object(self.manager, "start_server", return_value=mock_start_result),
         ):
             result = await self.manager.restart_server("test-server-id")
 

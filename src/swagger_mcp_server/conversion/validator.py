@@ -274,9 +274,11 @@ class ConversionValidator:
                     "passed": True,
                     "details": {
                         "requirements_validated": True,
-                        "method": "syntax_check"
-                        if "--dry-run" in (result.stderr or "")
-                        else "dry_run",
+                        "method": (
+                            "syntax_check"
+                            if "--dry-run" in (result.stderr or "")
+                            else "dry_run"
+                        ),
                     },
                 }
 
@@ -529,12 +531,12 @@ class ConversionValidator:
             "total_validation_categories": total_checks,
             "passed_categories": passed_checks,
             "failed_categories": total_checks - passed_checks,
-            "success_rate": (passed_checks / total_checks) * 100
-            if total_checks > 0
-            else 0,
+            "success_rate": (
+                (passed_checks / total_checks) * 100 if total_checks > 0 else 0
+            ),
             "total_issues": issues_count,
             "total_warnings": warnings_count,
-            "overall_status": "ready"
-            if passed_checks == total_checks
-            else "needs_attention",
+            "overall_status": (
+                "ready" if passed_checks == total_checks else "needs_attention"
+            ),
         }

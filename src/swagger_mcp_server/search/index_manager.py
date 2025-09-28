@@ -217,9 +217,9 @@ class SearchIndexManager:
                     for f in os.listdir(self.index_dir)
                     if os.path.isfile(os.path.join(self.index_dir, f))
                 ),
-                "index_version": reader.schema_version()
-                if hasattr(reader, "schema_version")
-                else 1,
+                "index_version": (
+                    reader.schema_version() if hasattr(reader, "schema_version") else 1
+                ),
             }
 
         except Exception as e:

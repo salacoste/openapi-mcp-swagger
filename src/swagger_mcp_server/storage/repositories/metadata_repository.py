@@ -348,23 +348,25 @@ class MetadataRepository(BaseRepository[APIMetadata]):
                 "file_size": {
                     "min_bytes": size_stats.min_size if size_stats else 0,
                     "max_bytes": size_stats.max_size if size_stats else 0,
-                    "avg_bytes": round(float(size_stats.avg_size), 2)
-                    if size_stats and size_stats.avg_size
-                    else 0,
+                    "avg_bytes": (
+                        round(float(size_stats.avg_size), 2)
+                        if size_stats and size_stats.avg_size
+                        else 0
+                    ),
                 },
                 "metadata_completeness": {
                     "with_contact": with_contact,
                     "with_license": with_license,
                     "with_servers": with_servers,
-                    "contact_coverage": (with_contact / total_apis * 100)
-                    if total_apis > 0
-                    else 0,
-                    "license_coverage": (with_license / total_apis * 100)
-                    if total_apis > 0
-                    else 0,
-                    "servers_coverage": (with_servers / total_apis * 100)
-                    if total_apis > 0
-                    else 0,
+                    "contact_coverage": (
+                        (with_contact / total_apis * 100) if total_apis > 0 else 0
+                    ),
+                    "license_coverage": (
+                        (with_license / total_apis * 100) if total_apis > 0 else 0
+                    ),
+                    "servers_coverage": (
+                        (with_servers / total_apis * 100) if total_apis > 0 else 0
+                    ),
                 },
             }
 
@@ -494,9 +496,9 @@ class MetadataRepository(BaseRepository[APIMetadata]):
                     "deprecated_endpoints": deprecated_endpoints,
                 },
                 "health": {
-                    "deprecation_rate": (deprecated_endpoints / endpoints * 100)
-                    if endpoints > 0
-                    else 0,
+                    "deprecation_rate": (
+                        (deprecated_endpoints / endpoints * 100) if endpoints > 0 else 0
+                    ),
                     "has_schemas": schemas > 0,
                     "has_security": security_schemes > 0,
                 },

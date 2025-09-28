@@ -252,9 +252,11 @@ class InstallationManager:
 
         return {
             "working": len(missing_dirs) == 0,
-            "message": "All directories exist"
-            if not missing_dirs
-            else f"Missing directories: {missing_dirs}",
+            "message": (
+                "All directories exist"
+                if not missing_dirs
+                else f"Missing directories: {missing_dirs}"
+            ),
             "details": {
                 "required": len(required_dirs),
                 "existing": len(required_dirs) - len(missing_dirs),
@@ -276,9 +278,11 @@ class InstallationManager:
 
             return {
                 "working": is_valid,
-                "message": "Configuration valid"
-                if is_valid
-                else f"Configuration errors: {len(errors)}",
+                "message": (
+                    "Configuration valid"
+                    if is_valid
+                    else f"Configuration errors: {len(errors)}"
+                ),
                 "details": {"errors": errors, "warnings": warnings},
             }
         except Exception as e:
@@ -306,9 +310,11 @@ class InstallationManager:
 
         return {
             "working": len(permission_issues) == 0,
-            "message": "Permissions OK"
-            if not permission_issues
-            else f"Permission issues: {len(permission_issues)}",
+            "message": (
+                "Permissions OK"
+                if not permission_issues
+                else f"Permission issues: {len(permission_issues)}"
+            ),
             "details": {"issues": permission_issues},
         }
 
@@ -335,9 +341,11 @@ class InstallationManager:
 
         return {
             "working": len(missing_modules) == 0,
-            "message": "All dependencies available"
-            if not missing_modules
-            else f"Missing modules: {missing_modules}",
+            "message": (
+                "All dependencies available"
+                if not missing_modules
+                else f"Missing modules: {missing_modules}"
+            ),
             "details": {
                 "required": len(required_modules),
                 "available": len(required_modules) - len(missing_modules),

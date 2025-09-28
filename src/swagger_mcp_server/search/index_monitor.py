@@ -467,12 +467,12 @@ class IndexPerformanceMonitor:
             "avg_size_mb": statistics.mean(sizes_mb) if sizes_mb else 0,
             "size_growth_mb": sizes_mb[-1] - sizes_mb[0] if len(sizes_mb) > 1 else 0,
             "current_documents": doc_counts[-1] if doc_counts else 0,
-            "document_growth": doc_counts[-1] - doc_counts[0]
-            if len(doc_counts) > 1
-            else 0,
-            "avg_size_per_document_kb": (sizes_mb[-1] * 1024 / max(doc_counts[-1], 1))
-            if doc_counts
-            else 0,
+            "document_growth": (
+                doc_counts[-1] - doc_counts[0] if len(doc_counts) > 1 else 0
+            ),
+            "avg_size_per_document_kb": (
+                (sizes_mb[-1] * 1024 / max(doc_counts[-1], 1)) if doc_counts else 0
+            ),
         }
 
     def _calculate_performance_stats(
@@ -484,19 +484,19 @@ class IndexPerformanceMonitor:
 
         return {
             "avg_query_time_ms": statistics.mean(query_times) if query_times else 0,
-            "p95_query_time_ms": statistics.quantiles(query_times, n=20)[18]
-            if len(query_times) > 20
-            else max(query_times)
-            if query_times
-            else 0,
+            "p95_query_time_ms": (
+                statistics.quantiles(query_times, n=20)[18]
+                if len(query_times) > 20
+                else max(query_times) if query_times else 0
+            ),
             "max_query_time_ms": max(query_times) if query_times else 0,
             "avg_update_time_ms": statistics.mean(update_times) if update_times else 0,
             "query_time_trend": self._calculate_trend(query_times),
-            "nfr_compliance_percent": len([t for t in query_times if t <= 100])
-            / len(query_times)
-            * 100
-            if query_times
-            else 0,
+            "nfr_compliance_percent": (
+                len([t for t in query_times if t <= 100]) / len(query_times) * 100
+                if query_times
+                else 0
+            ),
         }
 
     def _calculate_resource_stats(self, metrics: List[IndexMetrics]) -> Dict[str, Any]:
@@ -572,33 +572,39 @@ class IndexPerformanceMonitor:
         return {
             "total_optimizations": len(recent_optimizations),
             "successful_optimizations": len(successful_opts),
-            "last_optimization": self.last_optimization.isoformat()
-            if self.last_optimization
-            else None,
+            "last_optimization": (
+                self.last_optimization.isoformat() if self.last_optimization else None
+            ),
             "optimization_in_progress": self.optimization_in_progress,
-            "avg_optimization_time_ms": statistics.mean(
-                [opt.duration_ms for opt in successful_opts if opt.duration_ms]
-            )
-            if successful_opts
-            else 0,
-            "avg_size_reduction_percent": statistics.mean(
-                [
-                    opt.size_reduction_percent
-                    for opt in successful_opts
-                    if opt.size_reduction_percent
-                ]
-            )
-            if successful_opts
-            else 0,
-            "avg_performance_improvement_percent": statistics.mean(
-                [
-                    opt.performance_improvement_percent
-                    for opt in successful_opts
-                    if opt.performance_improvement_percent
-                ]
-            )
-            if successful_opts
-            else 0,
+            "avg_optimization_time_ms": (
+                statistics.mean(
+                    [opt.duration_ms for opt in successful_opts if opt.duration_ms]
+                )
+                if successful_opts
+                else 0
+            ),
+            "avg_size_reduction_percent": (
+                statistics.mean(
+                    [
+                        opt.size_reduction_percent
+                        for opt in successful_opts
+                        if opt.size_reduction_percent
+                    ]
+                )
+                if successful_opts
+                else 0
+            ),
+            "avg_performance_improvement_percent": (
+                statistics.mean(
+                    [
+                        opt.performance_improvement_percent
+                        for opt in successful_opts
+                        if opt.performance_improvement_percent
+                    ]
+                )
+                if successful_opts
+                else 0
+            ),
         }
 
     def _get_performance_alerts(
@@ -616,9 +622,12 @@ class IndexPerformanceMonitor:
         if current.query_time_ms > self.thresholds["max_query_time_ms"]:
             alerts.append(
                 {
-                    "level": "warning"
-                    if current.query_time_ms < self.thresholds["max_query_time_ms"] * 2
-                    else "critical",
+                    "level": (
+                        "warning"
+                        if current.query_time_ms
+                        < self.thresholds["max_query_time_ms"] * 2
+                        else "critical"
+                    ),
                     "type": "performance",
                     "message": f"Query time ({current.query_time_ms:.1f}ms) exceeds threshold ({self.thresholds['max_query_time_ms']}ms)",
                     "value": current.query_time_ms,
@@ -657,9 +666,9 @@ class IndexPerformanceMonitor:
         if current.storage_utilization > self.thresholds["max_storage_utilization"]:
             alerts.append(
                 {
-                    "level": "critical"
-                    if current.storage_utilization > 0.9
-                    else "warning",
+                    "level": (
+                        "critical" if current.storage_utilization > 0.9 else "warning"
+                    ),
                     "type": "storage",
                     "message": f"Storage utilization ({current.storage_utilization:.1%}) approaching capacity",
                     "value": current.storage_utilization,
@@ -716,9 +725,9 @@ class IndexPerformanceMonitor:
         if current.storage_utilization > 0.7:
             recommendations.append(
                 {
-                    "priority": "medium"
-                    if current.storage_utilization < 0.85
-                    else "high",
+                    "priority": (
+                        "medium" if current.storage_utilization < 0.85 else "high"
+                    ),
                     "type": "capacity",
                     "title": "Monitor Storage Capacity",
                     "description": f"Storage utilization ({current.storage_utilization:.1%}) requires attention",

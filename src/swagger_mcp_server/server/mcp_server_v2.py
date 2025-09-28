@@ -959,13 +959,13 @@ class SwaggerMcpServer:
             if "properties" in schema and isinstance(schema["properties"], dict):
                 resolved_properties = {}
                 for prop_name, prop_def in schema["properties"].items():
-                    resolved_properties[
-                        prop_name
-                    ] = await self._resolve_property_references(
-                        prop_def,
-                        resolution_context,
-                        include_examples,
-                        include_extensions,
+                    resolved_properties[prop_name] = (
+                        await self._resolve_property_references(
+                            prop_def,
+                            resolution_context,
+                            include_examples,
+                            include_extensions,
+                        )
                     )
                 resolved_schema["properties"] = resolved_properties
 
@@ -1049,13 +1049,13 @@ class SwaggerMcpServer:
         ):
             resolved_properties = {}
             for prop_name, nested_prop in property_def["properties"].items():
-                resolved_properties[
-                    prop_name
-                ] = await self._resolve_property_references(
-                    nested_prop,
-                    resolution_context,
-                    include_examples,
-                    include_extensions,
+                resolved_properties[prop_name] = (
+                    await self._resolve_property_references(
+                        nested_prop,
+                        resolution_context,
+                        include_examples,
+                        include_extensions,
+                    )
                 )
             result["properties"] = resolved_properties
 

@@ -438,7 +438,9 @@ def _display_conversion_success(result: dict, quiet: bool = False):
         # Conversion Summary
         conversion_summary = result.get("report", {}).get("conversion_summary", {})
         click.echo(f"⏱️  Duration: {conversion_summary.get('duration', 'Unknown')}")
-        click.echo(f"📁 Output: {conversion_summary.get('output_directory', 'Unknown')}")
+        click.echo(
+            f"📁 Output: {conversion_summary.get('output_directory', 'Unknown')}"
+        )
 
         # API Summary
         api_summary = result.get("report", {}).get("api_summary", {})

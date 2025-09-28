@@ -200,24 +200,24 @@ class MCPServerManager:
                         "status": process_metrics.status,
                     },
                     "server": {
-                        "requests_total": server_metrics.requests_total
-                        if server_metrics
-                        else 0,
-                        "requests_per_minute": server_metrics.requests_per_minute
-                        if server_metrics
-                        else 0,
-                        "response_time_avg_ms": server_metrics.response_time_avg_ms
-                        if server_metrics
-                        else 0,
-                        "response_time_p95_ms": server_metrics.response_time_p95_ms
-                        if server_metrics
-                        else 0,
-                        "active_connections": server_metrics.active_connections
-                        if server_metrics
-                        else 0,
-                        "error_rate": server_metrics.error_rate
-                        if server_metrics
-                        else 0,
+                        "requests_total": (
+                            server_metrics.requests_total if server_metrics else 0
+                        ),
+                        "requests_per_minute": (
+                            server_metrics.requests_per_minute if server_metrics else 0
+                        ),
+                        "response_time_avg_ms": (
+                            server_metrics.response_time_avg_ms if server_metrics else 0
+                        ),
+                        "response_time_p95_ms": (
+                            server_metrics.response_time_p95_ms if server_metrics else 0
+                        ),
+                        "active_connections": (
+                            server_metrics.active_connections if server_metrics else 0
+                        ),
+                        "error_rate": (
+                            server_metrics.error_rate if server_metrics else 0
+                        ),
                     },
                 },
                 "uptime": server.uptime,

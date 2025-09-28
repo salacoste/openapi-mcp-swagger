@@ -309,9 +309,9 @@ class SchemaRelationshipDiscovery:
                             "ref": prop_def["$ref"],
                             "is_required": prop_name in schema.get("required", []),
                         },
-                        strength=0.8
-                        if prop_name in schema.get("required", [])
-                        else 0.6,
+                        strength=(
+                            0.8 if prop_name in schema.get("required", []) else 0.6
+                        ),
                         is_bidirectional=False,
                     )
                     relationships.append(relationship)

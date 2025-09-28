@@ -290,9 +290,11 @@ class UninstallationManager:
         temp_locations = [
             Path.home() / ".swagger_mcp_temp",
             Path("/tmp") / "swagger_mcp_server" if self.platform != "windows" else None,
-            Path(os.getenv("TEMP", "")) / "swagger_mcp_server"
-            if self.platform == "windows"
-            else None,
+            (
+                Path(os.getenv("TEMP", "")) / "swagger_mcp_server"
+                if self.platform == "windows"
+                else None
+            ),
         ]
 
         temp_locations = [loc for loc in temp_locations if loc is not None]

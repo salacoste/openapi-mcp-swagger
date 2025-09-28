@@ -393,11 +393,13 @@ class TestIndexPerformanceMonitor:
     @pytest.mark.asyncio
     async def test_index_metrics_collection(self, index_monitor):
         """Test index metrics collection."""
-        with patch("os.path.exists", return_value=True), patch(
-            "os.walk",
-            return_value=[("/tmp/test_index", [], ["index.db", "segments.gen"])],
-        ), patch(
-            "os.path.getsize", side_effect=[1024 * 1024, 512 * 1024]
+        with (
+            patch("os.path.exists", return_value=True),
+            patch(
+                "os.walk",
+                return_value=[("/tmp/test_index", [], ["index.db", "segments.gen"])],
+            ),
+            patch("os.path.getsize", side_effect=[1024 * 1024, 512 * 1024]),
         ):  # 1MB + 512KB
             metrics = await index_monitor.collect_index_metrics()
 
@@ -413,9 +415,10 @@ class TestIndexPerformanceMonitor:
     async def test_optimization_trigger(self, index_monitor):
         """Test optimization triggering logic."""
         # Create metrics with high fragmentation
-        with patch.object(
-            index_monitor, "_calculate_fragmentation", return_value=0.35
-        ), patch.object(index_monitor, "_trigger_optimization") as mock_trigger:
+        with (
+            patch.object(index_monitor, "_calculate_fragmentation", return_value=0.35),
+            patch.object(index_monitor, "_trigger_optimization") as mock_trigger,
+        ):
             metrics = await index_monitor.collect_index_metrics()
 
             # Optimization should be triggered due to high fragmentation

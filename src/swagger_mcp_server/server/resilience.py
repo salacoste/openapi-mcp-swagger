@@ -278,9 +278,9 @@ class ResourcePool:
             "current_size": self.current_size,
             "max_size": self.max_size,
             "peak_usage": self.peak_usage,
-            "utilization": self.current_size / self.max_size
-            if self.max_size > 0
-            else 0,
+            "utilization": (
+                self.current_size / self.max_size if self.max_size > 0 else 0
+            ),
         }
 
 

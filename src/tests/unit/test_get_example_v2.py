@@ -158,7 +158,7 @@ class TestEnhancedGetExample:
         """Test that method is required when using path lookup."""
         result = await server._get_example(
             endpoint="/api/v1/users/{id}",
-            format="curl"
+            format="curl",
             # No method provided
         )
 

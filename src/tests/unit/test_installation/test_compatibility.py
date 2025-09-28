@@ -36,32 +36,40 @@ class TestSystemCompatibilityChecker:
     async def test_check_system_compatibility_success(self, checker):
         """Test successful system compatibility check."""
         # Mock all check methods to return success
-        with patch.object(
-            checker,
-            "check_python_version",
-            return_value={"compatible": True, "message": "OK"},
-        ), patch.object(
-            checker,
-            "check_platform_support",
-            return_value={"supported": True, "message": "OK"},
-        ), patch.object(
-            checker,
-            "check_disk_space",
-            return_value={"sufficient": True, "message": "OK"},
-        ), patch.object(
-            checker,
-            "check_memory",
-            return_value={"sufficient": True, "message": "OK"},
-        ), patch.object(
-            checker,
-            "check_network_connectivity",
-            return_value={"available": True, "message": "OK"},
-        ), patch.object(
-            checker,
-            "check_permissions",
-            return_value={"adequate": True, "message": "OK"},
-        ), patch.object(
-            checker, "check_core_dependencies", return_value={"missing": []}
+        with (
+            patch.object(
+                checker,
+                "check_python_version",
+                return_value={"compatible": True, "message": "OK"},
+            ),
+            patch.object(
+                checker,
+                "check_platform_support",
+                return_value={"supported": True, "message": "OK"},
+            ),
+            patch.object(
+                checker,
+                "check_disk_space",
+                return_value={"sufficient": True, "message": "OK"},
+            ),
+            patch.object(
+                checker,
+                "check_memory",
+                return_value={"sufficient": True, "message": "OK"},
+            ),
+            patch.object(
+                checker,
+                "check_network_connectivity",
+                return_value={"available": True, "message": "OK"},
+            ),
+            patch.object(
+                checker,
+                "check_permissions",
+                return_value={"adequate": True, "message": "OK"},
+            ),
+            patch.object(
+                checker, "check_core_dependencies", return_value={"missing": []}
+            ),
         ):
             result = await checker.check_system_compatibility()
 
@@ -72,32 +80,40 @@ class TestSystemCompatibilityChecker:
     @pytest.mark.asyncio
     async def test_check_system_compatibility_python_failure(self, checker):
         """Test compatibility check with Python version failure."""
-        with patch.object(
-            checker,
-            "check_python_version",
-            return_value={"compatible": False, "message": "Python too old"},
-        ), patch.object(
-            checker,
-            "check_platform_support",
-            return_value={"supported": True, "message": "OK"},
-        ), patch.object(
-            checker,
-            "check_disk_space",
-            return_value={"sufficient": True, "message": "OK"},
-        ), patch.object(
-            checker,
-            "check_memory",
-            return_value={"sufficient": True, "message": "OK"},
-        ), patch.object(
-            checker,
-            "check_network_connectivity",
-            return_value={"available": True, "message": "OK"},
-        ), patch.object(
-            checker,
-            "check_permissions",
-            return_value={"adequate": True, "message": "OK"},
-        ), patch.object(
-            checker, "check_core_dependencies", return_value={"missing": []}
+        with (
+            patch.object(
+                checker,
+                "check_python_version",
+                return_value={"compatible": False, "message": "Python too old"},
+            ),
+            patch.object(
+                checker,
+                "check_platform_support",
+                return_value={"supported": True, "message": "OK"},
+            ),
+            patch.object(
+                checker,
+                "check_disk_space",
+                return_value={"sufficient": True, "message": "OK"},
+            ),
+            patch.object(
+                checker,
+                "check_memory",
+                return_value={"sufficient": True, "message": "OK"},
+            ),
+            patch.object(
+                checker,
+                "check_network_connectivity",
+                return_value={"available": True, "message": "OK"},
+            ),
+            patch.object(
+                checker,
+                "check_permissions",
+                return_value={"adequate": True, "message": "OK"},
+            ),
+            patch.object(
+                checker, "check_core_dependencies", return_value={"missing": []}
+            ),
         ):
             result = await checker.check_system_compatibility()
 
@@ -215,12 +231,15 @@ class TestSystemCompatibilityChecker:
     def test_check_permissions_inadequate(self, checker):
         """Test permission check with inadequate permissions."""
         # Mock permission errors
-        with patch(
-            "pathlib.Path.mkdir",
-            side_effect=PermissionError("Permission denied"),
-        ), patch(
-            "pathlib.Path.touch",
-            side_effect=PermissionError("Permission denied"),
+        with (
+            patch(
+                "pathlib.Path.mkdir",
+                side_effect=PermissionError("Permission denied"),
+            ),
+            patch(
+                "pathlib.Path.touch",
+                side_effect=PermissionError("Permission denied"),
+            ),
         ):
             result = checker.check_permissions()
 

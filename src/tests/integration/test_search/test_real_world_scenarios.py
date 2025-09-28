@@ -122,22 +122,26 @@ def large_api_dataset():
                         "operation_id": f"{method.lower()}{pattern['category'].replace('-', '').title()}{variation.replace('/', '').replace('{', '').replace('}', '').title()}",
                         "summary": f"{method} {pattern['category']} {variation}".strip(),
                         "description": f"Perform {method} operation on {pattern['category']} resource {variation}".strip(),
-                        "parameters": [
-                            {
-                                "name": "id",
-                                "type": "string",
-                                "description": "Resource identifier",
-                            }
-                        ]
-                        if "{id}" in variation
-                        else [],
+                        "parameters": (
+                            [
+                                {
+                                    "name": "id",
+                                    "type": "string",
+                                    "description": "Resource identifier",
+                                }
+                            ]
+                            if "{id}" in variation
+                            else []
+                        ),
                         "tags": [pattern["category"], method.lower()],
                         "security": [{"bearer_auth": []}] if "admin" in path else [],
                         "responses": {
                             "200": {"description": "Success"},
-                            "404": {"description": "Not found"}
-                            if "{id}" in variation
-                            else None,
+                            "404": (
+                                {"description": "Not found"}
+                                if "{id}" in variation
+                                else None
+                            ),
                         },
                         "deprecated": False,
                     }
