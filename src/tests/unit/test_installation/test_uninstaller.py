@@ -390,6 +390,13 @@ class TestUninstallationManager:
     @pytest.mark.asyncio
     async def test_create_uninstall_log(self, manager):
         """Test uninstallation log creation."""
+        # Clean up any existing log files first
+        existing_logs = list(
+            Path.home().glob("swagger-mcp-server-uninstall-*.log")
+        )
+        for log_file in existing_logs:
+            log_file.unlink()
+
         results = {
             "timestamp": "2023-01-01T12:00:00",
             "removed_items": ["item1", "item2"],

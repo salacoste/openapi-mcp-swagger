@@ -696,8 +696,8 @@ class NormalizedSecurityScheme(BaseModel):
     )
 
     # OAuth2 specific
-    oauth2_flows: List[NormalizedSecurityFlow] = Field(
-        default_factory=list, description="OAuth2 flows"
+    oauth2_flows: Dict[SecurityFlowType, NormalizedSecurityFlow] = Field(
+        default_factory=dict, description="OAuth2 flows"
     )
 
     # OpenID Connect specific
