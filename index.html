@@ -585,6 +585,55 @@
         </div>
     </section>
 
+    <!-- What's New -->
+    <section class="features" style="background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+        <div class="container">
+            <div style="text-align: center; margin-bottom: var(--spacing-lg);">
+                <span style="display: inline-block; background: var(--gradient-secondary); color: white; padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.875rem; font-weight: 500; margin-bottom: var(--spacing-sm);">
+                    ✨ NEW UPDATE
+                </span>
+                <h2 class="section-title" style="margin-bottom: var(--spacing-sm);">Organized Project Structure</h2>
+                <p class="section-subtitle" style="max-width: 600px; margin: 0 auto;">
+                    All generated MCP servers are now automatically organized in a dedicated <code style="background: var(--border); padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.9em;">generated-mcp-servers/</code> directory for better project management.
+                </p>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-lg); align-items: center; max-width: 1000px; margin: 0 auto;">
+                <div>
+                    <h3 style="color: var(--text-primary); margin-bottom: var(--spacing-sm); font-size: 1.25rem;">Clean Organization</h3>
+                    <ul style="list-style: none; padding: 0; margin: 0;">
+                        <li style="display: flex; align-items: center; margin-bottom: 0.75rem; color: var(--text-secondary);">
+                            <span style="color: var(--secondary-color); margin-right: 0.5rem;">✓</span>
+                            Dedicated directory for all generated servers
+                        </li>
+                        <li style="display: flex; align-items: center; margin-bottom: 0.75rem; color: var(--text-secondary);">
+                            <span style="color: var(--secondary-color); margin-right: 0.5rem;">✓</span>
+                            Automatic .gitignore management
+                        </li>
+                        <li style="display: flex; align-items: center; margin-bottom: 0.75rem; color: var(--text-secondary);">
+                            <span style="color: var(--secondary-color); margin-right: 0.5rem;">✓</span>
+                            Easy cleanup and server management
+                        </li>
+                        <li style="display: flex; align-items: center; margin-bottom: 0.75rem; color: var(--text-secondary);">
+                            <span style="color: var(--secondary-color); margin-right: 0.5rem;">✓</span>
+                            Updated CLI examples and documentation
+                        </li>
+                    </ul>
+                </div>
+
+                <div style="background: var(--background); padding: var(--spacing-md); border-radius: var(--border-radius-lg); border: 1px solid var(--border);">
+                    <h4 style="color: var(--text-primary); margin-bottom: var(--spacing-sm); font-size: 1rem;">New Directory Structure</h4>
+                    <pre style="margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--text-secondary); line-height: 1.4;"><code>your-project/
+├── generated-mcp-servers/
+│   ├── mcp-server-api1/
+│   ├── mcp-server-api2/
+│   └── mcp-server-ozon/
+└── your-source-code/</code></pre>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- Quick Start -->
     <section id="quick-start" class="features">
         <div class="container">
@@ -596,11 +645,16 @@
             <div class="code-example">
                 <span class="code-line"><span class="code-comment"># 1. Convert any Swagger file to intelligent MCP server</span></span>
                 <span class="code-line"><span class="code-command">swagger-mcp-server convert your-api.json</span></span>
+                <span class="code-line"><span class="code-output">📁 Output: generated-mcp-servers/mcp-server-your-api</span></span>
                 <span class="code-line"></span>
-                <span class="code-line"><span class="code-comment"># 2. Connect to Cursor, Claude, or VS Code</span></span>
+                <span class="code-line"><span class="code-comment"># 2. Start the generated server</span></span>
+                <span class="code-line"><span class="code-command">cd generated-mcp-servers/mcp-server-your-api</span></span>
+                <span class="code-line"><span class="code-command">python server.py</span></span>
+                <span class="code-line"></span>
+                <span class="code-line"><span class="code-comment"># 3. Connect to Cursor, Claude, or VS Code</span></span>
                 <span class="code-line"><span class="code-comment"># Your AI assistant now knows EVERYTHING about your API</span></span>
                 <span class="code-line"></span>
-                <span class="code-line"><span class="code-comment"># 3. Start building with superhuman API knowledge</span></span>
+                <span class="code-line"><span class="code-comment"># 4. Start building with superhuman API knowledge</span></span>
                 <span class="code-line"><span class="code-output">AI: "Create a React hook for user authentication with retry logic"</span></span>
                 <span class="code-line"><span class="code-output">AI: "Generate Python client for the payment endpoints"</span></span>
                 <span class="code-line"><span class="code-output">AI: "Show me all endpoints that return user data"</span></span>
@@ -654,6 +708,14 @@
                     <h3 class="feature-title">Code Generation</h3>
                     <p class="feature-description">
                         Generate working examples in multiple languages: cURL, JavaScript, Python, TypeScript, and more.
+                    </p>
+                </div>
+
+                <div class="feature-card">
+                    <span class="feature-icon">📁</span>
+                    <h3 class="feature-title">Organized Structure</h3>
+                    <p class="feature-description">
+                        Clean project organization with dedicated <code>generated-mcp-servers/</code> directory. Easy management of multiple API servers.
                     </p>
                 </div>
 
