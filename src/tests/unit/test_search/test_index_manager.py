@@ -42,10 +42,18 @@ def mock_repositories():
 @pytest.fixture
 def search_config():
     """Create a test search configuration."""
+    from swagger_mcp_server.config.settings import (
+        SearchIndexingConfig,
+        SearchPerformanceConfig,
+    )
+
+    indexing_config = SearchIndexingConfig(batch_size=100)
+    performance_config = SearchPerformanceConfig(max_search_results=500)
+
     return SearchConfig(
         index_directory="./test_index",
-        indexing__batch_size=100,
-        performance__max_search_results=500,
+        indexing=indexing_config,
+        performance=performance_config,
     )
 
 
@@ -150,8 +158,30 @@ class TestSearchIndexManager:
         ]
 
         index_manager.endpoint_repo.count_all = AsyncMock(return_value=2)
+
+        # Mock get_all to handle pagination properly
+        async def mock_get_all(limit=None, offset=0):
+            if offset == 0:
+                return sample_endpoints
+            else:
+                return []  # No more data after first batch
+
         index_manager.endpoint_repo.get_all = AsyncMock(
-            return_value=sample_endpoints
+            side_effect=mock_get_all
+        )
+
+        # Mock the document creation
+        async def mock_create_search_document(endpoint):
+            return {
+                "endpoint_id": endpoint["id"],
+                "endpoint_path": endpoint["path"],
+                "http_method": endpoint["method"],
+                "operation_summary": endpoint["summary"],
+                "searchable_text": f"{endpoint['path']} {endpoint['method']} {endpoint['summary']}",
+            }
+
+        index_manager._create_search_document = AsyncMock(
+            side_effect=mock_create_search_document
         )
 
         # Create index

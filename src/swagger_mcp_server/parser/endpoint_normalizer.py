@@ -611,7 +611,12 @@ class EndpointNormalizer:
 
         for endpoint in endpoints:
             # Method distribution
-            stats["methods"][endpoint.method.value] += 1
+            method_key = (
+                endpoint.method.value
+                if hasattr(endpoint.method, "value")
+                else str(endpoint.method)
+            )
+            stats["methods"][method_key] += 1
 
             # Tag distribution
             for tag in endpoint.tags:

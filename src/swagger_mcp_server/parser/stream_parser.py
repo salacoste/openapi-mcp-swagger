@@ -147,7 +147,15 @@ class SwaggerStreamParser(BaseParser):
 
             if isinstance(e, SwaggerParseError):
                 metrics.errors.append(e.to_parse_error())
-                raise
+                # Treat JSON parsing errors as recoverable - return failed result instead of raising
+                if e.error_type == "InvalidJSON":
+                    return ParseResult(
+                        status=ParseStatus.FAILED,
+                        file_path=path,
+                        metrics=metrics,
+                    )
+                else:
+                    raise
             else:
                 parse_error = SwaggerParseError(
                     error_msg,
@@ -266,6 +274,8 @@ class SwaggerStreamParser(BaseParser):
                     if current_key is not None:
                         stack[-1][current_key] = new_obj
                         current_key = None
+                    elif isinstance(stack[-1], list):
+                        stack[-1].append(new_obj)
                     stack.append(new_obj)
 
                 elif event_type == "end_map":
@@ -308,11 +318,24 @@ class SwaggerStreamParser(BaseParser):
         except Exception as e:
             if isinstance(e, SwaggerParseError):
                 raise
-            raise SwaggerParseError(
-                f"Failed to build JSON structure: {str(e)}",
-                "StructureBuildError",
-                suggestion="File may be corrupted or contain invalid JSON structure",
-            )
+            # Check if it's a JSON parsing error
+            if (
+                "lexical error" in str(e)
+                or "JSON" in str(e)
+                or hasattr(e, "__module__")
+                and "ijson" in str(e.__module__)
+            ):
+                raise SwaggerParseError(
+                    f"Invalid JSON format: {str(e)}",
+                    "InvalidJSON",
+                    suggestion="Check if file contains valid JSON syntax",
+                )
+            else:
+                raise SwaggerParseError(
+                    f"Failed to build JSON structure: {str(e)}",
+                    "StructureBuildError",
+                    suggestion="File may be corrupted or contain invalid JSON structure",
+                )
 
     def _get_memory_usage_mb(self) -> float:
         """Get current memory usage in MB.

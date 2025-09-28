@@ -198,7 +198,7 @@ class SearchOptimizer:
 
         # Basic info
         content_parts.append(
-            f"{endpoint.method.value.upper()} {endpoint.path}"
+            f"{endpoint.method.value.upper() if hasattr(endpoint.method, 'value') else str(endpoint.method).upper()} {endpoint.path}"
         )
 
         if endpoint.operation_id:
@@ -240,7 +240,11 @@ class SearchOptimizer:
         tags = list(endpoint.tags) if endpoint.tags else []
 
         # Add method and path components as tags
-        tags.append(endpoint.method.value)
+        tags.append(
+            endpoint.method.value
+            if hasattr(endpoint.method, "value")
+            else str(endpoint.method)
+        )
         path_parts = [
             part
             for part in endpoint.path.split("/")
@@ -256,13 +260,15 @@ class SearchOptimizer:
             boost = 1.2  # Higher boost for well-documented endpoints
 
         return SearchableDocument(
-            id=f"endpoint_{endpoint.method.value}_{endpoint.path.replace('/', '_').replace('{', '').replace('}', '')}",
+            id=f"endpoint_{endpoint.method.value if hasattr(endpoint.method, 'value') else str(endpoint.method)}_{endpoint.path.replace('/', '_').replace('{', '').replace('}', '')}",
             type="endpoint",
-            title=f"{endpoint.method.value.upper()} {endpoint.path}",
+            title=f"{endpoint.method.value.upper() if hasattr(endpoint.method, 'value') else str(endpoint.method).upper()} {endpoint.path}",
             content=" ".join(content_parts),
             tags=tags,
             metadata={
-                "method": endpoint.method.value,
+                "method": endpoint.method.value
+                if hasattr(endpoint.method, "value")
+                else str(endpoint.method),
                 "path": endpoint.path,
                 "operation_id": endpoint.operation_id,
                 "tags": list(endpoint.tags) if endpoint.tags else [],

@@ -23,6 +23,14 @@ class ConsistencyValidator:
     def __init__(self):
         self.logger = get_logger(__name__)
 
+    def _get_method_str(self, endpoint):
+        """Get method string from endpoint, handling both enum and string cases."""
+        return (
+            endpoint.method.value.upper()
+            if hasattr(endpoint.method, "value")
+            else str(endpoint.method).upper()
+        )
+
     def validate_full_consistency(
         self,
         endpoints: List[NormalizedEndpoint],
@@ -115,7 +123,7 @@ class ConsistencyValidator:
             for schema_name in endpoint.schema_dependencies:
                 if schema_name not in schema_names:
                     errors.append(
-                        f"Endpoint {endpoint.method.value.upper()} {endpoint.path} "
+                        f"Endpoint {self._get_method_str(endpoint)} {endpoint.path} "
                         f"references undefined schema: {schema_name}"
                     )
 
@@ -123,7 +131,7 @@ class ConsistencyValidator:
             for scheme_name in endpoint.security_dependencies:
                 if scheme_name not in security_scheme_names:
                     errors.append(
-                        f"Endpoint {endpoint.method.value.upper()} {endpoint.path} "
+                        f"Endpoint {self._get_method_str(endpoint)} {endpoint.path} "
                         f"references undefined security scheme: {scheme_name}"
                     )
 
@@ -146,7 +154,7 @@ class ConsistencyValidator:
 
         # Check schema cross-references
         for schema_name, schema in schemas.items():
-            for ref_name in schema.schema_dependencies:
+            for ref_name in schema.dependencies:
                 if ref_name not in schema_names:
                     errors.append(
                         f"Schema {schema_name} references undefined schema: {ref_name}"
@@ -182,7 +190,7 @@ class ConsistencyValidator:
                 missing_params = path_param_names - actual_path_params
                 if missing_params:
                     errors.append(
-                        f"Endpoint {endpoint.method.value.upper()} {path} "
+                        f"Endpoint {self._get_method_str(endpoint)} {path} "
                         f"missing path parameters: {missing_params}"
                     )
 
@@ -190,7 +198,7 @@ class ConsistencyValidator:
                 extra_params = actual_path_params - path_param_names
                 if extra_params:
                     warnings.append(
-                        f"Endpoint {endpoint.method.value.upper()} {path} "
+                        f"Endpoint {self._get_method_str(endpoint)} {path} "
                         f"has extra path parameters not in template: {extra_params}"
                     )
 
@@ -201,7 +209,7 @@ class ConsistencyValidator:
                         and not param.required
                     ):
                         errors.append(
-                            f"Path parameter {param.name} in {endpoint.method.value.upper()} {path} "
+                            f"Path parameter {param.name} in {self._get_method_str(endpoint)} {path} "
                             "must be required"
                         )
 
@@ -280,7 +288,7 @@ class ConsistencyValidator:
 
         # Also check schemas used by other schemas
         for schema in schemas.values():
-            used_schemas.update(schema.schema_dependencies)
+            used_schemas.update(schema.dependencies)
 
         unused_schemas = set(schemas.keys()) - used_schemas
         if unused_schemas:
@@ -309,9 +317,9 @@ class ConsistencyValidator:
         # Check for circular dependencies (already handled in schema processor)
         # Check for overly complex inheritance hierarchies
         for schema_name, schema in schemas.items():
-            if len(schema.schema_dependencies) > 5:
+            if len(schema.dependencies) > 5:
                 warnings.append(
-                    f"Schema {schema_name} has many dependencies ({len(schema.schema_dependencies)}), "
+                    f"Schema {schema_name} has many dependencies ({len(schema.dependencies)}), "
                     "consider simplifying"
                 )
 
@@ -345,7 +353,7 @@ class ConsistencyValidator:
         for endpoint in endpoints:
             if not endpoint.security:
                 unsecured_endpoints.append(
-                    f"{endpoint.method.value.upper()} {endpoint.path}"
+                    f"{self._get_method_str(endpoint)} {endpoint.path}"
                 )
 
         if unsecured_endpoints:
@@ -498,12 +506,12 @@ class ConsistencyValidator:
 
             if not has_client_error:
                 warnings.append(
-                    f"{endpoint.method.value.upper()} {endpoint.path} missing 4xx error responses"
+                    f"{self._get_method_str(endpoint)} {endpoint.path} missing 4xx error responses"
                 )
 
             if not has_server_error:
                 warnings.append(
-                    f"{endpoint.method.value.upper()} {endpoint.path} missing 5xx error responses"
+                    f"{self._get_method_str(endpoint)} {endpoint.path} missing 5xx error responses"
                 )
 
         return warnings

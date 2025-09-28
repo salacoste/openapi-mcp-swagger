@@ -289,7 +289,10 @@ class SearchIndexManager:
     async def _clear_index(self) -> None:
         """Clear all documents from the index."""
         with self.index.writer() as writer:
-            writer.commit(mergetype=index.CLEAR)
+            # Delete all documents from the index
+            from whoosh import query as q
+
+            writer.delete_by_query(q.Every())
 
     async def _process_endpoints_in_batches(
         self, batch_size: int

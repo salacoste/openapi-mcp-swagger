@@ -245,6 +245,7 @@ class SchemaProcessor:
             xml=xml,
             external_docs=external_docs,
             extensions=extensions,
+            dependencies=set(),
         )
 
     def _resolve_schema_references(
