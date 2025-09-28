@@ -207,9 +207,7 @@ class BaseParser(ABC):
             SwaggerParseError: If file doesn't meet constraints
         """
         if not file_path.exists():
-            raise SwaggerParseError(
-                f"File not found: {file_path}", "FileNotFound"
-            )
+            raise SwaggerParseError(f"File not found: {file_path}", "FileNotFound")
 
         # Check file size
         file_size = file_path.stat().st_size
@@ -236,9 +234,7 @@ class ParserFactory:
         self._parsers: Dict[ParserType, type] = {}
         self.logger = get_logger(__name__)
 
-    def register_parser(
-        self, parser_type: ParserType, parser_class: type
-    ) -> None:
+    def register_parser(self, parser_type: ParserType, parser_class: type) -> None:
         """Register a parser class for a specific type.
 
         Args:

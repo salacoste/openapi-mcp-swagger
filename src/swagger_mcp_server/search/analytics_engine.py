@@ -134,9 +134,7 @@ class SearchAnalyticsEngine:
         user_sessions = await self._analyze_user_sessions(analytics_data)
 
         # Calculate search effectiveness
-        effectiveness = await self._calculate_search_effectiveness(
-            analytics_data
-        )
+        effectiveness = await self._calculate_search_effectiveness(analytics_data)
 
         # Generate insights
         insights = await self._generate_pattern_insights(
@@ -144,18 +142,12 @@ class SearchAnalyticsEngine:
         )
 
         # Generate optimization recommendations
-        recommendations = await self._generate_pattern_recommendations(
-            insights
-        )
+        recommendations = await self._generate_pattern_recommendations(insights)
 
         return {
-            "query_patterns": [
-                self._pattern_to_dict(p) for p in query_patterns
-            ],
+            "query_patterns": [self._pattern_to_dict(p) for p in query_patterns],
             "user_behavior": self._sessions_to_summary(user_sessions),
-            "effectiveness_metrics": self._effectiveness_to_dict(
-                effectiveness
-            ),
+            "effectiveness_metrics": self._effectiveness_to_dict(effectiveness),
             "insights": insights,
             "recommendations": recommendations,
             "analysis_timestamp": datetime.now().isoformat(),
@@ -176,16 +168,12 @@ class SearchAnalyticsEngine:
         # Analyze each query group
         for query_text, query_analytics in query_groups.items():
             if len(query_analytics) >= self.min_pattern_frequency:
-                pattern = await self._analyze_query_group(
-                    query_text, query_analytics
-                )
+                pattern = await self._analyze_query_group(query_text, query_analytics)
                 if pattern:
                     patterns.append(pattern)
 
         # Sort by frequency and success rate
-        patterns.sort(
-            key=lambda p: (p.frequency, p.success_rate), reverse=True
-        )
+        patterns.sort(key=lambda p: (p.frequency, p.success_rate), reverse=True)
 
         return patterns
 
@@ -239,15 +227,11 @@ class SearchAnalyticsEngine:
         """Classify the type of query pattern."""
         # Analyze query characteristics
         has_wildcards = "*" in query_text or "?" in query_text
-        has_boolean = any(
-            op in query_text.lower() for op in ["and", "or", "not"]
-        )
+        has_boolean = any(op in query_text.lower() for op in ["and", "or", "not"])
         word_count = len(query_text.split())
 
         # Analyze filter usage
-        avg_filters = statistics.mean(
-            [len(a.filters_applied) for a in analytics_list]
-        )
+        avg_filters = statistics.mean([len(a.filters_applied) for a in analytics_list])
 
         # Classify based on characteristics
         if has_wildcards:
@@ -262,9 +246,7 @@ class SearchAnalyticsEngine:
             return QueryPatternType.SIMPLE_QUERY
         else:
             # Check for exact vs partial matching based on results
-            avg_results = statistics.mean(
-                [a.result_count for a in analytics_list]
-            )
+            avg_results = statistics.mean([a.result_count for a in analytics_list])
             if avg_results < 5:
                 return QueryPatternType.EXACT_MATCH
             else:
@@ -323,8 +305,7 @@ class SearchAnalyticsEngine:
         # Group analytics by session
         for analytics in analytics_data:
             session_id = (
-                analytics.user_session
-                or f"anonymous_{analytics.correlation_id[:8]}"
+                analytics.user_session or f"anonymous_{analytics.correlation_id[:8]}"
             )
 
             if session_id not in sessions:
@@ -347,22 +328,16 @@ class SearchAnalyticsEngine:
         analyzed_sessions = []
         for session in sessions.values():
             if len(session.queries) > 0:  # Only include sessions with queries
-                session.behavior_pattern = self._classify_user_behavior(
+                session.behavior_pattern = self._classify_user_behavior(session)
+                session.satisfaction_score = self._calculate_session_satisfaction(
                     session
                 )
-                session.satisfaction_score = (
-                    self._calculate_session_satisfaction(session)
-                )
-                session.conversion_achieved = self._assess_session_conversion(
-                    session
-                )
+                session.conversion_achieved = self._assess_session_conversion(session)
                 analyzed_sessions.append(session)
 
         return analyzed_sessions
 
-    def _classify_user_behavior(
-        self, session: UserSession
-    ) -> UserBehaviorPattern:
+    def _classify_user_behavior(self, session: UserSession) -> UserBehaviorPattern:
         """Classify user behavior pattern from session data."""
         queries = session.queries
 
@@ -370,15 +345,9 @@ class SearchAnalyticsEngine:
             return UserBehaviorPattern.BROWSER
 
         # Calculate behavior metrics
-        query_diversity = len(set(q.query_text for q in queries)) / len(
-            queries
-        )
-        avg_filters = statistics.mean(
-            [len(q.filters_applied) for q in queries]
-        )
-        avg_results_clicked = statistics.mean(
-            [len(q.results_clicked) for q in queries]
-        )
+        query_diversity = len(set(q.query_text for q in queries)) / len(queries)
+        avg_filters = statistics.mean([len(q.filters_applied) for q in queries])
+        avg_results_clicked = statistics.mean([len(q.results_clicked) for q in queries])
 
         # Query refinement pattern (similar queries with variations)
         refinement_count = 0
@@ -439,16 +408,12 @@ class SearchAnalyticsEngine:
         satisfaction_factors.append(click_factor * 0.3)  # 30% weight
 
         # Factor 3: Query abandonment (inverse)
-        abandonment_rate = len(
-            [q for q in queries if q.query_abandoned]
-        ) / len(queries)
+        abandonment_rate = len([q for q in queries if q.query_abandoned]) / len(queries)
         abandonment_factor = 1.0 - abandonment_rate
         satisfaction_factors.append(abandonment_factor * 0.2)  # 20% weight
 
         # Factor 4: Response time satisfaction
-        avg_response_time = statistics.mean(
-            [q.total_response_time for q in queries]
-        )
+        avg_response_time = statistics.mean([q.total_response_time for q in queries])
         time_factor = max(
             0, 1.0 - (avg_response_time - 100) / 300
         )  # Good < 100ms, Poor > 400ms
@@ -468,10 +433,7 @@ class SearchAnalyticsEngine:
 
         # 1. Final query had results and user clicked on them
         final_query = queries[-1]
-        if (
-            final_query.result_count > 0
-            and len(final_query.results_clicked) > 0
-        ):
+        if final_query.result_count > 0 and len(final_query.results_clicked) > 0:
             indicators.append(True)
         else:
             indicators.append(False)
@@ -514,9 +476,7 @@ class SearchAnalyticsEngine:
         user_engagement = total_clicks / len(analytics_data)
 
         # Query success rate
-        successful_queries = len(
-            [a for a in analytics_data if a.result_count > 0]
-        )
+        successful_queries = len([a for a in analytics_data if a.result_count > 0])
         query_success_rate = successful_queries / len(analytics_data)
 
         # Time to success (average time for successful queries)
@@ -528,9 +488,7 @@ class SearchAnalyticsEngine:
         )
 
         # Abandonment rate
-        abandoned_queries = len(
-            [a for a in analytics_data if a.query_abandoned]
-        )
+        abandoned_queries = len([a for a in analytics_data if a.query_abandoned])
         abandonment_rate = abandoned_queries / len(analytics_data)
 
         # Refinement rate (estimated from query patterns)
@@ -553,8 +511,7 @@ class SearchAnalyticsEngine:
         session_groups = defaultdict(list)
         for analytics in analytics_data:
             session_id = (
-                analytics.user_session
-                or f"anonymous_{analytics.correlation_id[:8]}"
+                analytics.user_session or f"anonymous_{analytics.correlation_id[:8]}"
             )
             session_groups[session_id].append(analytics)
 
@@ -565,9 +522,7 @@ class SearchAnalyticsEngine:
             if len(session_queries) > 1:
                 total_sessions += 1
                 # Sort by timestamp
-                sorted_queries = sorted(
-                    session_queries, key=lambda x: x.timestamp
-                )
+                sorted_queries = sorted(session_queries, key=lambda x: x.timestamp)
 
                 # Check for refinements
                 for i in range(1, len(sorted_queries)):
@@ -599,8 +554,7 @@ class SearchAnalyticsEngine:
         high_value_patterns = [
             p
             for p in query_patterns
-            if p.optimization_potential in ["high", "medium"]
-            or p.frequency > 10
+            if p.optimization_potential in ["high", "medium"] or p.frequency > 10
         ]
         insights["top_patterns"] = [
             self._pattern_to_dict(p) for p in high_value_patterns[:10]
@@ -608,9 +562,7 @@ class SearchAnalyticsEngine:
 
         # User behavior distribution
         behavior_counts = Counter(
-            s.behavior_pattern.value
-            for s in user_sessions
-            if s.behavior_pattern
+            s.behavior_pattern.value for s in user_sessions if s.behavior_pattern
         )
         insights["user_behavior_distribution"] = dict(behavior_counts)
 
@@ -657,9 +609,7 @@ class SearchAnalyticsEngine:
 
         # High-frequency, low-success patterns
         problem_patterns = [
-            p
-            for p in query_patterns
-            if p.frequency > 5 and p.success_rate < 0.6
+            p for p in query_patterns if p.frequency > 5 and p.success_rate < 0.6
         ]
         if problem_patterns:
             opportunities.append(
@@ -672,9 +622,7 @@ class SearchAnalyticsEngine:
             )
 
         # Slow patterns
-        slow_patterns = [
-            p for p in query_patterns if p.avg_response_time > 200
-        ]
+        slow_patterns = [p for p in query_patterns if p.avg_response_time > 200]
         if slow_patterns:
             opportunities.append(
                 {
@@ -775,9 +723,7 @@ class SearchAnalyticsEngine:
 
         # Sort by priority
         priority_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
-        recommendations.sort(
-            key=lambda r: priority_order.get(r["priority"], 3)
-        )
+        recommendations.sort(key=lambda r: priority_order.get(r["priority"], 3))
 
         return recommendations
 
@@ -807,9 +753,7 @@ class SearchAnalyticsEngine:
             "optimization_potential": pattern.optimization_potential,
         }
 
-    def _sessions_to_summary(
-        self, sessions: List[UserSession]
-    ) -> Dict[str, Any]:
+    def _sessions_to_summary(self, sessions: List[UserSession]) -> Dict[str, Any]:
         """Convert user sessions to summary statistics."""
         if not sessions:
             return {"total_sessions": 0}
@@ -818,18 +762,12 @@ class SearchAnalyticsEngine:
             s.behavior_pattern.value for s in sessions if s.behavior_pattern
         )
         avg_satisfaction = statistics.mean(
-            [
-                s.satisfaction_score
-                for s in sessions
-                if s.satisfaction_score is not None
-            ]
+            [s.satisfaction_score for s in sessions if s.satisfaction_score is not None]
         )
-        conversion_rate = len(
-            [s for s in sessions if s.conversion_achieved]
-        ) / len(sessions)
-        avg_queries_per_session = statistics.mean(
-            [len(s.queries) for s in sessions]
+        conversion_rate = len([s for s in sessions if s.conversion_achieved]) / len(
+            sessions
         )
+        avg_queries_per_session = statistics.mean([len(s.queries) for s in sessions])
 
         return {
             "total_sessions": len(sessions),
@@ -837,21 +775,15 @@ class SearchAnalyticsEngine:
             "avg_satisfaction_score": avg_satisfaction,
             "conversion_rate": conversion_rate,
             "avg_queries_per_session": avg_queries_per_session,
-            "session_duration_avg": self._calculate_avg_session_duration(
-                sessions
-            ),
+            "session_duration_avg": self._calculate_avg_session_duration(sessions),
         }
 
-    def _calculate_avg_session_duration(
-        self, sessions: List[UserSession]
-    ) -> float:
+    def _calculate_avg_session_duration(self, sessions: List[UserSession]) -> float:
         """Calculate average session duration in seconds."""
         durations = []
         for session in sessions:
             if session.end_time and session.start_time:
-                duration = (
-                    session.end_time - session.start_time
-                ).total_seconds()
+                duration = (session.end_time - session.start_time).total_seconds()
                 durations.append(duration)
 
         return statistics.mean(durations) if durations else 0

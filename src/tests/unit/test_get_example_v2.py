@@ -123,17 +123,11 @@ class TestEnhancedGetExample:
         """Test format parameter validation."""
         # Valid formats
         for format_type in ["curl", "javascript", "python"]:
-            result = await server._get_example(
-                endpoint="users-get", format=format_type
-            )
-            assert "error" not in result or "not found" in result.get(
-                "error", ""
-            )
+            result = await server._get_example(endpoint="users-get", format=format_type)
+            assert "error" not in result or "not found" in result.get("error", "")
 
         # Invalid format
-        result = await server._get_example(
-            endpoint="users-get", format="invalid"
-        )
+        result = await server._get_example(endpoint="users-get", format="invalid")
         assert "error" in result
         assert "Unsupported format" in result["error"]
 
@@ -235,9 +229,7 @@ class TestEnhancedGetExample:
             endpoint="users-get", format="curl", includeAuth=True
         )
 
-        assert (
-            "Authorization: Bearer YOUR_TOKEN_HERE" in result_with_auth["code"]
-        )
+        assert "Authorization: Bearer YOUR_TOKEN_HERE" in result_with_auth["code"]
 
         # Without auth
         result_without_auth = await server._get_example(
@@ -270,9 +262,7 @@ class TestEnhancedGetExample:
     @pytest.mark.asyncio
     async def test_request_body_generation_post(self, server):
         """Test request body generation for POST endpoints."""
-        result = await server._get_example(
-            endpoint="users-post", format="curl"
-        )
+        result = await server._get_example(endpoint="users-post", format="curl")
 
         code = result["code"]
         # Should include request body for POST
@@ -282,9 +272,7 @@ class TestEnhancedGetExample:
     @pytest.mark.asyncio
     async def test_response_metadata(self, server):
         """Test response metadata structure."""
-        result = await server._get_example(
-            endpoint="users-get", format="python"
-        )
+        result = await server._get_example(endpoint="users-get", format="python")
 
         assert "error" not in result
 
@@ -316,9 +304,7 @@ class TestEnhancedGetExample:
     @pytest.mark.asyncio
     async def test_error_handling_endpoint_not_found(self, server):
         """Test error handling when endpoint is not found."""
-        result = await server._get_example(
-            endpoint="nonexistent", format="curl"
-        )
+        result = await server._get_example(endpoint="nonexistent", format="curl")
 
         assert "error" in result
         assert "HTTP method is required" in result["error"]
@@ -327,9 +313,7 @@ class TestEnhancedGetExample:
     async def test_error_handling_server_not_initialized(self):
         """Test error handling when server is not properly initialized."""
         uninitialized_server = SwaggerMcpServer(Settings())
-        result = await uninitialized_server._get_example(
-            endpoint="test", format="curl"
-        )
+        result = await uninitialized_server._get_example(endpoint="test", format="curl")
 
         assert "error" in result
         assert "not properly initialized" in result["error"]
@@ -351,9 +335,7 @@ class TestEnhancedGetExample:
     @pytest.mark.asyncio
     async def test_code_format_compliance_javascript(self, server):
         """Test that generated JavaScript code follows proper format."""
-        result = await server._get_example(
-            endpoint="users-post", format="javascript"
-        )
+        result = await server._get_example(endpoint="users-post", format="javascript")
 
         code = result["code"]
 
@@ -369,9 +351,7 @@ class TestEnhancedGetExample:
     @pytest.mark.asyncio
     async def test_code_format_compliance_python(self, server):
         """Test that generated Python code follows proper format."""
-        result = await server._get_example(
-            endpoint="users-get", format="python"
-        )
+        result = await server._get_example(endpoint="users-get", format="python")
 
         code = result["code"]
 
@@ -389,17 +369,13 @@ class TestEnhancedGetExample:
     async def test_example_body_generation_patterns(self, server):
         """Test example body generation for different endpoint types."""
         # Test user endpoint
-        result_user = await server._get_example(
-            endpoint="users-post", format="python"
-        )
+        result_user = await server._get_example(endpoint="users-post", format="python")
 
         code_user = result_user["code"]
         assert "John Doe" in code_user  # User-specific example
 
         # Test general endpoint
-        result_orders = await server._get_example(
-            endpoint="orders-get", format="curl"
-        )
+        result_orders = await server._get_example(endpoint="orders-get", format="curl")
 
         # GET endpoint shouldn't have body
         code_orders = result_orders["code"]
@@ -411,9 +387,7 @@ class TestEnhancedGetExample:
         import time
 
         start_time = time.time()
-        result = await server._get_example(
-            endpoint="users-get", format="javascript"
-        )
+        result = await server._get_example(endpoint="users-get", format="javascript")
         end_time = time.time()
 
         generation_time = end_time - start_time
@@ -456,9 +430,7 @@ class TestEnhancedGetExample:
                 endpoint = "users-post"
 
             if endpoint:
-                result = await server._get_example(
-                    endpoint=endpoint, format="curl"
-                )
+                result = await server._get_example(endpoint=endpoint, format="curl")
 
                 assert "error" not in result
                 assert f"curl -X {method}" in result["code"]

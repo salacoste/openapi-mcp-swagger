@@ -61,12 +61,8 @@ class TestSwaggerMcpServer:
         mock_endpoint.parameters = []
         mock_endpoint.responses = {}
 
-        endpoint_repo.search_endpoints = AsyncMock(
-            return_value=[mock_endpoint]
-        )
-        endpoint_repo.get_endpoint_by_id = AsyncMock(
-            return_value=mock_endpoint
-        )
+        endpoint_repo.search_endpoints = AsyncMock(return_value=[mock_endpoint])
+        endpoint_repo.get_endpoint_by_id = AsyncMock(return_value=mock_endpoint)
 
         # Mock schema data
         mock_schema = MagicMock()
@@ -89,9 +85,7 @@ class TestSwaggerMcpServer:
             description="Test API description",
         )
 
-        metadata_repo.get_all_metadata = AsyncMock(
-            return_value=[mock_metadata]
-        )
+        metadata_repo.get_all_metadata = AsyncMock(return_value=[mock_metadata])
 
         return endpoint_repo, schema_repo, metadata_repo
 
@@ -179,9 +173,7 @@ class TestSwaggerMcpServer:
         assert "error" not in result
 
         # Verify repository was called correctly
-        server.schema_repo.get_schema_by_name.assert_called_once_with(
-            "TestSchema"
-        )
+        server.schema_repo.get_schema_by_name.assert_called_once_with("TestSchema")
 
     @pytest.mark.asyncio
     async def test_get_schema_not_found(self, server):
@@ -195,9 +187,7 @@ class TestSwaggerMcpServer:
     @pytest.mark.asyncio
     async def test_get_example(self, server):
         """Test getExample functionality."""
-        result = await server._get_example(
-            endpoint="test-endpoint-1", format="curl"
-        )
+        result = await server._get_example(endpoint="test-endpoint-1", format="curl")
 
         # Check that result is a dictionary (successful response format)
         assert isinstance(result, dict)

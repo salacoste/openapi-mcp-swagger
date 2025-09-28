@@ -161,9 +161,7 @@ class SearchAnalyticsDashboard:
 
         return widgets
 
-    async def get_dashboard_data(
-        self, time_period: str = "24h"
-    ) -> Dict[str, Any]:
+    async def get_dashboard_data(self, time_period: str = "24h") -> Dict[str, Any]:
         """Get comprehensive dashboard data.
 
         Args:
@@ -176,15 +174,11 @@ class SearchAnalyticsDashboard:
 
         try:
             # Gather data from all monitoring components
-            performance_data = (
-                await self.performance_monitor.get_performance_summary(
-                    time_period
-                )
-            )
-            analytics_data = await self._get_analytics_data(time_period)
-            index_data = await self.index_monitor.get_performance_summary(
+            performance_data = await self.performance_monitor.get_performance_summary(
                 time_period
             )
+            analytics_data = await self._get_analytics_data(time_period)
+            index_data = await self.index_monitor.get_performance_summary(time_period)
 
             # Optional performance testing data
             testing_data = {}
@@ -201,30 +195,16 @@ class SearchAnalyticsDashboard:
                 },
                 # Core performance metrics
                 "performance": {
-                    "overview": self._format_performance_overview(
-                        performance_data
-                    ),
-                    "nfr1_compliance": self._format_nfr1_metrics(
-                        performance_data
-                    ),
-                    "response_times": self._format_response_time_data(
-                        performance_data
-                    ),
-                    "trends": self._format_performance_trends(
-                        performance_data
-                    ),
+                    "overview": self._format_performance_overview(performance_data),
+                    "nfr1_compliance": self._format_nfr1_metrics(performance_data),
+                    "response_times": self._format_response_time_data(performance_data),
+                    "trends": self._format_performance_trends(performance_data),
                 },
                 # Search analytics
                 "analytics": {
-                    "query_patterns": self._format_query_patterns(
-                        analytics_data
-                    ),
-                    "user_behavior": self._format_user_behavior(
-                        analytics_data
-                    ),
-                    "effectiveness": self._format_effectiveness_metrics(
-                        analytics_data
-                    ),
+                    "query_patterns": self._format_query_patterns(analytics_data),
+                    "user_behavior": self._format_user_behavior(analytics_data),
+                    "effectiveness": self._format_effectiveness_metrics(analytics_data),
                     "insights": analytics_data.get("insights", {}),
                 },
                 # Index performance
@@ -232,9 +212,7 @@ class SearchAnalyticsDashboard:
                     "health": self._format_index_health(index_data),
                     "performance": self._format_index_performance(index_data),
                     "growth": self._format_index_growth(index_data),
-                    "optimization": self._format_optimization_status(
-                        index_data
-                    ),
+                    "optimization": self._format_optimization_status(index_data),
                 },
                 # Alerts and notifications
                 "alerts": {
@@ -263,9 +241,7 @@ class SearchAnalyticsDashboard:
                     "system_status": self._determine_system_status(
                         performance_data, analytics_data, index_data
                     ),
-                    "capacity_status": self._assess_capacity_status(
-                        index_data
-                    ),
+                    "capacity_status": self._assess_capacity_status(index_data),
                     "uptime": self._calculate_uptime(),
                 },
             }
@@ -332,17 +308,13 @@ class SearchAnalyticsDashboard:
                 "total_queries": volume.get("total_queries", 0),
                 "queries_per_hour": volume.get("avg_queries_per_hour", 0),
                 "active_queries": current_metrics.get("active_queries", 0),
-                "cache_hit_rate": current_metrics.get(
-                    "cache_hit_rate_hour", 0
-                ),
+                "cache_hit_rate": current_metrics.get("cache_hit_rate_hour", 0),
                 "error_rate": current_metrics.get("error_rate_hour", 0),
             }
         except Exception:
             return {}
 
-    def _format_nfr1_metrics(
-        self, performance_data: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def _format_nfr1_metrics(self, performance_data: Dict[str, Any]) -> Dict[str, Any]:
         """Format NFR1 compliance metrics for dashboard."""
         try:
             response_times = performance_data.get("response_time_metrics", {})
@@ -407,12 +379,8 @@ class SearchAnalyticsDashboard:
             return {
                 "response_time_trend": trends.get("trend_direction", "stable"),
                 "trend_magnitude": trends.get("trend_magnitude_percent", 0),
-                "performance_stability": trends.get(
-                    "performance_stability", "stable"
-                ),
-                "cache_effectiveness": cache_perf.get(
-                    "cache_effectiveness", "medium"
-                ),
+                "performance_stability": trends.get("performance_stability", "stable"),
+                "cache_effectiveness": cache_perf.get("cache_effectiveness", "medium"),
                 "improvement_opportunities": len(
                     performance_data.get("optimization_recommendations", [])
                 ),
@@ -434,9 +402,7 @@ class SearchAnalyticsDashboard:
                         "pattern": pattern.get("pattern_text", ""),
                         "frequency": pattern.get("frequency", 0),
                         "success_rate": pattern.get("success_rate", 0),
-                        "avg_response_time": pattern.get(
-                            "avg_response_time", 0
-                        ),
+                        "avg_response_time": pattern.get("avg_response_time", 0),
                         "optimization_potential": pattern.get(
                             "optimization_potential", "low"
                         ),
@@ -448,21 +414,15 @@ class SearchAnalyticsDashboard:
         except Exception:
             return []
 
-    def _format_user_behavior(
-        self, analytics_data: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def _format_user_behavior(self, analytics_data: Dict[str, Any]) -> Dict[str, Any]:
         """Format user behavior data for dashboard."""
         try:
             user_behavior = analytics_data.get("user_behavior", {})
             effectiveness = analytics_data.get("effectiveness_metrics", {})
 
             return {
-                "behavior_distribution": user_behavior.get(
-                    "behavior_distribution", {}
-                ),
-                "avg_satisfaction": user_behavior.get(
-                    "avg_satisfaction_score", 0
-                ),
+                "behavior_distribution": user_behavior.get("behavior_distribution", {}),
+                "avg_satisfaction": user_behavior.get("avg_satisfaction_score", 0),
                 "conversion_rate": user_behavior.get("conversion_rate", 0),
                 "session_metrics": {
                     "avg_queries_per_session": user_behavior.get(
@@ -474,9 +434,7 @@ class SearchAnalyticsDashboard:
                 },
                 "engagement_metrics": {
                     "user_engagement": effectiveness.get("user_engagement", 0),
-                    "abandonment_rate": effectiveness.get(
-                        "abandonment_rate", 0
-                    ),
+                    "abandonment_rate": effectiveness.get("abandonment_rate", 0),
                     "refinement_rate": effectiveness.get("refinement_rate", 0),
                 },
             }
@@ -504,8 +462,7 @@ class SearchAnalyticsDashboard:
                 "relevance_score": relevance * 100,
                 "success_rate": success_rate * 100,
                 "user_engagement": engagement,
-                "abandonment_rate": effectiveness.get("abandonment_rate", 0)
-                * 100,
+                "abandonment_rate": effectiveness.get("abandonment_rate", 0) * 100,
                 "time_to_success": effectiveness.get("time_to_success"),
                 "effectiveness_grade": self._calculate_effectiveness_grade(
                     overall_score
@@ -514,9 +471,7 @@ class SearchAnalyticsDashboard:
         except Exception:
             return {}
 
-    def _format_index_health(
-        self, index_data: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def _format_index_health(self, index_data: Dict[str, Any]) -> Dict[str, Any]:
         """Format index health data for dashboard."""
         try:
             health = index_data.get("health", {})
@@ -530,17 +485,13 @@ class SearchAnalyticsDashboard:
                 "query_performance": {
                     "avg_query_time": performance.get("avg_query_time_ms", 0),
                     "p95_query_time": performance.get("p95_query_time_ms", 0),
-                    "nfr_compliance": performance.get(
-                        "nfr_compliance_percent", 0
-                    ),
+                    "nfr_compliance": performance.get("nfr_compliance_percent", 0),
                 },
             }
         except Exception:
             return {}
 
-    def _format_index_performance(
-        self, index_data: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def _format_index_performance(self, index_data: Dict[str, Any]) -> Dict[str, Any]:
         """Format index performance data for dashboard."""
         try:
             performance = index_data.get("performance", {})
@@ -564,9 +515,7 @@ class SearchAnalyticsDashboard:
         except Exception:
             return {}
 
-    def _format_index_growth(
-        self, index_data: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def _format_index_growth(self, index_data: Dict[str, Any]) -> Dict[str, Any]:
         """Format index growth data for dashboard."""
         try:
             size_stats = index_data.get("index_size", {})
@@ -576,9 +525,7 @@ class SearchAnalyticsDashboard:
                 "growth_mb": size_stats.get("size_growth_mb", 0),
                 "document_count": size_stats.get("current_documents", 0),
                 "document_growth": size_stats.get("document_growth", 0),
-                "avg_size_per_doc": size_stats.get(
-                    "avg_size_per_document_kb", 0
-                ),
+                "avg_size_per_doc": size_stats.get("avg_size_per_document_kb", 0),
                 "growth_trend": "increasing"
                 if size_stats.get("size_growth_mb", 0) > 0
                 else "stable",
@@ -586,9 +533,7 @@ class SearchAnalyticsDashboard:
         except Exception:
             return {}
 
-    def _format_optimization_status(
-        self, index_data: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def _format_optimization_status(self, index_data: Dict[str, Any]) -> Dict[str, Any]:
         """Format index optimization status for dashboard."""
         try:
             optimization = index_data.get("optimization", {})
@@ -599,9 +544,7 @@ class SearchAnalyticsDashboard:
                 "avg_improvement": optimization.get(
                     "avg_performance_improvement_percent", 0
                 ),
-                "size_reduction": optimization.get(
-                    "avg_size_reduction_percent", 0
-                ),
+                "size_reduction": optimization.get("avg_size_reduction_percent", 0),
                 "status": "up_to_date"
                 if optimization.get("optimization_in_progress")
                 else "available",
@@ -625,9 +568,7 @@ class SearchAnalyticsDashboard:
                         "timestamp": alert.timestamp.isoformat(),
                         "metric_value": alert.metric_value,
                         "threshold": alert.threshold,
-                        "age_hours": (
-                            datetime.now() - alert.timestamp
-                        ).total_seconds()
+                        "age_hours": (datetime.now() - alert.timestamp).total_seconds()
                         / 3600,
                     }
                 )
@@ -654,9 +595,7 @@ class SearchAnalyticsDashboard:
                 "critical_alerts": critical_count,
                 "warning_alerts": warning_count,
                 "resolved_alerts": resolved_count,
-                "resolution_rate": resolved_count
-                / max(len(recent_alerts), 1)
-                * 100,
+                "resolution_rate": resolved_count / max(len(recent_alerts), 1) * 100,
             }
         except Exception:
             return {}
@@ -772,9 +711,9 @@ class SearchAnalyticsDashboard:
         """Calculate overall system health status."""
         try:
             # Performance health
-            nfr1_compliance = performance_data.get(
-                "response_time_metrics", {}
-            ).get("nfr1_compliance", 0)
+            nfr1_compliance = performance_data.get("response_time_metrics", {}).get(
+                "nfr1_compliance", 0
+            )
             performance_score = min(nfr1_compliance, 100)
 
             # Index health
@@ -805,24 +744,20 @@ class SearchAnalyticsDashboard:
         try:
             # Check for critical issues
             active_alerts = self.performance_monitor.get_active_alerts()
-            critical_alerts = [
-                a for a in active_alerts if a.level.value == "critical"
-            ]
+            critical_alerts = [a for a in active_alerts if a.level.value == "critical"]
 
             if critical_alerts:
                 return "critical"
 
             # Check performance metrics
-            nfr1_compliance = performance_data.get(
-                "response_time_metrics", {}
-            ).get("nfr1_compliance", 100)
+            nfr1_compliance = performance_data.get("response_time_metrics", {}).get(
+                "nfr1_compliance", 100
+            )
             if nfr1_compliance < 70:
                 return "degraded"
 
             # Check index health
-            index_health = index_data.get("health", {}).get(
-                "health_score", 100
-            )
+            index_health = index_data.get("health", {}).get("health_score", 100)
             if index_health < 60:
                 return "degraded"
 
@@ -838,9 +773,7 @@ class SearchAnalyticsDashboard:
             storage_util = resource_usage.get("current_storage_utilization", 0)
             memory_usage = resource_usage.get("avg_memory_mb", 0)
 
-            if (
-                storage_util > 0.9 or memory_usage > 1000
-            ):  # >90% storage or >1GB memory
+            if storage_util > 0.9 or memory_usage > 1000:  # >90% storage or >1GB memory
                 return "critical"
             elif (
                 storage_util > 0.8 or memory_usage > 500
@@ -868,17 +801,13 @@ class SearchAnalyticsDashboard:
         now = datetime.now()
 
         return {
-            "performance_data_age_seconds": (
-                now - self.last_refresh
-            ).total_seconds(),
+            "performance_data_age_seconds": (now - self.last_refresh).total_seconds(),
             "analytics_data_current": True,
             "index_data_current": True,
             "last_refresh": self.last_refresh.isoformat(),
         }
 
-    def _extract_response_time_trend(
-        self, performance_data: Dict[str, Any]
-    ) -> str:
+    def _extract_response_time_trend(self, performance_data: Dict[str, Any]) -> str:
         """Extract response time trend from performance data."""
         try:
             trends = performance_data.get("performance_trends", {})
@@ -886,9 +815,7 @@ class SearchAnalyticsDashboard:
         except Exception:
             return "stable"
 
-    def _calculate_effectiveness_grade(
-        self, effectiveness_score: float
-    ) -> str:
+    def _calculate_effectiveness_grade(self, effectiveness_score: float) -> str:
         """Calculate effectiveness grade from score."""
         if effectiveness_score >= 90:
             return "A"
@@ -931,11 +858,11 @@ class SearchAnalyticsDashboard:
         elif format.lower() == "csv":
             # Convert to CSV format (simplified)
             csv_data = "metric,value,timestamp\n"
-            perf_overview = dashboard_data.get("performance", {}).get(
-                "overview", {}
-            )
+            perf_overview = dashboard_data.get("performance", {}).get("overview", {})
             for metric, value in perf_overview.items():
-                csv_data += f"{metric},{value},{dashboard_data['metadata']['generated_at']}\n"
+                csv_data += (
+                    f"{metric},{value},{dashboard_data['metadata']['generated_at']}\n"
+                )
             return csv_data
         else:
             raise ValueError(f"Unsupported export format: {format}")
@@ -951,11 +878,7 @@ class SearchAnalyticsDashboard:
         """
         # Find widget configuration
         widget_config = next(
-            (
-                w
-                for w in self.widget_configurations
-                if w.widget_id == widget_id
-            ),
+            (w for w in self.widget_configurations if w.widget_id == widget_id),
             None,
         )
 
@@ -988,9 +911,7 @@ class SearchAnalyticsDashboard:
             "nfr1_metrics": dashboard_data.get("performance", {}).get(
                 "nfr1_compliance", {}
             ),
-            "current_alerts": dashboard_data.get("alerts", {}).get(
-                "active_alerts", []
-            ),
+            "current_alerts": dashboard_data.get("alerts", {}).get("active_alerts", []),
             "query_patterns": dashboard_data.get("analytics", {}).get(
                 "query_patterns", []
             ),
@@ -1002,9 +923,7 @@ class SearchAnalyticsDashboard:
             ),
             "index_health": dashboard_data.get("index", {}).get("health", {}),
             "index_growth": dashboard_data.get("index", {}).get("growth", {}),
-            "optimization_recommendations": dashboard_data.get(
-                "recommendations", {}
-            ),
+            "optimization_recommendations": dashboard_data.get("recommendations", {}),
         }
 
         return data_map.get(data_source, {})

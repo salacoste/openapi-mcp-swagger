@@ -98,9 +98,7 @@ class RelevanceRanker:
                     )
                 else:
                     # Fallback to simple TF-IDF-like scoring
-                    bm25_score = self._calculate_simple_score(
-                        query_terms, field_tokens
-                    )
+                    bm25_score = self._calculate_simple_score(query_terms, field_tokens)
 
                 field_scores[field_name] = bm25_score
                 total_score += bm25_score * weight
@@ -153,9 +151,7 @@ class RelevanceRanker:
         scored_documents = []
 
         for document in documents:
-            relevance_score = self.calculate_relevance_score(
-                query_terms, document
-            )
+            relevance_score = self.calculate_relevance_score(query_terms, document)
             scored_documents.append((document, relevance_score))
 
         # Sort by total score in descending order
@@ -282,9 +278,7 @@ class RelevanceRanker:
 
         return score
 
-    def _calculate_boost_factors(
-        self, document: Dict[str, Any]
-    ) -> Dict[str, float]:
+    def _calculate_boost_factors(self, document: Dict[str, Any]) -> Dict[str, float]:
         """Calculate boost factors based on document characteristics.
 
         Args:
@@ -327,9 +321,7 @@ class RelevanceRanker:
 
         return boost_factors
 
-    def _calculate_penalties(
-        self, document: Dict[str, Any]
-    ) -> Dict[str, float]:
+    def _calculate_penalties(self, document: Dict[str, Any]) -> Dict[str, float]:
         """Calculate penalty factors for document characteristics.
 
         Args:

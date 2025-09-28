@@ -82,10 +82,8 @@ class SchemaEndpointMapper:
                 schema_to_endpoints[schema_id] = []
                 dependency_matrix[schema_id] = set()
 
-                endpoint_relationships = (
-                    await self._map_schema_endpoint_relationships(
-                        schema_id, endpoints
-                    )
+                endpoint_relationships = await self._map_schema_endpoint_relationships(
+                    schema_id, endpoints
                 )
 
                 for relationship in endpoint_relationships:
@@ -111,10 +109,8 @@ class SchemaEndpointMapper:
                 if endpoint_id not in endpoint_to_schemas:
                     endpoint_to_schemas[endpoint_id] = []
 
-                schema_dependencies = (
-                    await self._map_endpoint_schema_dependencies(
-                        endpoint_id, schemas
-                    )
+                schema_dependencies = await self._map_endpoint_schema_dependencies(
+                    endpoint_id, schemas
                 )
 
                 for schema_dep in schema_dependencies:
@@ -128,9 +124,7 @@ class SchemaEndpointMapper:
             )
 
         except Exception as e:
-            raise RuntimeError(
-                f"Failed to create cross-reference map: {e}"
-            ) from e
+            raise RuntimeError(f"Failed to create cross-reference map: {e}") from e
 
     async def _map_schema_endpoint_relationships(
         self, schema_id: str, endpoints: List[Dict[str, Any]]
@@ -150,18 +144,14 @@ class SchemaEndpointMapper:
             endpoint_id = endpoint.get("id", endpoint.get("endpoint_id"))
 
             # Check request body usage
-            request_relationships = (
-                await self._find_request_body_relationships(
-                    schema_id, endpoint
-                )
+            request_relationships = await self._find_request_body_relationships(
+                schema_id, endpoint
             )
             relationships.extend(request_relationships)
 
             # Check response body usage
-            response_relationships = (
-                await self._find_response_body_relationships(
-                    schema_id, endpoint
-                )
+            response_relationships = await self._find_response_body_relationships(
+                schema_id, endpoint
             )
             relationships.extend(response_relationships)
 
@@ -295,12 +285,8 @@ class SchemaEndpointMapper:
                                 "status_code": status_code,
                                 "content_type": content_type,
                                 "array_type": True,
-                                "description": response_def.get(
-                                    "description", ""
-                                ),
-                                "success_response": status_code.startswith(
-                                    "2"
-                                ),
+                                "description": response_def.get("description", ""),
+                                "success_response": status_code.startswith("2"),
                             },
                             bidirectional_score=self._calculate_relationship_score(
                                 "response_body",

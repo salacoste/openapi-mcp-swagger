@@ -60,17 +60,13 @@ class TestConfigurationManager:
 
         # Test non-existent key
         assert self.config_manager.get("nonexistent.key") is None
-        assert (
-            self.config_manager.get("nonexistent.key", "default") == "default"
-        )
+        assert self.config_manager.get("nonexistent.key", "default") == "default"
 
     def test_set_config_value(self):
         """Test setting configuration values."""
         # Test setting a value
         success = self.config_manager.set("server.port", 9000)
-        assert (
-            success is True or success is False
-        )  # May fail due to file permissions
+        assert success is True or success is False  # May fail due to file permissions
         assert self.config_manager.get("server.port") == 9000
 
         # Test setting nested value

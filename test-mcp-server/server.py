@@ -33,9 +33,7 @@ import structlog
 
 # Configure logging
 structlog.configure(
-    processors=[
-        structlog.dev.ConsoleRenderer(colors=True)
-    ],
+    processors=[structlog.dev.ConsoleRenderer(colors=True)],
     wrapper_class=structlog.make_filtering_bound_logger(20),  # INFO level
     logger_factory=structlog.WriteLoggerFactory(),
     cache_logger_on_first_use=True,
@@ -70,6 +68,7 @@ class OzonPerformanceApiMCPServer:
         if config_file.exists():
             try:
                 import yaml
+
                 with open(config_file) as f:
                     file_config = yaml.safe_load(f) or {}
                 base_config.update(file_config)
@@ -114,7 +113,9 @@ class OzonPerformanceApiMCPServer:
             # Initialize search engine
             search_index_path = self.config["search_index_path"]
             if not os.path.isabs(search_index_path):
-                search_index_path = os.path.join(os.path.dirname(__file__), search_index_path)
+                search_index_path = os.path.join(
+                    os.path.dirname(__file__), search_index_path
+                )
 
             index_manager = SearchIndexManager(search_index_path)
             self.search_engine = SearchEngine(index_manager, {})
@@ -125,7 +126,7 @@ class OzonPerformanceApiMCPServer:
             self.mcp_server = MCPServer(
                 database=self.database,
                 search_engine=self.search_engine,
-                settings=settings
+                settings=settings,
             )
             logger.info("MCP server initialized")
 
@@ -140,10 +141,11 @@ class OzonPerformanceApiMCPServer:
 
             logger.info("Starting MCP server for {}".format(self.config["api_title"]))
             logger.info("Server configuration:")
-            logger.info("  API: {} v{}".format(
-                self.config["api_title"],
-                self.config["api_version"]
-            ))
+            logger.info(
+                "  API: {} v{}".format(
+                    self.config["api_title"], self.config["api_version"]
+                )
+            )
             logger.info("  Host: {}".format(self.config["host"]))
             logger.info("  Port: {}".format(self.config["port"]))
             logger.info("  Database: {}".format(self.config["database_path"]))
@@ -158,8 +160,7 @@ class OzonPerformanceApiMCPServer:
 
             # Start the MCP server
             await self.mcp_server.start(
-                host=self.config["host"],
-                port=self.config["port"]
+                host=self.config["host"], port=self.config["port"]
             )
 
         except KeyboardInterrupt:

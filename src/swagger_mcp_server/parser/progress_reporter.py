@@ -223,8 +223,7 @@ class ProgressReporter:
         event = ProgressEvent(
             phase=self.current_phase,
             progress_percent=progress_percent,
-            message=message
-            or f"{self.current_phase.value.title()} in progress",
+            message=message or f"{self.current_phase.value.title()} in progress",
             bytes_processed=bytes_processed,
             total_bytes=total_bytes,
             estimated_remaining_ms=estimated_remaining,
@@ -281,9 +280,7 @@ class ProgressReporter:
 
         self.current_phase = None
 
-    async def complete(
-        self, message: str = "Operation completed successfully"
-    ) -> None:
+    async def complete(self, message: str = "Operation completed successfully") -> None:
         """Complete the entire operation.
 
         Args:
@@ -332,9 +329,7 @@ class ProgressReporter:
         self.logger.error(
             "Operation failed",
             error_message=error_message,
-            current_phase=self.current_phase.value
-            if self.current_phase
-            else None,
+            current_phase=self.current_phase.value if self.current_phase else None,
             bytes_processed=self.total_processed_bytes,
         )
 
@@ -357,9 +352,7 @@ class ProgressReporter:
         self.logger.warning(
             "Operation cancelled",
             reason=reason,
-            current_phase=self.current_phase.value
-            if self.current_phase
-            else None,
+            current_phase=self.current_phase.value if self.current_phase else None,
         )
 
     def get_metrics(self) -> Dict[str, Any]:
@@ -387,9 +380,7 @@ class ProgressReporter:
                 }
                 for phase, metrics in self.phase_metrics.items()
             },
-            "current_phase": self.current_phase.value
-            if self.current_phase
-            else None,
+            "current_phase": self.current_phase.value if self.current_phase else None,
         }
 
     def reset(self) -> None:
@@ -437,11 +428,7 @@ class ProgressReporter:
         Returns:
             Estimated remaining time in milliseconds, or None if cannot estimate
         """
-        if (
-            bytes_processed <= 0
-            or total_bytes <= 0
-            or bytes_processed >= total_bytes
-        ):
+        if bytes_processed <= 0 or total_bytes <= 0 or bytes_processed >= total_bytes:
             return None
 
         elapsed_time = time.time() - start_time

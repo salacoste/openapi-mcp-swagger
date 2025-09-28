@@ -166,9 +166,7 @@ class TestSystemCompatibilityChecker:
         with patch("shutil.disk_usage", side_effect=Exception("Disk error")):
             result = checker.check_disk_space()
 
-        assert (
-            result["sufficient"] is True
-        )  # Assumes sufficient if can't check
+        assert result["sufficient"] is True  # Assumes sufficient if can't check
         assert "Could not check disk space" in result["message"]
 
     def test_check_memory_sufficient(self, checker):
@@ -199,14 +197,10 @@ class TestSystemCompatibilityChecker:
 
     def test_check_memory_error(self, checker):
         """Test memory check with error."""
-        with patch(
-            "psutil.virtual_memory", side_effect=Exception("Memory error")
-        ):
+        with patch("psutil.virtual_memory", side_effect=Exception("Memory error")):
             result = checker.check_memory()
 
-        assert (
-            result["sufficient"] is True
-        )  # Assumes sufficient if can't check
+        assert result["sufficient"] is True  # Assumes sufficient if can't check
         assert "Could not check memory usage" in result["message"]
 
     def test_check_permissions_adequate(self, checker):

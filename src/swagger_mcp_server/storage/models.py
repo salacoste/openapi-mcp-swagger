@@ -67,9 +67,7 @@ class APIMetadata(Base, TimestampMixin):
     endpoints = relationship(
         "Endpoint", back_populates="api", cascade="all, delete-orphan"
     )
-    schemas = relationship(
-        "Schema", back_populates="api", cascade="all, delete-orphan"
-    )
+    schemas = relationship("Schema", back_populates="api", cascade="all, delete-orphan")
     security_schemes = relationship(
         "SecurityScheme", back_populates="api", cascade="all, delete-orphan"
     )
@@ -98,12 +96,8 @@ class APIMetadata(Base, TimestampMixin):
             "file_path": self.file_path,
             "file_size": self.file_size,
             "parse_metadata": self.parse_metadata,
-            "created_at": self.created_at.isoformat()
-            if self.created_at
-            else None,
-            "updated_at": self.updated_at.isoformat()
-            if self.updated_at
-            else None,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
 
 
@@ -136,9 +130,7 @@ class Endpoint(Base, TimestampMixin):
 
     # Dependency tracking
     schema_dependencies = Column(JSON)  # List of referenced schema names
-    security_dependencies = Column(
-        JSON
-    )  # List of referenced security scheme names
+    security_dependencies = Column(JSON)  # List of referenced security scheme names
 
     # Relationships
     api = relationship("APIMetadata", back_populates="endpoints")
@@ -150,9 +142,7 @@ class Endpoint(Base, TimestampMixin):
 
     # Constraints and indexes
     __table_args__ = (
-        UniqueConstraint(
-            "api_id", "path", "method", name="uq_endpoint_path_method"
-        ),
+        UniqueConstraint("api_id", "path", "method", name="uq_endpoint_path_method"),
         Index("ix_endpoints_api_id", "api_id"),
         Index("ix_endpoints_method", "method"),
         Index("ix_endpoints_path", "path"),
@@ -186,12 +176,8 @@ class Endpoint(Base, TimestampMixin):
             "content_types": self.content_types,
             "schema_dependencies": self.schema_dependencies,
             "security_dependencies": self.security_dependencies,
-            "created_at": self.created_at.isoformat()
-            if self.created_at
-            else None,
-            "updated_at": self.updated_at.isoformat()
-            if self.updated_at
-            else None,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
 
 
@@ -305,12 +291,8 @@ class Schema(Base, TimestampMixin):
             "property_names": self.property_names,
             "schema_dependencies": self.schema_dependencies,
             "reference_count": self.reference_count,
-            "created_at": self.created_at.isoformat()
-            if self.created_at
-            else None,
-            "updated_at": self.updated_at.isoformat()
-            if self.updated_at
-            else None,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
 
 
@@ -345,9 +327,7 @@ class SecurityScheme(Base, TimestampMixin):
     extensions = Column(JSON)  # x-* extensions
 
     # Usage tracking
-    reference_count = Column(
-        Integer, default=0
-    )  # How many endpoints use this scheme
+    reference_count = Column(Integer, default=0)  # How many endpoints use this scheme
 
     # Relationships
     api = relationship("APIMetadata", back_populates="security_schemes")
@@ -377,12 +357,8 @@ class SecurityScheme(Base, TimestampMixin):
             "openid_connect_url": self.openid_connect_url,
             "extensions": self.extensions,
             "reference_count": self.reference_count,
-            "created_at": self.created_at.isoformat()
-            if self.created_at
-            else None,
-            "updated_at": self.updated_at.isoformat()
-            if self.updated_at
-            else None,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
 
 
@@ -424,12 +400,8 @@ class EndpointDependency(Base, TimestampMixin):
             "schema_id": self.schema_id,
             "dependency_type": self.dependency_type,
             "context": self.context,
-            "created_at": self.created_at.isoformat()
-            if self.created_at
-            else None,
-            "updated_at": self.updated_at.isoformat()
-            if self.updated_at
-            else None,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
 
 
@@ -453,17 +425,11 @@ class DatabaseMigration(Base, TimestampMixin):
             "id": self.id,
             "version": self.version,
             "name": self.name,
-            "applied_at": self.applied_at.isoformat()
-            if self.applied_at
-            else None,
+            "applied_at": self.applied_at.isoformat() if self.applied_at else None,
             "rollback_sql": self.rollback_sql,
             "checksum": self.checksum,
-            "created_at": self.created_at.isoformat()
-            if self.created_at
-            else None,
-            "updated_at": self.updated_at.isoformat()
-            if self.updated_at
-            else None,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
 
 

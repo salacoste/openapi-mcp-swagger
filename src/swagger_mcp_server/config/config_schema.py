@@ -346,9 +346,7 @@ class ConfigurationSchema:
         return sorted(keys)
 
     @classmethod
-    def _collect_keys(
-        cls, schema: Dict[str, Any], prefix: str, keys: list[str]
-    ):
+    def _collect_keys(cls, schema: Dict[str, Any], prefix: str, keys: list[str]):
         """Recursively collect all configuration keys."""
         for key, definition in schema.items():
             current_key = f"{prefix}.{key}" if prefix else key

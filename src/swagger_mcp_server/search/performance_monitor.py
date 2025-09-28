@@ -96,9 +96,7 @@ class SearchPerformanceMonitor:
             config: Search configuration with performance settings
         """
         self.config = config
-        self.analytics_data: deque = deque(
-            maxlen=10000
-        )  # Keep last 10k queries
+        self.analytics_data: deque = deque(maxlen=10000)  # Keep last 10k queries
         self.performance_thresholds = {
             "response_time_warning": 150,  # ms
             "response_time_critical": 300,  # ms
@@ -159,16 +157,12 @@ class SearchPerformanceMonitor:
                 and "process_query" in search_func.__name__
             ):
                 processed_query = await search_func(*args, **kwargs)
-                timing_info["query_processing"] = (
-                    time.time() - query_start
-                ) * 1000
+                timing_info["query_processing"] = (time.time() - query_start) * 1000
                 result = processed_query
             else:
                 # For full search operations
                 result = await search_func(*args, **kwargs)
-                timing_info[
-                    "query_processing"
-                ] = 0  # Will be calculated separately
+                timing_info["query_processing"] = 0  # Will be calculated separately
 
             total_time = (time.time() - start_time) * 1000
 
@@ -215,9 +209,7 @@ class SearchPerformanceMonitor:
             self.active_queries.pop(correlation_id, None)
             self.current_metrics["active_queries"] = len(self.active_queries)
 
-    async def get_performance_summary(
-        self, time_period: str = "1h"
-    ) -> Dict[str, Any]:
+    async def get_performance_summary(self, time_period: str = "1h") -> Dict[str, Any]:
         """Get comprehensive performance summary for specified time period.
 
         Args:
@@ -227,9 +219,7 @@ class SearchPerformanceMonitor:
             Dict containing performance summary
         """
         cutoff_time = self._get_cutoff_time(time_period)
-        relevant_data = [
-            a for a in self.analytics_data if a.timestamp >= cutoff_time
-        ]
+        relevant_data = [a for a in self.analytics_data if a.timestamp >= cutoff_time]
 
         if not relevant_data:
             return self._empty_performance_summary()
@@ -240,21 +230,11 @@ class SearchPerformanceMonitor:
             "response_time_metrics": self._calculate_response_time_metrics(
                 relevant_data
             ),
-            "query_volume_metrics": self._calculate_query_volume_metrics(
-                relevant_data
-            ),
-            "search_effectiveness": self._calculate_search_effectiveness(
-                relevant_data
-            ),
-            "performance_trends": self._calculate_performance_trends(
-                relevant_data
-            ),
-            "cache_performance": self._calculate_cache_performance(
-                relevant_data
-            ),
-            "concurrent_usage": self._calculate_concurrent_usage_metrics(
-                relevant_data
-            ),
+            "query_volume_metrics": self._calculate_query_volume_metrics(relevant_data),
+            "search_effectiveness": self._calculate_search_effectiveness(relevant_data),
+            "performance_trends": self._calculate_performance_trends(relevant_data),
+            "cache_performance": self._calculate_cache_performance(relevant_data),
+            "concurrent_usage": self._calculate_concurrent_usage_metrics(relevant_data),
             "optimization_recommendations": await self._generate_optimization_recommendations(
                 relevant_data
             ),
@@ -315,14 +295,10 @@ class SearchPerformanceMonitor:
         return {
             "total_queries": total_queries,
             "avg_queries_per_hour": total_queries / max(len(hourly_volume), 1),
-            "peak_hour_volume": max(hourly_volume.values())
-            if hourly_volume
-            else 0,
+            "peak_hour_volume": max(hourly_volume.values()) if hourly_volume else 0,
             "query_type_distribution": dict(query_types),
             "popular_filters": dict(
-                sorted(filter_usage.items(), key=lambda x: x[1], reverse=True)[
-                    :5
-                ]
+                sorted(filter_usage.items(), key=lambda x: x[1], reverse=True)[:5]
             ),
             "hourly_volume": dict(hourly_volume),
         }
@@ -335,21 +311,13 @@ class SearchPerformanceMonitor:
             return {"success_rate": 0, "avg_results": 0, "zero_result_rate": 0}
 
         successful_searches = [a for a in analytics_data if a.result_count > 0]
-        zero_result_searches = [
-            a for a in analytics_data if a.result_count == 0
-        ]
+        zero_result_searches = [a for a in analytics_data if a.result_count == 0]
         abandoned_searches = [a for a in analytics_data if a.query_abandoned]
 
         return {
-            "success_rate": len(successful_searches)
-            / len(analytics_data)
-            * 100,
-            "zero_result_rate": len(zero_result_searches)
-            / len(analytics_data)
-            * 100,
-            "abandonment_rate": len(abandoned_searches)
-            / len(analytics_data)
-            * 100,
+            "success_rate": len(successful_searches) / len(analytics_data) * 100,
+            "zero_result_rate": len(zero_result_searches) / len(analytics_data) * 100,
+            "abandonment_rate": len(abandoned_searches) / len(analytics_data) * 100,
             "avg_results_per_query": statistics.mean(
                 [a.result_count for a in analytics_data]
             ),
@@ -359,9 +327,7 @@ class SearchPerformanceMonitor:
             "performance_grade_distribution": self._calculate_performance_grade_distribution(
                 analytics_data
             ),
-            "user_satisfaction": self._calculate_user_satisfaction(
-                analytics_data
-            ),
+            "user_satisfaction": self._calculate_user_satisfaction(analytics_data),
         }
 
     def _calculate_performance_trends(
@@ -379,28 +345,20 @@ class SearchPerformanceMonitor:
         first_half = sorted_data[:midpoint]
         second_half = sorted_data[midpoint:]
 
-        first_half_avg = statistics.mean(
-            [a.total_response_time for a in first_half]
-        )
-        second_half_avg = statistics.mean(
-            [a.total_response_time for a in second_half]
-        )
+        first_half_avg = statistics.mean([a.total_response_time for a in first_half])
+        second_half_avg = statistics.mean([a.total_response_time for a in second_half])
 
         trend_direction = (
             "improving" if second_half_avg < first_half_avg else "degrading"
         )
-        trend_magnitude = (
-            abs(second_half_avg - first_half_avg) / first_half_avg * 100
-        )
+        trend_magnitude = abs(second_half_avg - first_half_avg) / first_half_avg * 100
 
         return {
             "trend_direction": trend_direction,
             "trend_magnitude_percent": trend_magnitude,
             "first_period_avg": first_half_avg,
             "second_period_avg": second_half_avg,
-            "performance_stability": "stable"
-            if trend_magnitude < 10
-            else "volatile",
+            "performance_stability": "stable" if trend_magnitude < 10 else "volatile",
         }
 
     def _calculate_cache_performance(
@@ -424,9 +382,7 @@ class SearchPerformanceMonitor:
             else 0
         )
         non_cached_avg_time = (
-            statistics.mean(
-                [a.total_response_time for a in non_cached_queries]
-            )
+            statistics.mean([a.total_response_time for a in non_cached_queries])
             if non_cached_queries
             else 0
         )
@@ -442,9 +398,7 @@ class SearchPerformanceMonitor:
             else "medium"
             if hit_rate > 0.4
             else "low",
-            "performance_improvement": max(
-                0, non_cached_avg_time - cached_avg_time
-            ),
+            "performance_improvement": max(0, non_cached_avg_time - cached_avg_time),
         }
 
     def _calculate_concurrent_usage_metrics(
@@ -497,10 +451,7 @@ class SearchPerformanceMonitor:
         cache_hit_rate = statistics.mean(
             [1 if a.cache_hit else 0 for a in analytics_data]
         )
-        if (
-            cache_hit_rate
-            < self.performance_thresholds["cache_hit_rate_warning"]
-        ):
+        if cache_hit_rate < self.performance_thresholds["cache_hit_rate_warning"]:
             recommendations.append(
                 {
                     "type": "caching",
@@ -515,12 +466,8 @@ class SearchPerformanceMonitor:
 
         # Analyze failed searches
         failed_searches = [a for a in analytics_data if a.result_count == 0]
-        if (
-            len(failed_searches) > len(analytics_data) * 0.15
-        ):  # >15% failed searches
-            common_failed_terms = self._analyze_common_failed_terms(
-                failed_searches
-            )
+        if len(failed_searches) > len(analytics_data) * 0.15:  # >15% failed searches
+            common_failed_terms = self._analyze_common_failed_terms(failed_searches)
             recommendations.append(
                 {
                     "type": "relevance",
@@ -534,9 +481,7 @@ class SearchPerformanceMonitor:
 
         # Analyze index performance
         index_times = [
-            a.index_query_time
-            for a in analytics_data
-            if a.index_query_time > 0
+            a.index_query_time for a in analytics_data if a.index_query_time > 0
         ]
         if (
             index_times
@@ -567,8 +512,7 @@ class SearchPerformanceMonitor:
             ]
             if (
                 len(high_concurrency_slow)
-                > len([a for a in analytics_data if a.concurrent_queries > 10])
-                * 0.3
+                > len([a for a in analytics_data if a.concurrent_queries > 10]) * 0.3
             ):
                 recommendations.append(
                     {
@@ -590,9 +534,7 @@ class SearchPerformanceMonitor:
         # Update daily counter
         self.current_metrics["total_queries_today"] += 1
 
-    async def _check_performance_thresholds(
-        self, analytics: SearchAnalytics
-    ) -> None:
+    async def _check_performance_thresholds(self, analytics: SearchAnalytics) -> None:
         """Check performance against thresholds and generate alerts."""
         # Response time alerts
         if (
@@ -618,15 +560,11 @@ class SearchPerformanceMonitor:
                 self.performance_thresholds["response_time_warning"],
             )
 
-    async def _update_real_time_metrics(
-        self, analytics: SearchAnalytics
-    ) -> None:
+    async def _update_real_time_metrics(self, analytics: SearchAnalytics) -> None:
         """Update real-time performance metrics."""
         # Get recent data for hourly averages
         one_hour_ago = datetime.now() - timedelta(hours=1)
-        recent_data = [
-            a for a in self.analytics_data if a.timestamp >= one_hour_ago
-        ]
+        recent_data = [a for a in self.analytics_data if a.timestamp >= one_hour_ago]
 
         if recent_data:
             self.current_metrics["avg_response_time_hour"] = statistics.mean(
@@ -690,19 +628,11 @@ class SearchPerformanceMonitor:
 
     def _classify_performance(self, response_time: float) -> str:
         """Classify performance based on response time."""
-        if (
-            response_time
-            <= self.performance_thresholds["response_time_excellent"]
-        ):
+        if response_time <= self.performance_thresholds["response_time_excellent"]:
             return "excellent"
-        elif (
-            response_time <= self.performance_thresholds["response_time_good"]
-        ):
+        elif response_time <= self.performance_thresholds["response_time_good"]:
             return "good"
-        elif (
-            response_time
-            <= self.performance_thresholds["response_time_warning"]
-        ):
+        elif response_time <= self.performance_thresholds["response_time_warning"]:
             return "acceptable"
         else:
             return "poor"

@@ -77,9 +77,7 @@ class SwaggerMcpServer:
             self.schema_repo = SchemaRepository(self.db_manager)
             self.metadata_repo = MetadataRepository(self.db_manager)
 
-            self.logger.info(
-                "MCP server initialization completed successfully"
-            )
+            self.logger.info("MCP server initialization completed successfully")
 
         except Exception as e:
             self.logger.error("Failed to initialize MCP server", error=str(e))
@@ -184,9 +182,7 @@ class SwaggerMcpServer:
             ]
 
         @self.server.call_tool()
-        async def call_tool(
-            name: str, arguments: Dict[str, Any]
-        ) -> Sequence[Any]:
+        async def call_tool(name: str, arguments: Dict[str, Any]) -> Sequence[Any]:
             """Handle tool calls from AI agents."""
             try:
                 if name == "searchEndpoints":
@@ -236,9 +232,7 @@ class SwaggerMcpServer:
                     raise NotFoundError(f"Unknown resource: {uri}")
 
             except Exception as e:
-                self.logger.error(
-                    "Resource read failed", uri=uri, error=str(e)
-                )
+                self.logger.error("Resource read failed", uri=uri, error=str(e))
                 raise ServerError(f"Resource read failed: {str(e)}")
 
     async def _search_endpoints(
@@ -272,9 +266,7 @@ class SwaggerMcpServer:
                     "parameters": len(endpoint.parameters)
                     if endpoint.parameters
                     else 0,
-                    "responses": len(endpoint.responses)
-                    if endpoint.responses
-                    else 0,
+                    "responses": len(endpoint.responses) if endpoint.responses else 0,
                 }
                 results.append(result)
 
@@ -287,9 +279,7 @@ class SwaggerMcpServer:
             return results
 
         except Exception as e:
-            self.logger.error(
-                "Endpoint search failed", query=query, error=str(e)
-            )
+            self.logger.error("Endpoint search failed", query=query, error=str(e))
             raise
 
     async def _get_schema(
@@ -323,9 +313,7 @@ class SwaggerMcpServer:
                 "definition": schema.definition,
                 "description": schema.description,
                 "required_fields": schema.required_fields,
-                "properties_count": len(
-                    schema.definition.get("properties", {})
-                )
+                "properties_count": len(schema.definition.get("properties", {}))
                 if isinstance(schema.definition, dict)
                 else 0,
             }
@@ -333,9 +321,7 @@ class SwaggerMcpServer:
             if include_examples and schema.examples:
                 result["examples"] = schema.examples
 
-            self.logger.info(
-                "Schema retrieval completed", schema_name=schema_name
-            )
+            self.logger.info("Schema retrieval completed", schema_name=schema_name)
 
             return result
 
@@ -553,9 +539,7 @@ async def main() -> None:
         default=8080,
         help="Port for SSE transport (default: 8080)",
     )
-    parser.add_argument(
-        "--debug", action="store_true", help="Enable debug logging"
-    )
+    parser.add_argument("--debug", action="store_true", help="Enable debug logging")
 
     args = parser.parse_args()
 

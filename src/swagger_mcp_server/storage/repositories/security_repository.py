@@ -43,16 +43,12 @@ class SecurityRepository(BaseRepository[SecurityScheme]):
                 api_id=api_id,
                 error=str(e),
             )
-            raise RepositoryError(
-                f"Failed to get security scheme by name: {str(e)}"
-            )
+            raise RepositoryError(f"Failed to get security scheme by name: {str(e)}")
 
     async def get_by_api_id(self, api_id: int) -> List[SecurityScheme]:
         """Get all security schemes for a specific API."""
         try:
-            stmt = select(SecurityScheme).where(
-                SecurityScheme.api_id == api_id
-            )
+            stmt = select(SecurityScheme).where(SecurityScheme.api_id == api_id)
             stmt = stmt.order_by(SecurityScheme.name)
 
             result = await self.session.execute(stmt)
@@ -66,18 +62,14 @@ class SecurityRepository(BaseRepository[SecurityScheme]):
                 api_id=api_id,
                 error=str(e),
             )
-            raise RepositoryError(
-                f"Failed to get security schemes by API ID: {str(e)}"
-            )
+            raise RepositoryError(f"Failed to get security schemes by API ID: {str(e)}")
 
     async def get_by_type(
         self, scheme_type: str, api_id: Optional[int] = None
     ) -> List[SecurityScheme]:
         """Get security schemes by type."""
         try:
-            stmt = select(SecurityScheme).where(
-                SecurityScheme.type == scheme_type
-            )
+            stmt = select(SecurityScheme).where(SecurityScheme.type == scheme_type)
 
             if api_id:
                 stmt = stmt.where(SecurityScheme.api_id == api_id)
@@ -96,9 +88,7 @@ class SecurityRepository(BaseRepository[SecurityScheme]):
                 api_id=api_id,
                 error=str(e),
             )
-            raise RepositoryError(
-                f"Failed to get security schemes by type: {str(e)}"
-            )
+            raise RepositoryError(f"Failed to get security schemes by type: {str(e)}")
 
     async def get_api_key_schemes(
         self, api_id: Optional[int] = None
@@ -141,9 +131,7 @@ class SecurityRepository(BaseRepository[SecurityScheme]):
         """Search security schemes by name and description."""
         try:
             if not query.strip():
-                return await self._filter_schemes(
-                    api_id, scheme_type, limit, offset
-                )
+                return await self._filter_schemes(api_id, scheme_type, limit, offset)
 
             # Text search conditions
             search_terms = query.split()
@@ -184,9 +172,7 @@ class SecurityRepository(BaseRepository[SecurityScheme]):
                 api_id=api_id,
                 error=str(e),
             )
-            raise RepositoryError(
-                f"Failed to search security schemes: {str(e)}"
-            )
+            raise RepositoryError(f"Failed to search security schemes: {str(e)}")
 
     async def _filter_schemes(
         self,
@@ -213,16 +199,12 @@ class SecurityRepository(BaseRepository[SecurityScheme]):
     ) -> List[SecurityScheme]:
         """Get security schemes ordered by reference count (most used first)."""
         try:
-            stmt = select(SecurityScheme).where(
-                SecurityScheme.reference_count > 0
-            )
+            stmt = select(SecurityScheme).where(SecurityScheme.reference_count > 0)
 
             if api_id:
                 stmt = stmt.where(SecurityScheme.api_id == api_id)
 
-            stmt = stmt.order_by(SecurityScheme.reference_count.desc()).limit(
-                limit
-            )
+            stmt = stmt.order_by(SecurityScheme.reference_count.desc()).limit(limit)
 
             result = await self.session.execute(stmt)
             schemes = result.scalars().all()
@@ -235,18 +217,14 @@ class SecurityRepository(BaseRepository[SecurityScheme]):
                 api_id=api_id,
                 error=str(e),
             )
-            raise RepositoryError(
-                f"Failed to get most used security schemes: {str(e)}"
-            )
+            raise RepositoryError(f"Failed to get most used security schemes: {str(e)}")
 
     async def get_unused_schemes(
         self, api_id: Optional[int] = None
     ) -> List[SecurityScheme]:
         """Get security schemes that are not used by any endpoint."""
         try:
-            stmt = select(SecurityScheme).where(
-                SecurityScheme.reference_count == 0
-            )
+            stmt = select(SecurityScheme).where(SecurityScheme.reference_count == 0)
 
             if api_id:
                 stmt = stmt.where(SecurityScheme.api_id == api_id)
@@ -264,9 +242,7 @@ class SecurityRepository(BaseRepository[SecurityScheme]):
                 api_id=api_id,
                 error=str(e),
             )
-            raise RepositoryError(
-                f"Failed to get unused security schemes: {str(e)}"
-            )
+            raise RepositoryError(f"Failed to get unused security schemes: {str(e)}")
 
     async def get_all_types(self, api_id: Optional[int] = None) -> List[str]:
         """Get all unique security scheme types."""
@@ -289,9 +265,7 @@ class SecurityRepository(BaseRepository[SecurityScheme]):
                 api_id=api_id,
                 error=str(e),
             )
-            raise RepositoryError(
-                f"Failed to get all security scheme types: {str(e)}"
-            )
+            raise RepositoryError(f"Failed to get all security scheme types: {str(e)}")
 
     async def get_oauth2_flows(
         self, scheme_name: str, api_id: Optional[int] = None
@@ -375,9 +349,7 @@ class SecurityRepository(BaseRepository[SecurityScheme]):
                 f"Failed to get security schemes by API key location: {str(e)}"
             )
 
-    async def get_statistics(
-        self, api_id: Optional[int] = None
-    ) -> Dict[str, Any]:
+    async def get_statistics(self, api_id: Optional[int] = None) -> Dict[str, Any]:
         """Get security scheme statistics."""
         try:
             base_query = select(SecurityScheme)
@@ -385,9 +357,7 @@ class SecurityRepository(BaseRepository[SecurityScheme]):
                 base_query = base_query.where(SecurityScheme.api_id == api_id)
 
             # Total count
-            total_query = select(func.count()).select_from(
-                base_query.subquery()
-            )
+            total_query = select(func.count()).select_from(base_query.subquery())
             total_result = await self.session.execute(total_query)
             total_schemes = total_result.scalar() or 0
 
@@ -404,9 +374,7 @@ class SecurityRepository(BaseRepository[SecurityScheme]):
             types = {row.type: row.count for row in type_result.fetchall()}
 
             # Used count
-            used_query = select(func.count()).where(
-                SecurityScheme.reference_count > 0
-            )
+            used_query = select(func.count()).where(SecurityScheme.reference_count > 0)
             if api_id:
                 used_query = used_query.where(SecurityScheme.api_id == api_id)
 
@@ -422,15 +390,12 @@ class SecurityRepository(BaseRepository[SecurityScheme]):
                 ).where(SecurityScheme.type == "http")
 
                 if api_id:
-                    http_query = http_query.where(
-                        SecurityScheme.api_id == api_id
-                    )
+                    http_query = http_query.where(SecurityScheme.api_id == api_id)
 
                 http_query = http_query.group_by(SecurityScheme.http_scheme)
                 http_result = await self.session.execute(http_query)
                 http_schemes = {
-                    row.http_scheme: row.count
-                    for row in http_result.fetchall()
+                    row.http_scheme: row.count for row in http_result.fetchall()
                 }
 
             # API key location distribution
@@ -461,9 +426,7 @@ class SecurityRepository(BaseRepository[SecurityScheme]):
                 "used_count": used_count,
                 "unused_count": total_schemes - used_count,
                 "usage_rate": (
-                    (used_count / total_schemes * 100)
-                    if total_schemes > 0
-                    else 0
+                    (used_count / total_schemes * 100) if total_schemes > 0 else 0
                 ),
                 "http_schemes": http_schemes,
                 "api_key_locations": api_key_locations,
@@ -475,22 +438,14 @@ class SecurityRepository(BaseRepository[SecurityScheme]):
                 api_id=api_id,
                 error=str(e),
             )
-            raise RepositoryError(
-                f"Failed to get security scheme statistics: {str(e)}"
-            )
+            raise RepositoryError(f"Failed to get security scheme statistics: {str(e)}")
 
-    async def update_reference_counts(
-        self, api_id: Optional[int] = None
-    ) -> None:
+    async def update_reference_counts(self, api_id: Optional[int] = None) -> None:
         """Update reference counts for all security schemes."""
         try:
             # This would typically be called after importing/updating API data
             # For now, reset all counts to 0 and let the endpoint import update them
-            schemes = (
-                await self.get_by_api_id(api_id)
-                if api_id
-                else await self.list()
-            )
+            schemes = await self.get_by_api_id(api_id) if api_id else await self.list()
 
             for scheme in schemes:
                 scheme.reference_count = 0
@@ -508,9 +463,7 @@ class SecurityRepository(BaseRepository[SecurityScheme]):
                 api_id=api_id,
                 error=str(e),
             )
-            raise RepositoryError(
-                f"Failed to update reference counts: {str(e)}"
-            )
+            raise RepositoryError(f"Failed to update reference counts: {str(e)}")
 
     async def increment_reference_count(
         self, scheme_name: str, api_id: Optional[int] = None
@@ -529,9 +482,7 @@ class SecurityRepository(BaseRepository[SecurityScheme]):
                 api_id=api_id,
                 error=str(e),
             )
-            raise RepositoryError(
-                f"Failed to increment reference count: {str(e)}"
-            )
+            raise RepositoryError(f"Failed to increment reference count: {str(e)}")
 
     async def decrement_reference_count(
         self, scheme_name: str, api_id: Optional[int] = None
@@ -550,6 +501,4 @@ class SecurityRepository(BaseRepository[SecurityScheme]):
                 api_id=api_id,
                 error=str(e),
             )
-            raise RepositoryError(
-                f"Failed to decrement reference count: {str(e)}"
-            )
+            raise RepositoryError(f"Failed to decrement reference count: {str(e)}")

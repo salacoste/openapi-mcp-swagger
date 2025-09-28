@@ -39,13 +39,9 @@ class BackupManager:
         """Create a database backup."""
         try:
             if not backup_path:
-                timestamp = datetime.now(timezone.utc).strftime(
-                    "%Y%m%d_%H%M%S"
-                )
+                timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
                 backup_name = f"swagger_mcp_backup_{timestamp}"
-                backup_path = (
-                    f"{self.db_manager.config.database_path}.{backup_name}"
-                )
+                backup_path = f"{self.db_manager.config.database_path}.{backup_name}"
 
             if compress and not backup_path.endswith(".gz"):
                 backup_path += ".gz"
@@ -60,9 +56,7 @@ class BackupManager:
             await self._ensure_database_synced()
 
             if compress:
-                await self._create_compressed_backup(
-                    backup_path, include_metadata
-                )
+                await self._create_compressed_backup(backup_path, include_metadata)
             else:
                 await self._create_simple_backup(backup_path, include_metadata)
 
@@ -91,9 +85,7 @@ class BackupManager:
         """Ensure database is synced to disk."""
         try:
             # WAL checkpoint to ensure all data is written
-            async with aiosqlite.connect(
-                self.db_manager.config.database_path
-            ) as conn:
+            async with aiosqlite.connect(self.db_manager.config.database_path) as conn:
                 await conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
                 await conn.commit()
 
@@ -157,9 +149,7 @@ class BackupManager:
             }
 
         except Exception as e:
-            self.logger.warning(
-                "Failed to collect backup metadata", error=str(e)
-            )
+            self.logger.warning("Failed to collect backup metadata", error=str(e))
             return {
                 "backup_created_at": datetime.now(timezone.utc).isoformat(),
                 "error": str(e),
@@ -176,9 +166,7 @@ class BackupManager:
                 await self._verify_simple_backup(backup_path)
 
         except Exception as e:
-            raise BackupError(
-                f"Backup integrity verification failed: {str(e)}"
-            )
+            raise BackupError(f"Backup integrity verification failed: {str(e)}")
 
     async def _verify_simple_backup(self, backup_path: str) -> None:
         """Verify a simple backup file."""
@@ -187,9 +175,7 @@ class BackupManager:
             cursor = await conn.execute("PRAGMA integrity_check")
             result = await cursor.fetchone()
             if result[0] != "ok":
-                raise BackupError(
-                    f"Backup integrity check failed: {result[0]}"
-                )
+                raise BackupError(f"Backup integrity check failed: {result[0]}")
 
     async def _verify_compressed_backup(self, backup_path: str) -> None:
         """Verify a compressed backup file."""
@@ -231,9 +217,7 @@ class BackupManager:
             # Create backup of current database if it exists
             current_backup_path = None
             if os.path.exists(target_path):
-                current_backup_path = await self._backup_current_database(
-                    target_path
-                )
+                current_backup_path = await self._backup_current_database(target_path)
 
             try:
                 # Close existing connections
@@ -242,9 +226,7 @@ class BackupManager:
 
                 # Restore the backup
                 if is_compressed:
-                    await self._restore_compressed_backup(
-                        backup_path, target_path
-                    )
+                    await self._restore_compressed_backup(backup_path, target_path)
                 else:
                     await self._restore_simple_backup(backup_path, target_path)
 
@@ -292,9 +274,7 @@ class BackupManager:
         shutil.copy2(target_path, current_backup_path)
         return current_backup_path
 
-    async def _restore_simple_backup(
-        self, backup_path: str, target_path: str
-    ) -> None:
+    async def _restore_simple_backup(self, backup_path: str, target_path: str) -> None:
         """Restore from a simple backup file."""
         shutil.copy2(backup_path, target_path)
 
@@ -312,17 +292,13 @@ class BackupManager:
         """List available backup files."""
         try:
             if not backup_dir:
-                backup_dir = str(
-                    Path(self.db_manager.config.database_path).parent
-                )
+                backup_dir = str(Path(self.db_manager.config.database_path).parent)
 
             backup_pattern = Path(self.db_manager.config.database_path).name
             backup_files = []
 
             for file_path in Path(backup_dir).glob(f"{backup_pattern}*"):
-                if file_path.is_file() and not file_path.name.endswith(
-                    ".metadata"
-                ):
+                if file_path.is_file() and not file_path.name.endswith(".metadata"):
                     try:
                         stat = file_path.stat()
                         backup_info = {
@@ -342,9 +318,7 @@ class BackupManager:
                         }
 
                         # Load metadata if available
-                        metadata_path = (
-                            file_path.parent / f"{file_path.name}.metadata"
-                        )
+                        metadata_path = file_path.parent / f"{file_path.name}.metadata"
                         if metadata_path.exists():
                             try:
                                 import json
@@ -407,16 +381,12 @@ class BackupManager:
                 ) - datetime.timedelta(days=max_age_days)
 
                 old_backups_by_age = [
-                    backup
-                    for backup in backups
-                    if backup["created_at"] < cutoff_date
+                    backup for backup in backups if backup["created_at"] < cutoff_date
                 ]
                 to_delete.extend(old_backups_by_age)
 
             # Remove duplicates
-            to_delete = list(
-                {backup["path"]: backup for backup in to_delete}.values()
-            )
+            to_delete = list({backup["path"]: backup for backup in to_delete}.values())
 
             if not to_delete:
                 self.logger.info("No old backups to clean up")
@@ -438,9 +408,7 @@ class BackupManager:
                         if os.path.exists(metadata_path):
                             os.remove(metadata_path)
 
-                        self.logger.info(
-                            "Deleted old backup", path=backup["path"]
-                        )
+                        self.logger.info("Deleted old backup", path=backup["path"])
 
                     deleted_paths.append(backup["path"])
 
@@ -505,22 +473,16 @@ class BackupManager:
                 }
 
             total_size = sum(backup["size_bytes"] for backup in backups)
-            compressed_count = sum(
-                1 for backup in backups if backup["compressed"]
-            )
+            compressed_count = sum(1 for backup in backups if backup["compressed"])
 
             return {
                 "total_backups": len(backups),
                 "total_size_bytes": total_size,
                 "compressed_backups": compressed_count,
                 "uncompressed_backups": len(backups) - compressed_count,
-                "oldest_backup": backups[-1]["created_at"]
-                if backups
-                else None,
+                "oldest_backup": backups[-1]["created_at"] if backups else None,
                 "newest_backup": backups[0]["created_at"] if backups else None,
-                "average_size_bytes": total_size // len(backups)
-                if backups
-                else 0,
+                "average_size_bytes": total_size // len(backups) if backups else 0,
                 "compression_ratio": (
                     compressed_count / len(backups) * 100 if backups else 0
                 ),

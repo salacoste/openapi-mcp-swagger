@@ -99,9 +99,7 @@ class CLIContext:
 
         for env_var, config_key in env_mappings.items():
             if env_var in os.environ:
-                self._set_nested_config(
-                    config, config_key, os.environ[env_var]
-                )
+                self._set_nested_config(config, config_key, os.environ[env_var])
 
         return config
 
@@ -145,9 +143,7 @@ def handle_cli_error(error: Exception, ctx: Optional[click.Context] = None):
         sys.exit(1)
     except Exception as handler_error:
         # Fallback if error handler itself fails
-        click.echo(
-            f"Critical error in error handler: {handler_error}", err=True
-        )
+        click.echo(f"Critical error in error handler: {handler_error}", err=True)
         sys.exit(1)
 
 
@@ -200,9 +196,7 @@ def cli(ctx: click.Context, verbose: bool, quiet: bool, config: Optional[str]):
     """
     # Validate mutually exclusive options
     if verbose and quiet:
-        raise click.BadParameter(
-            "Cannot use both --verbose and --quiet options"
-        )
+        raise click.BadParameter("Cannot use both --verbose and --quiet options")
 
     # Initialize global context
     ctx.ensure_object(dict)
@@ -216,15 +210,11 @@ def cli(ctx: click.Context, verbose: bool, quiet: bool, config: Optional[str]):
     # Configure logging based on verbosity
     if verbose:
         structlog.configure(
-            wrapper_class=structlog.make_filtering_bound_logger(
-                20
-            ),  # INFO level
+            wrapper_class=structlog.make_filtering_bound_logger(20),  # INFO level
         )
     elif quiet:
         structlog.configure(
-            wrapper_class=structlog.make_filtering_bound_logger(
-                40
-            ),  # ERROR level
+            wrapper_class=structlog.make_filtering_bound_logger(40),  # ERROR level
         )
 
 
@@ -420,16 +410,10 @@ def _display_conversion_preview(preview_data: dict):
     # Conversion Plan
     plan = preview_data.get("conversion_plan", {})
     click.echo("📋 Conversion Plan:")
-    click.echo(
-        f"   • Endpoints to process: {plan.get('endpoints_to_process', 0)}"
-    )
+    click.echo(f"   • Endpoints to process: {plan.get('endpoints_to_process', 0)}")
     click.echo(f"   • Schemas to process: {plan.get('schemas_to_process', 0)}")
-    click.echo(
-        f"   • Estimated duration: {plan.get('estimated_duration', 'Unknown')}"
-    )
-    click.echo(
-        f"   • Output directory: {plan.get('output_directory', 'Unknown')}"
-    )
+    click.echo(f"   • Estimated duration: {plan.get('estimated_duration', 'Unknown')}")
+    click.echo(f"   • Output directory: {plan.get('output_directory', 'Unknown')}")
     click.echo(f"   • Server name: {plan.get('server_name', 'Unknown')}")
 
     click.echo()
@@ -452,15 +436,9 @@ def _display_conversion_success(result: dict, quiet: bool = False):
         click.echo("=" * 50)
 
         # Conversion Summary
-        conversion_summary = result.get("report", {}).get(
-            "conversion_summary", {}
-        )
-        click.echo(
-            f"⏱️  Duration: {conversion_summary.get('duration', 'Unknown')}"
-        )
-        click.echo(
-            f"📁 Output: {conversion_summary.get('output_directory', 'Unknown')}"
-        )
+        conversion_summary = result.get("report", {}).get("conversion_summary", {})
+        click.echo(f"⏱️  Duration: {conversion_summary.get('duration', 'Unknown')}")
+        click.echo(f"📁 Output: {conversion_summary.get('output_directory', 'Unknown')}")
 
         # API Summary
         api_summary = result.get("report", {}).get("api_summary", {})
@@ -511,32 +489,22 @@ def _handle_conversion_error(error, ctx):
             troubleshooting = error.details.get("troubleshooting", [])
             if troubleshooting:
                 click.echo("\n💡 Suggestions:", err=True)
-                for suggestion in troubleshooting[
-                    :3
-                ]:  # Show top 3 suggestions
+                for suggestion in troubleshooting[:3]:  # Show top 3 suggestions
                     click.echo(f"   • {suggestion}", err=True)
-                click.echo(
-                    "   • Run with --verbose for more details", err=True
-                )
+                click.echo("   • Run with --verbose for more details", err=True)
 
     sys.exit(1)
 
 
 @cli.command()
-@click.option(
-    "--port", "-p", type=int, default=8080, help="Port to run MCP server on"
-)
-@click.option(
-    "--host", "-h", default="localhost", help="Host to bind MCP server to"
-)
+@click.option("--port", "-p", type=int, default=8080, help="Port to run MCP server on")
+@click.option("--host", "-h", default="localhost", help="Host to bind MCP server to")
 @click.option(
     "--config-file",
     type=click.Path(exists=True),
     help="MCP server configuration file",
 )
-@click.option(
-    "--daemon", "-d", is_flag=True, help="Run server as background daemon"
-)
+@click.option("--daemon", "-d", is_flag=True, help="Run server as background daemon")
 @click.option("--name", "-n", type=str, help="Server instance name")
 @click.option(
     "--server-dir",
@@ -612,24 +580,18 @@ def serve(
 
 
 @cli.command()
-@click.option(
-    "--all", "-a", is_flag=True, help="Show status of all MCP servers"
-)
+@click.option("--all", "-a", is_flag=True, help="Show status of all MCP servers")
 @click.option(
     "--server-id", "-s", type=str, help="Show status of specific server by ID"
 )
-@click.option(
-    "--port", "-p", type=int, help="Show status of server on specific port"
-)
+@click.option("--port", "-p", type=int, help="Show status of server on specific port")
 @click.option(
     "--format",
     type=click.Choice(["table", "json", "yaml"]),
     default="table",
     help="Output format for status information",
 )
-@click.option(
-    "--watch", "-w", is_flag=True, help="Continuously monitor server status"
-)
+@click.option("--watch", "-w", is_flag=True, help="Continuously monitor server status")
 @click.pass_context
 def status(
     ctx: click.Context,
@@ -679,9 +641,7 @@ def status(
         cli_context = ctx.obj["cli_context"]
 
         # Run status command
-        asyncio.run(
-            _status_command(all, server_id, port, format, watch, cli_context)
-        )
+        asyncio.run(_status_command(all, server_id, port, format, watch, cli_context))
 
     except KeyboardInterrupt:
         click.echo("\n🛑 Status monitoring stopped")
@@ -751,9 +711,7 @@ def stop(
         cli_context = ctx.obj["cli_context"]
 
         # Run stop command
-        asyncio.run(
-            _stop_command(server_id, port, all, force, timeout, cli_context)
-        )
+        asyncio.run(_stop_command(server_id, port, all, force, timeout, cli_context))
 
     except KeyboardInterrupt:
         click.echo("\n🛑 Stop operation cancelled")
@@ -764,9 +722,7 @@ def stop(
 @cli.command()
 @click.argument(
     "action",
-    type=click.Choice(
-        ["show", "set", "reset", "validate", "init", "env-help"]
-    ),
+    type=click.Choice(["show", "set", "reset", "validate", "init", "env-help"]),
 )
 @click.argument("key", required=False)
 @click.argument("value", required=False)
@@ -943,9 +899,7 @@ async def _serve_command(
             click.echo(f"   URL: http://{result['host']}:{result['port']}")
             click.echo(f"   Use 'swagger-mcp-server status' to monitor")
         else:
-            click.echo(
-                f"✅ MCP server running on {result['host']}:{result['port']}"
-            )
+            click.echo(f"✅ MCP server running on {result['host']}:{result['port']}")
             click.echo("   Press Ctrl+C to stop server")
 
             # For interactive mode, we would block here
@@ -1035,14 +989,10 @@ async def _stop_command(
                     method = "Force stopping" if force else "Stopping"
                     click.echo(f"🛑 {method} server: {sid}")
 
-                result = await manager.stop_server(
-                    sid, force=force, timeout=timeout
-                )
+                result = await manager.stop_server(sid, force=force, timeout=timeout)
                 results.append((sid, result, None))
 
-                click.echo(
-                    f"✅ Server stopped: {sid} ({result['shutdown_time']:.1f}s)"
-                )
+                click.echo(f"✅ Server stopped: {sid} ({result['shutdown_time']:.1f}s)")
 
             except Exception as e:
                 results.append((sid, None, str(e)))
@@ -1079,9 +1029,7 @@ async def _get_and_display_status(
     elif port:
         # Find server by port
         all_status = await manager.get_all_servers_status()
-        status_list = [
-            s for s in all_status if s.get("server", {}).get("port") == port
-        ]
+        status_list = [s for s in all_status if s.get("server", {}).get("port") == port]
 
         if not status_list:
             click.echo(f"❌ No server found on port {port}", err=True)
@@ -1099,9 +1047,7 @@ async def _get_and_display_status(
         import json
 
         click.echo(
-            json.dumps(
-                {"timestamp": time.time(), "servers": status_list}, indent=2
-            )
+            json.dumps({"timestamp": time.time(), "servers": status_list}, indent=2)
         )
     elif output_format == "yaml":
         try:
@@ -1141,9 +1087,7 @@ async def _monitor_servers_continuously(
             if output_format == "table":
                 click.clear()
                 click.echo("🔄 MCP Server Status Monitor")
-                click.echo(
-                    f"📅 Last updated: {time.strftime('%Y-%m-%d %H:%M:%S')}"
-                )
+                click.echo(f"📅 Last updated: {time.strftime('%Y-%m-%d %H:%M:%S')}")
                 click.echo("=" * 60)
 
             await _get_and_display_status(
@@ -1235,11 +1179,7 @@ def _handle_server_error(error: Exception, ctx: Optional[click.Context]):
         click.echo(f"❌ {error.message}", err=True)
         if error.suggestion:
             click.echo(f"💡 {error.suggestion}", err=True)
-        if (
-            error.details
-            and ctx
-            and ctx.obj.get("cli_context", {}).get("verbose")
-        ):
+        if error.details and ctx and ctx.obj.get("cli_context", {}).get("verbose"):
             click.echo("\n📋 Error details:", err=True)
             for key, value in error.details.items():
                 click.echo(f"   {key}: {value}", err=True)
@@ -1254,12 +1194,8 @@ def _handle_server_error(error: Exception, ctx: Optional[click.Context]):
     is_flag=True,
     help="Force setup even if already initialized",
 )
-@click.option(
-    "--verify", "-v", is_flag=True, help="Verify installation without setup"
-)
-@click.option(
-    "--uninstall", is_flag=True, help="Uninstall and clean up all files"
-)
+@click.option("--verify", "-v", is_flag=True, help="Verify installation without setup")
+@click.option("--uninstall", is_flag=True, help="Uninstall and clean up all files")
 @click.option(
     "--preserve-config",
     is_flag=True,
@@ -1344,9 +1280,7 @@ async def _handle_setup(force: bool):
     # Check if already setup
     if manager.is_already_setup() and not force:
         click.echo("✅ System is already set up")
-        click.echo(
-            "   Use --force to re-initialize or --verify to check installation"
-        )
+        click.echo("   Use --force to re-initialize or --verify to check installation")
         return
 
     # Perform setup steps
@@ -1366,9 +1300,7 @@ async def _handle_setup(force: bool):
     # Next steps guidance
     click.echo("\n🎉 Ready to use swagger-mcp-server!")
     click.echo("Next steps:")
-    click.echo(
-        "   1. Convert a Swagger file: swagger-mcp-server convert api.json"
-    )
+    click.echo("   1. Convert a Swagger file: swagger-mcp-server convert api.json")
     click.echo("   2. Start MCP server: swagger-mcp-server serve")
     click.echo("   3. Check status: swagger-mcp-server status")
 
@@ -1422,9 +1354,7 @@ async def _handle_uninstall(preserve_config: bool, preserve_data: bool):
 
     # Show preview of what will be removed
     uninstaller = UninstallationManager()
-    preview = await uninstaller.get_uninstall_preview(
-        preserve_config, preserve_data
-    )
+    preview = await uninstaller.get_uninstall_preview(preserve_config, preserve_data)
 
     if preview["will_remove"]:
         click.echo("\n📋 Will remove:")
@@ -1500,9 +1430,7 @@ def _handle_installation_error(error, ctx: Optional[click.Context]):
                 for issue in issues[:3]:  # Show top 3 issues
                     click.echo(f"   • {issue}", err=True)
                 if len(issues) > 3:
-                    click.echo(
-                        "   • Run with --verbose for more details", err=True
-                    )
+                    click.echo("   • Run with --verbose for more details", err=True)
 
     sys.exit(1)
 
@@ -1524,9 +1452,7 @@ def _config_show(config_manager, key: Optional[str], format: str):
                     config, key
                 )
                 if value is None:
-                    click.echo(
-                        f"❌ Configuration key '{key}' not found", err=True
-                    )
+                    click.echo(f"❌ Configuration key '{key}' not found", err=True)
                     return
 
                 if format == "json":
@@ -1537,9 +1463,7 @@ def _config_show(config_manager, key: Optional[str], format: str):
                     try:
                         import yaml
 
-                        click.echo(
-                            yaml.dump({key: value}, default_flow_style=False)
-                        )
+                        click.echo(yaml.dump({key: value}, default_flow_style=False))
                     except ImportError:
                         click.echo(f"{key}: {value}")
                 else:
@@ -1648,36 +1572,26 @@ def _config_validate(config_manager, file: Optional[str]):
                     for warning in warnings:
                         click.echo(f"   • {warning}")
         except Exception as e:
-            click.echo(
-                f"❌ Failed to validate configuration: {str(e)}", err=True
-            )
+            click.echo(f"❌ Failed to validate configuration: {str(e)}", err=True)
 
     asyncio.run(validate_config())
 
 
-def _config_init(
-    config_manager, template: str, file: Optional[str], force: bool
-):
+def _config_init(config_manager, template: str, file: Optional[str], force: bool):
     """Initialize configuration with template."""
     import asyncio
 
     async def init_config():
         try:
-            await config_manager.initialize_configuration(
-                template, file, force
-            )
-            click.echo(
-                f"✅ Configuration initialized with '{template}' template"
-            )
+            await config_manager.initialize_configuration(template, file, force)
+            click.echo(f"✅ Configuration initialized with '{template}' template")
 
             # Show next steps
             if not file:
                 file = config_manager.config_file
 
             click.echo("\n📋 Next steps:")
-            click.echo(
-                f"   1. Review configuration: swagger-mcp-server config show"
-            )
+            click.echo(f"   1. Review configuration: swagger-mcp-server config show")
             click.echo(
                 f"   2. Customize settings: swagger-mcp-server config set KEY VALUE"
             )
@@ -1687,9 +1601,7 @@ def _config_init(
             click.echo(f"   4. Configuration file location: {file}")
 
         except Exception as e:
-            click.echo(
-                f"❌ Failed to initialize configuration: {str(e)}", err=True
-            )
+            click.echo(f"❌ Failed to initialize configuration: {str(e)}", err=True)
 
     asyncio.run(init_config())
 

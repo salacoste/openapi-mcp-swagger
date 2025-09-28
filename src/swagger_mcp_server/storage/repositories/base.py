@@ -100,9 +100,7 @@ class BaseRepository(ABC, Generic[T]):
     async def get_by_id(self, entity_id: int) -> Optional[T]:
         """Get entity by ID."""
         try:
-            stmt = select(self.model_class).where(
-                self.model_class.id == entity_id
-            )
+            stmt = select(self.model_class).where(self.model_class.id == entity_id)
             result = await self.session.execute(stmt)
             entity = result.scalar_one_or_none()
 
@@ -230,9 +228,7 @@ class BaseRepository(ABC, Generic[T]):
     async def delete_by_id(self, entity_id: int) -> bool:
         """Delete entity by ID."""
         try:
-            stmt = delete(self.model_class).where(
-                self.model_class.id == entity_id
-            )
+            stmt = delete(self.model_class).where(self.model_class.id == entity_id)
             result = await self.session.execute(stmt)
 
             deleted = result.rowcount > 0
@@ -442,9 +438,7 @@ class BaseRepository(ABC, Generic[T]):
                 match_value = update_data.pop(match_field)
                 stmt = (
                     update(self.model_class)
-                    .where(
-                        getattr(self.model_class, match_field) == match_value
-                    )
+                    .where(getattr(self.model_class, match_field) == match_value)
                     .values(**update_data)
                 )
 

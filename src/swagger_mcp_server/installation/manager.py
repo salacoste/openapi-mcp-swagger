@@ -66,30 +66,20 @@ class InstallationManager:
                     {"issues": compatibility_result["issues"]},
                 )
 
-            setup_results["steps_completed"].append(
-                "System compatibility verified"
-            )
-            setup_results["warnings"].extend(
-                compatibility_result.get("warnings", [])
-            )
+            setup_results["steps_completed"].append("System compatibility verified")
+            setup_results["warnings"].extend(compatibility_result.get("warnings", []))
 
             # Step 2: Create directory structure
             await self.create_directory_structure(force)
-            setup_results["steps_completed"].append(
-                "Directory structure created"
-            )
+            setup_results["steps_completed"].append("Directory structure created")
 
             # Step 3: Initialize configuration
             await self.initialize_configuration(force)
-            setup_results["steps_completed"].append(
-                "Configuration initialized"
-            )
+            setup_results["steps_completed"].append("Configuration initialized")
 
             # Step 4: Set up database and search directories
             await self.setup_data_directories()
-            setup_results["steps_completed"].append(
-                "Data directories configured"
-            )
+            setup_results["steps_completed"].append("Data directories configured")
 
             # Step 5: Create initial logging setup
             await self.setup_logging()
@@ -100,15 +90,11 @@ class InstallationManager:
             setup_results["steps_completed"].append("Installation verified")
 
             if verification_result.get("warnings"):
-                setup_results["warnings"].extend(
-                    verification_result["warnings"]
-                )
+                setup_results["warnings"].extend(verification_result["warnings"])
 
             # Step 7: Record installation metadata
             await self.record_installation_metadata()
-            setup_results["steps_completed"].append(
-                "Installation metadata recorded"
-            )
+            setup_results["steps_completed"].append("Installation metadata recorded")
 
             return setup_results
 
@@ -228,9 +214,7 @@ class InstallationManager:
             ] = await self._verify_dependencies()
 
             # Gather system information
-            verification_result[
-                "system_info"
-            ] = await self._gather_system_info()
+            verification_result["system_info"] = await self._gather_system_info()
 
             # Check for any component failures
             failed_components = [
@@ -250,9 +234,7 @@ class InstallationManager:
 
         except Exception as e:
             verification_result["status"] = "error"
-            verification_result["issues"].append(
-                f"Verification error: {str(e)}"
-            )
+            verification_result["issues"].append(f"Verification error: {str(e)}")
 
         return verification_result
 
@@ -371,9 +353,7 @@ class InstallationManager:
             "install_path": str(self.install_dir),
             "python_executable": sys.executable,
             "architecture": platform.machine(),
-            "processor": platform.processor()
-            if platform.processor()
-            else "Unknown",
+            "processor": platform.processor() if platform.processor() else "Unknown",
         }
 
     async def record_installation_metadata(self) -> None:
@@ -439,9 +419,7 @@ class InstallationManager:
             try:
                 from ..config import ConfigurationManager
 
-                config_manager = ConfigurationManager(
-                    config_dir=self.install_dir
-                )
+                config_manager = ConfigurationManager(config_dir=self.install_dir)
                 (
                     is_valid,
                     errors,

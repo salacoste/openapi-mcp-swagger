@@ -67,9 +67,7 @@ class TestRelevanceRanker:
             "operation_id": "getUser",
         }
 
-        score = relevance_ranker.calculate_relevance_score(
-            query_terms, document
-        )
+        score = relevance_ranker.calculate_relevance_score(query_terms, document)
 
         assert isinstance(score, RelevanceScore)
         assert score.total_score >= 0
@@ -78,9 +76,7 @@ class TestRelevanceRanker:
         assert isinstance(score.boost_factors, dict)
         assert isinstance(score.metadata, dict)
 
-    def test_calculate_relevance_score_with_trained_models(
-        self, relevance_ranker
-    ):
+    def test_calculate_relevance_score_with_trained_models(self, relevance_ranker):
         """Test relevance calculation with trained BM25 models."""
         # Train models first
         corpus = {
@@ -99,9 +95,7 @@ class TestRelevanceRanker:
             "operation_id": "getUsers",
         }
 
-        score = relevance_ranker.calculate_relevance_score(
-            query_terms, document
-        )
+        score = relevance_ranker.calculate_relevance_score(query_terms, document)
 
         assert score.total_score > 0
         assert "endpoint_path" in score.field_scores
@@ -155,8 +149,7 @@ class TestRelevanceRanker:
         """Test ranking with maximum results limit."""
         query_terms = ["test"]
         documents = [
-            {"endpoint_path": f"/api/test{i}", "description": "test"}
-            for i in range(10)
+            {"endpoint_path": f"/api/test{i}", "description": "test"} for i in range(10)
         ]
 
         ranked_results = relevance_ranker.rank_results(
@@ -266,19 +259,13 @@ class TestBoostFactors:
         assert get_boosts["common_method"] > 1.0
         assert post_boosts["common_method"] > 1.0
 
-    def test_calculate_boost_factors_less_common_methods(
-        self, relevance_ranker
-    ):
+    def test_calculate_boost_factors_less_common_methods(self, relevance_ranker):
         """Test slight penalty for less common HTTP methods."""
         delete_document = {"http_method": "DELETE"}
         patch_document = {"http_method": "PATCH"}
 
-        delete_boosts = relevance_ranker._calculate_boost_factors(
-            delete_document
-        )
-        patch_boosts = relevance_ranker._calculate_boost_factors(
-            patch_document
-        )
+        delete_boosts = relevance_ranker._calculate_boost_factors(delete_document)
+        patch_boosts = relevance_ranker._calculate_boost_factors(patch_document)
 
         assert "less_common_method" in delete_boosts
         assert "less_common_method" in patch_boosts
@@ -297,9 +284,7 @@ class TestBoostFactors:
         assert "well_documented" in boost_factors
         assert boost_factors["well_documented"] > 1.0
 
-    def test_calculate_boost_factors_poor_documentation(
-        self, relevance_ranker
-    ):
+    def test_calculate_boost_factors_poor_documentation(self, relevance_ranker):
         """Test penalty for poorly documented endpoints."""
         document = {"summary": "", "description": ""}
 
@@ -400,9 +385,7 @@ class TestBM25Scoring:
         query_terms = ["test", "user"]
         field_tokens = ["test", "endpoint", "for", "user", "management"]
 
-        score = relevance_ranker._calculate_simple_score(
-            query_terms, field_tokens
-        )
+        score = relevance_ranker._calculate_simple_score(query_terms, field_tokens)
 
         assert score > 0
         assert isinstance(score, float)
@@ -412,9 +395,7 @@ class TestBM25Scoring:
         query_terms = ["nonexistent"]
         field_tokens = ["test", "endpoint"]
 
-        score = relevance_ranker._calculate_simple_score(
-            query_terms, field_tokens
-        )
+        score = relevance_ranker._calculate_simple_score(query_terms, field_tokens)
 
         assert score == 0.0
 
@@ -423,8 +404,6 @@ class TestBM25Scoring:
         query_terms = ["test"]
         field_tokens = []
 
-        score = relevance_ranker._calculate_simple_score(
-            query_terms, field_tokens
-        )
+        score = relevance_ranker._calculate_simple_score(query_terms, field_tokens)
 
         assert score == 0.0

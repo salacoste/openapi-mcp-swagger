@@ -222,9 +222,7 @@ class IndexPerformanceMonitor:
         # Add some realistic variation based on index size
         if hasattr(self, "metrics_history") and self.metrics_history:
             last_metrics = self.metrics_history[-1]
-            size_factor = min(
-                last_metrics.index_size_mb / 100, 2.0
-            )  # Scale with size
+            size_factor = min(last_metrics.index_size_mb / 100, 2.0)  # Scale with size
             query_time *= 1 + size_factor * 0.1
 
         return query_time
@@ -317,9 +315,7 @@ class IndexPerformanceMonitor:
                 "storage_utilization": 0.0,
             }
 
-    async def _check_optimization_triggers(
-        self, metrics: IndexMetrics
-    ) -> None:
+    async def _check_optimization_triggers(self, metrics: IndexMetrics) -> None:
         """Check if index optimization should be triggered."""
         if self.optimization_in_progress:
             return
@@ -354,9 +350,7 @@ class IndexPerformanceMonitor:
             raise RuntimeError("Optimization already in progress")
 
         event_id = f"opt_{int(time.time())}"
-        current_metrics = (
-            self.metrics_history[-1] if self.metrics_history else None
-        )
+        current_metrics = self.metrics_history[-1] if self.metrics_history else None
 
         if not current_metrics:
             raise RuntimeError("No current metrics available for optimization")
@@ -396,18 +390,12 @@ class IndexPerformanceMonitor:
             optimization_event.end_time = datetime.now()
 
             if optimization_event.start_time and optimization_event.end_time:
-                duration = (
-                    optimization_event.end_time - optimization_event.start_time
-                )
-                optimization_event.duration_ms = (
-                    duration.total_seconds() * 1000
-                )
+                duration = optimization_event.end_time - optimization_event.start_time
+                optimization_event.duration_ms = duration.total_seconds() * 1000
 
         return event_id
 
-    async def _perform_optimization(
-        self, event: IndexOptimizationEvent
-    ) -> None:
+    async def _perform_optimization(self, event: IndexOptimizationEvent) -> None:
         """Perform the actual index optimization."""
         # Simulate optimization work
         await asyncio.sleep(2.0)  # 2 second optimization
@@ -435,9 +423,7 @@ class IndexPerformanceMonitor:
                 * 100
             )
 
-    async def get_performance_summary(
-        self, time_period: str = "24h"
-    ) -> Dict[str, Any]:
+    async def get_performance_summary(self, time_period: str = "24h") -> Dict[str, Any]:
         """Get index performance summary for specified period.
 
         Args:
@@ -471,9 +457,7 @@ class IndexPerformanceMonitor:
 
         return summary
 
-    def _calculate_size_stats(
-        self, metrics: List[IndexMetrics]
-    ) -> Dict[str, Any]:
+    def _calculate_size_stats(self, metrics: List[IndexMetrics]) -> Dict[str, Any]:
         """Calculate index size statistics."""
         sizes_mb = [m.index_size_mb for m in metrics]
         doc_counts = [m.document_count for m in metrics]
@@ -481,16 +465,12 @@ class IndexPerformanceMonitor:
         return {
             "current_size_mb": sizes_mb[-1] if sizes_mb else 0,
             "avg_size_mb": statistics.mean(sizes_mb) if sizes_mb else 0,
-            "size_growth_mb": sizes_mb[-1] - sizes_mb[0]
-            if len(sizes_mb) > 1
-            else 0,
+            "size_growth_mb": sizes_mb[-1] - sizes_mb[0] if len(sizes_mb) > 1 else 0,
             "current_documents": doc_counts[-1] if doc_counts else 0,
             "document_growth": doc_counts[-1] - doc_counts[0]
             if len(doc_counts) > 1
             else 0,
-            "avg_size_per_document_kb": (
-                sizes_mb[-1] * 1024 / max(doc_counts[-1], 1)
-            )
+            "avg_size_per_document_kb": (sizes_mb[-1] * 1024 / max(doc_counts[-1], 1))
             if doc_counts
             else 0,
         }
@@ -503,18 +483,14 @@ class IndexPerformanceMonitor:
         update_times = [m.update_time_ms for m in metrics]
 
         return {
-            "avg_query_time_ms": statistics.mean(query_times)
-            if query_times
-            else 0,
+            "avg_query_time_ms": statistics.mean(query_times) if query_times else 0,
             "p95_query_time_ms": statistics.quantiles(query_times, n=20)[18]
             if len(query_times) > 20
             else max(query_times)
             if query_times
             else 0,
             "max_query_time_ms": max(query_times) if query_times else 0,
-            "avg_update_time_ms": statistics.mean(update_times)
-            if update_times
-            else 0,
+            "avg_update_time_ms": statistics.mean(update_times) if update_times else 0,
             "query_time_trend": self._calculate_trend(query_times),
             "nfr_compliance_percent": len([t for t in query_times if t <= 100])
             / len(query_times)
@@ -523,30 +499,22 @@ class IndexPerformanceMonitor:
             else 0,
         }
 
-    def _calculate_resource_stats(
-        self, metrics: List[IndexMetrics]
-    ) -> Dict[str, Any]:
+    def _calculate_resource_stats(self, metrics: List[IndexMetrics]) -> Dict[str, Any]:
         """Calculate resource usage statistics."""
         memory_usage = [m.memory_usage_mb for m in metrics]
         cpu_usage = [m.cpu_usage_percent for m in metrics]
         storage_usage = [m.storage_utilization for m in metrics]
 
         return {
-            "avg_memory_mb": statistics.mean(memory_usage)
-            if memory_usage
-            else 0,
+            "avg_memory_mb": statistics.mean(memory_usage) if memory_usage else 0,
             "max_memory_mb": max(memory_usage) if memory_usage else 0,
             "avg_cpu_percent": statistics.mean(cpu_usage) if cpu_usage else 0,
             "max_cpu_percent": max(cpu_usage) if cpu_usage else 0,
-            "current_storage_utilization": storage_usage[-1]
-            if storage_usage
-            else 0,
+            "current_storage_utilization": storage_usage[-1] if storage_usage else 0,
             "storage_trend": self._calculate_trend(storage_usage),
         }
 
-    def _calculate_health_stats(
-        self, metrics: List[IndexMetrics]
-    ) -> Dict[str, Any]:
+    def _calculate_health_stats(self, metrics: List[IndexMetrics]) -> Dict[str, Any]:
         """Calculate index health statistics."""
         fragmentation = [m.fragmentation_ratio for m in metrics]
         cache_hits = [m.cache_hit_rate for m in metrics]
@@ -565,9 +533,7 @@ class IndexPerformanceMonitor:
             health_score -= 20
 
         avg_query_time = (
-            statistics.mean([m.query_time_ms for m in metrics])
-            if metrics
-            else 0
+            statistics.mean([m.query_time_ms for m in metrics]) if metrics else 0
         )
         if avg_query_time > self.thresholds["max_query_time_ms"]:
             health_score -= 25
@@ -651,8 +617,7 @@ class IndexPerformanceMonitor:
             alerts.append(
                 {
                     "level": "warning"
-                    if current.query_time_ms
-                    < self.thresholds["max_query_time_ms"] * 2
+                    if current.query_time_ms < self.thresholds["max_query_time_ms"] * 2
                     else "critical",
                     "type": "performance",
                     "message": f"Query time ({current.query_time_ms:.1f}ms) exceeds threshold ({self.thresholds['max_query_time_ms']}ms)",
@@ -672,9 +637,7 @@ class IndexPerformanceMonitor:
                     "type": "fragmentation",
                     "message": f"Index fragmentation ({current.fragmentation_ratio:.1%}) suggests optimization needed",
                     "value": current.fragmentation_ratio,
-                    "threshold": self.thresholds[
-                        "optimization_trigger_fragmentation"
-                    ],
+                    "threshold": self.thresholds["optimization_trigger_fragmentation"],
                 }
             )
 
@@ -691,10 +654,7 @@ class IndexPerformanceMonitor:
             )
 
         # Storage utilization alert
-        if (
-            current.storage_utilization
-            > self.thresholds["max_storage_utilization"]
-        ):
+        if current.storage_utilization > self.thresholds["max_storage_utilization"]:
             alerts.append(
                 {
                     "level": "critical"
@@ -772,9 +732,7 @@ class IndexPerformanceMonitor:
 
         # Performance tuning recommendation
         avg_query_time = (
-            statistics.mean([m.query_time_ms for m in metrics])
-            if metrics
-            else 0
+            statistics.mean([m.query_time_ms for m in metrics]) if metrics else 0
         )
         if avg_query_time > self.thresholds["max_query_time_ms"]:
             recommendations.append(
@@ -806,9 +764,7 @@ class IndexPerformanceMonitor:
         """
         if len(self.metrics_history) < 2:
             # Not enough data for projection
-            current = (
-                self.metrics_history[-1] if self.metrics_history else None
-            )
+            current = self.metrics_history[-1] if self.metrics_history else None
             if current:
                 return IndexGrowthProjection(
                     current_size_mb=current.index_size_mb,
@@ -819,9 +775,7 @@ class IndexPerformanceMonitor:
                     growth_rate_mb_per_day=0,
                     growth_rate_documents_per_day=0,
                     estimated_full_date=None,
-                    recommended_actions=[
-                        "Collect more data for accurate projections"
-                    ],
+                    recommended_actions=["Collect more data for accurate projections"],
                 )
 
         # Calculate growth rates from recent data
@@ -878,9 +832,7 @@ class IndexPerformanceMonitor:
             ) * (1 - 0.8)
             if available_storage_mb > 0:
                 days_to_full = available_storage_mb / size_growth_rate
-                estimated_full_date = datetime.now() + timedelta(
-                    days=days_to_full
-                )
+                estimated_full_date = datetime.now() + timedelta(days=days_to_full)
 
         # Generate recommendations
         recommendations = []
@@ -936,9 +888,7 @@ class IndexPerformanceMonitor:
         first_avg = statistics.mean(first_half)
         second_avg = statistics.mean(second_half)
 
-        change_percent = (
-            abs(second_avg - first_avg) / max(first_avg, 0.001) * 100
-        )
+        change_percent = abs(second_avg - first_avg) / max(first_avg, 0.001) * 100
 
         if change_percent < 5:
             return "stable"

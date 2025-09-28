@@ -240,9 +240,9 @@ class SearchPerformanceTester:
         }
 
         # Generate overall assessment
-        test_results[
-            "overall_assessment"
-        ] = await self._generate_overall_assessment(test_results)
+        test_results["overall_assessment"] = await self._generate_overall_assessment(
+            test_results
+        )
 
         return test_results
 
@@ -315,9 +315,7 @@ class SearchPerformanceTester:
 
             total_tests += 1
 
-        compliance_rate = (
-            compliant_tests / total_tests if total_tests > 0 else 0
-        )
+        compliance_rate = compliant_tests / total_tests if total_tests > 0 else 0
 
         return {
             "nfr1_threshold_ms": self.nfr1_threshold_ms,
@@ -339,21 +337,11 @@ class SearchPerformanceTester:
             Dict containing load test results
         """
         load_configurations = [
-            LoadTestConfiguration(
-                concurrent_users=1, test_duration_seconds=30
-            ),
-            LoadTestConfiguration(
-                concurrent_users=5, test_duration_seconds=30
-            ),
-            LoadTestConfiguration(
-                concurrent_users=10, test_duration_seconds=30
-            ),
-            LoadTestConfiguration(
-                concurrent_users=25, test_duration_seconds=30
-            ),
-            LoadTestConfiguration(
-                concurrent_users=50, test_duration_seconds=30
-            ),
+            LoadTestConfiguration(concurrent_users=1, test_duration_seconds=30),
+            LoadTestConfiguration(concurrent_users=5, test_duration_seconds=30),
+            LoadTestConfiguration(concurrent_users=10, test_duration_seconds=30),
+            LoadTestConfiguration(concurrent_users=25, test_duration_seconds=30),
+            LoadTestConfiguration(concurrent_users=50, test_duration_seconds=30),
         ]
 
         load_test_results = {}
@@ -361,9 +349,7 @@ class SearchPerformanceTester:
         for config in load_configurations:
             config.test_cases = self.standard_test_cases
             result = await self._execute_load_test(config)
-            load_test_results[
-                f"concurrent_users_{config.concurrent_users}"
-            ] = result
+            load_test_results[f"concurrent_users_{config.concurrent_users}"] = result
 
         return {
             "load_test_configurations": len(load_configurations),
@@ -381,9 +367,7 @@ class SearchPerformanceTester:
         # Create tasks for concurrent users
         tasks = []
         for user_id in range(config.concurrent_users):
-            task = asyncio.create_task(
-                self._simulate_user_load(user_id, config)
-            )
+            task = asyncio.create_task(self._simulate_user_load(user_id, config))
             tasks.append(task)
 
         # Execute all tasks concurrently
@@ -439,10 +423,8 @@ class SearchPerformanceTester:
             error_counts[result.error or "unknown"] += 1
 
         # Response time distribution
-        response_time_distribution = (
-            self._calculate_response_time_distribution(
-                response_times if successful_results else []
-            )
+        response_time_distribution = self._calculate_response_time_distribution(
+            response_times if successful_results else []
         )
 
         return LoadTestResults(
@@ -554,10 +536,7 @@ class SearchPerformanceTester:
                 max_successful_concurrent = concurrent_users
 
             # Find degradation threshold
-            if (
-                performance_degradation
-                > self.performance_degradation_threshold
-            ):
+            if performance_degradation > self.performance_degradation_threshold:
                 performance_degradation_threshold = concurrent_users
 
         # Get detailed results at breaking point
@@ -567,9 +546,7 @@ class SearchPerformanceTester:
         )
         breaking_point_config.test_cases = baseline_config.test_cases
 
-        breaking_point_result = await self._execute_load_test(
-            breaking_point_config
-        )
+        breaking_point_result = await self._execute_load_test(breaking_point_config)
 
         return StressTestResults(
             max_successful_concurrent_users=max_successful_concurrent,
@@ -606,14 +583,12 @@ class SearchPerformanceTester:
                         "current_time_ms": execution_time,
                         "baseline_time_ms": test_case.expected_response_time_ms,
                         "regression_percent": (
-                            execution_time
-                            - test_case.expected_response_time_ms
+                            execution_time - test_case.expected_response_time_ms
                         )
                         / test_case.expected_response_time_ms
                         * 100,
                         "passed": execution_time
-                        <= test_case.expected_response_time_ms
-                        * 1.2,  # 20% tolerance
+                        <= test_case.expected_response_time_ms * 1.2,  # 20% tolerance
                     }
                 )
 
@@ -702,11 +677,8 @@ class SearchPerformanceTester:
                         "expected_time_ms": test_case.expected_response_time_ms,
                         "performance_ratio": execution_time
                         / test_case.expected_response_time_ms,
-                        "result_count": self._extract_result_count(
-                            search_result
-                        ),
-                        "passed": execution_time
-                        <= test_case.expected_response_time_ms,
+                        "result_count": self._extract_result_count(search_result),
+                        "passed": execution_time <= test_case.expected_response_time_ms,
                         "nfr1_compliant": execution_time <= 200.0,
                     }
                 )
@@ -753,9 +725,7 @@ class SearchPerformanceTester:
         # For now, simulate search execution
 
         # Simulate processing time based on query complexity
-        query_complexity = len(test_case.query.split()) + len(
-            test_case.filters
-        )
+        query_complexity = len(test_case.query.split()) + len(test_case.filters)
         base_delay = 0.01 + (
             query_complexity * 0.005
         )  # 10ms + 5ms per complexity point
@@ -796,18 +766,14 @@ class SearchPerformanceTester:
             "best_performance_config": min(
                 all_configs, key=lambda x: x.avg_response_time_ms
             ).configuration.concurrent_users,
-            "scalability_assessment": self._assess_scalability(
-                load_test_results
-            ),
+            "scalability_assessment": self._assess_scalability(load_test_results),
             "nfr1_compliance_under_load": {
                 config: result.nfr1_compliance_rate
                 for config, result in load_test_results.items()
             },
         }
 
-    def _assess_scalability(
-        self, load_test_results: Dict[str, LoadTestResults]
-    ) -> str:
+    def _assess_scalability(self, load_test_results: Dict[str, LoadTestResults]) -> str:
         """Assess scalability based on load test results."""
         configs = sorted(
             load_test_results.items(),
@@ -900,17 +866,11 @@ class SearchPerformanceTester:
         max_users = stress_results.get("max_successful_concurrent_users", 0)
 
         if max_users >= 25:
-            assessments.append(
-                f"Handles high concurrent load well ({max_users} users)"
-            )
+            assessments.append(f"Handles high concurrent load well ({max_users} users)")
         elif max_users >= 10:
-            assessments.append(
-                f"Handles moderate concurrent load ({max_users} users)"
-            )
+            assessments.append(f"Handles moderate concurrent load ({max_users} users)")
         else:
-            assessments.append(
-                f"Limited concurrent capacity ({max_users} users)"
-            )
+            assessments.append(f"Limited concurrent capacity ({max_users} users)")
 
         # Overall grade
         if (
@@ -936,9 +896,7 @@ class SearchPerformanceTester:
             "nfr1_compliance_rate": nfr1_compliance,
             "scalability_rating": scalability,
             "max_concurrent_users": max_users,
-            "recommendations": self._generate_performance_recommendations(
-                test_results
-            ),
+            "recommendations": self._generate_performance_recommendations(test_results),
         }
 
     def _generate_performance_recommendations(

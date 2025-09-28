@@ -80,9 +80,7 @@ class ConfigurationManager:
             if isinstance(e, ConfigurationError):
                 raise
             else:
-                raise ConfigurationError(
-                    f"Failed to load configuration: {str(e)}"
-                )
+                raise ConfigurationError(f"Failed to load configuration: {str(e)}")
 
     def _load_config_file(self, file_path: Path) -> Dict[str, Any]:
         """Load configuration from YAML or JSON file."""
@@ -133,9 +131,7 @@ class ConfigurationManager:
 
         return result
 
-    def _validate_complete_configuration(
-        self, config: Dict[str, Any]
-    ) -> List[str]:
+    def _validate_complete_configuration(self, config: Dict[str, Any]) -> List[str]:
         """Validate complete configuration and return list of errors."""
         errors = []
 
@@ -154,30 +150,20 @@ class ConfigurationManager:
 
         return errors
 
-    def _validate_cross_field_constraints(
-        self, config: Dict[str, Any]
-    ) -> List[str]:
+    def _validate_cross_field_constraints(self, config: Dict[str, Any]) -> List[str]:
         """Validate constraints that span multiple configuration fields."""
         errors = []
 
         # SSL configuration validation
-        ssl_config = self.env_extractor.get_nested_config_value(
-            config, "server.ssl"
-        )
+        ssl_config = self.env_extractor.get_nested_config_value(config, "server.ssl")
         if ssl_config and ssl_config.get("enabled"):
             if not ssl_config.get("cert_file"):
-                errors.append(
-                    "SSL certificate file is required when SSL is enabled"
-                )
+                errors.append("SSL certificate file is required when SSL is enabled")
             if not ssl_config.get("key_file"):
-                errors.append(
-                    "SSL private key file is required when SSL is enabled"
-                )
+                errors.append("SSL private key file is required when SSL is enabled")
 
         # File path validation
-        log_file = self.env_extractor.get_nested_config_value(
-            config, "logging.file"
-        )
+        log_file = self.env_extractor.get_nested_config_value(config, "logging.file")
         if log_file:
             log_dir = Path(log_file).parent
             if not log_dir.exists():
@@ -187,18 +173,14 @@ class ConfigurationManager:
                     errors.append(f"Cannot create log directory: {log_dir}")
 
         # Database path validation
-        db_path = self.env_extractor.get_nested_config_value(
-            config, "database.path"
-        )
+        db_path = self.env_extractor.get_nested_config_value(config, "database.path")
         if db_path:
             db_dir = Path(db_path).parent
             if not db_dir.exists():
                 try:
                     db_dir.mkdir(parents=True, exist_ok=True)
                 except OSError:
-                    errors.append(
-                        f"Cannot create database directory: {db_dir}"
-                    )
+                    errors.append(f"Cannot create database directory: {db_dir}")
 
         return errors
 
@@ -234,9 +216,7 @@ class ConfigurationManager:
                     f.write("# MCP Server Configuration\n")
                     f.write(f"# Generated on: {datetime.now().isoformat()}\n")
                     f.write(f"# File: {file_path}\n\n")
-                    yaml.dump(
-                        config, f, default_flow_style=False, sort_keys=False
-                    )
+                    yaml.dump(config, f, default_flow_style=False, sort_keys=False)
 
         except Exception as e:
             raise ConfigurationError(f"Failed to save configuration: {str(e)}")
@@ -270,13 +250,9 @@ class ConfigurationManager:
             ConfigurationError: If validation fails or save fails
         """
         # Validate the value first
-        is_valid, error_msg = self.schema.validate_configuration_value(
-            key, value
-        )
+        is_valid, error_msg = self.schema.validate_configuration_value(key, value)
         if not is_valid:
-            raise ConfigurationError(
-                f"Invalid configuration value: {error_msg}"
-            )
+            raise ConfigurationError(f"Invalid configuration value: {error_msg}")
 
         # Load current configuration
         config = await self.load_configuration(config_file)
@@ -310,9 +286,7 @@ class ConfigurationManager:
             await self.save_configuration(config, config_file)
 
         except Exception as e:
-            raise ConfigurationError(
-                f"Failed to reset configuration: {str(e)}"
-            )
+            raise ConfigurationError(f"Failed to reset configuration: {str(e)}")
 
     async def initialize_configuration(
         self,
@@ -402,26 +376,20 @@ class ConfigurationManager:
             config, "server.max_connections"
         )
         if max_connections and max_connections > 500:
-            warnings.append(
-                "High connection limit may impact system resources"
-            )
+            warnings.append("High connection limit may impact system resources")
 
         # Security warnings
         ssl_enabled = self.env_extractor.get_nested_config_value(
             config, "server.ssl.enabled"
         )
-        host = self.env_extractor.get_nested_config_value(
-            config, "server.host"
-        )
+        host = self.env_extractor.get_nested_config_value(config, "server.host")
         if host == "0.0.0.0" and not ssl_enabled:
             warnings.append(
                 "Server accepting external connections without SSL encryption"
             )
 
         # Logging warnings
-        log_level = self.env_extractor.get_nested_config_value(
-            config, "logging.level"
-        )
+        log_level = self.env_extractor.get_nested_config_value(config, "logging.level")
         if log_level == "DEBUG":
             warnings.append(
                 "Debug logging may impact performance and expose sensitive information"
@@ -461,9 +429,7 @@ class ConfigurationManager:
         if key:
             help_text = self.schema.get_configuration_help(key)
             if help_text:
-                env_var = self.env_extractor.get_environment_variable_for_path(
-                    key
-                )
+                env_var = self.env_extractor.get_environment_variable_for_path(key)
                 if env_var:
                     help_text += f"\n\nEnvironment variable: {env_var}"
                 return help_text

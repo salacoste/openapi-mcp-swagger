@@ -338,9 +338,7 @@ class EnhancedHelp:
         click.echo("\n⚙️ Configuration Help")
         click.echo("-" * 40)
         click.echo(self.get_configuration_help())
-        click.prompt(
-            "\nPress Enter to continue", default="", show_default=False
-        )
+        click.prompt("\nPress Enter to continue", default="", show_default=False)
 
     def _show_quick_reference(self):
         """Show quick reference card."""
@@ -361,9 +359,7 @@ class EnhancedHelp:
         click.echo("Quick Start:")
         click.echo("  swagger-mcp-server convert api.json")
         click.echo("  swagger-mcp-server serve")
-        click.prompt(
-            "\nPress Enter to continue", default="", show_default=False
-        )
+        click.prompt("\nPress Enter to continue", default="", show_default=False)
 
 
 def format_help_text(ctx: click.Context, command_name: str) -> str:
@@ -404,9 +400,7 @@ def show_command_help(command_name: str, detailed: bool = False):
 class EnhancedCommand(click.Command):
     """Click command with enhanced help formatting."""
 
-    def format_help(
-        self, ctx: click.Context, formatter: click.HelpFormatter
-    ) -> None:
+    def format_help(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
         """Format help with examples."""
         super().format_help(ctx, formatter)
 
@@ -423,9 +417,7 @@ class EnhancedCommand(click.Command):
 class EnhancedGroup(click.Group):
     """Click group with enhanced help formatting."""
 
-    def format_help(
-        self, ctx: click.Context, formatter: click.HelpFormatter
-    ) -> None:
+    def format_help(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
         """Format help with workflow information."""
         super().format_help(ctx, formatter)
 

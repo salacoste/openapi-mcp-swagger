@@ -121,9 +121,7 @@ class ProcessingStage(ABC):
         self.logger = get_logger(f"{__name__}.{name}")
 
     @abstractmethod
-    async def execute(
-        self, input_data: Any, context: PipelineContext
-    ) -> StageResult:
+    async def execute(self, input_data: Any, context: PipelineContext) -> StageResult:
         """Execute the stage with given input and context."""
         pass
 
@@ -140,9 +138,7 @@ class ParsingStage(ProcessingStage):
         super().__init__("parsing")
         self.parser = SwaggerParser(config)
 
-    async def execute(
-        self, input_data: str, context: PipelineContext
-    ) -> StageResult:
+    async def execute(self, input_data: str, context: PipelineContext) -> StageResult:
         """Parse the Swagger file."""
         stage_start = time.time()
 
@@ -216,12 +212,8 @@ class NormalizationStage(ProcessingStage):
 
             # Update metrics
             context.metrics.normalization_duration = time.time() - stage_start
-            context.metrics.endpoints_processed = len(
-                normalization_result.endpoints
-            )
-            context.metrics.schemas_processed = len(
-                normalization_result.schemas
-            )
+            context.metrics.endpoints_processed = len(normalization_result.endpoints)
+            context.metrics.schemas_processed = len(normalization_result.schemas)
             context.metrics.security_schemes_processed = len(
                 normalization_result.security_schemes
             )
@@ -361,9 +353,7 @@ class StorageStage(ProcessingStage):
                     f"Storage rollback completed for API ID {context.api_id}"
                 )
             except Exception as e:
-                self.logger.error(
-                    f"Storage rollback failed: {str(e)}", exc_info=True
-                )
+                self.logger.error(f"Storage rollback failed: {str(e)}", exc_info=True)
 
 
 class SwaggerProcessingPipeline:
@@ -481,9 +471,7 @@ class SwaggerProcessingPipeline:
         self, file_paths: List[str], max_concurrent: int = 3
     ) -> BatchProcessingResult:
         """Process multiple Swagger files concurrently."""
-        self.logger.info(
-            f"Starting batch processing of {len(file_paths)} files"
-        )
+        self.logger.info(f"Starting batch processing of {len(file_paths)} files")
 
         # Create semaphore for concurrency control
         semaphore = asyncio.Semaphore(max_concurrent)
@@ -562,15 +550,11 @@ class SwaggerProcessingPipeline:
                 "duration": time.time() - validation_start,
             }
 
-            self.logger.info(
-                f"Integrity validation completed for API {api_id}"
-            )
+            self.logger.info(f"Integrity validation completed for API {api_id}")
             return validation_report
 
         except Exception as e:
-            error_msg = (
-                f"Integrity validation failed for API {api_id}: {str(e)}"
-            )
+            error_msg = f"Integrity validation failed for API {api_id}: {str(e)}"
             self.logger.error(error_msg, exc_info=True)
 
             return {

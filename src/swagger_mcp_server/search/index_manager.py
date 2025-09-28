@@ -83,9 +83,7 @@ class SearchIndexManager:
                     schema = create_search_schema()
                     self._index = index.create_in(str(self.index_dir), schema)
             except Exception as e:
-                raise RuntimeError(
-                    f"Failed to open/create search index: {e}"
-                ) from e
+                raise RuntimeError(f"Failed to open/create search index: {e}") from e
 
         return self._index
 
@@ -118,9 +116,7 @@ class SearchIndexManager:
             total_endpoints = await self.endpoint_repo.count_all()
 
             if progress_callback:
-                await progress_callback(
-                    0, total_endpoints, "Starting index creation"
-                )
+                await progress_callback(0, total_endpoints, "Starting index creation")
 
             # Process endpoints in batches
             async for batch_num, documents in self._process_endpoints_in_batches(
@@ -184,9 +180,7 @@ class SearchIndexManager:
             return True
 
         except Exception as e:
-            raise RuntimeError(
-                f"Failed to update endpoint {endpoint_id}: {e}"
-            ) from e
+            raise RuntimeError(f"Failed to update endpoint {endpoint_id}: {e}") from e
 
     async def remove_endpoint_document(self, endpoint_id: str) -> bool:
         """Remove an endpoint document from the index.
@@ -334,9 +328,7 @@ class SearchIndexManager:
             offset += batch_size
             batch_num += 1
 
-    async def _index_document_batch(
-        self, documents: List[Dict[str, Any]]
-    ) -> int:
+    async def _index_document_batch(self, documents: List[Dict[str, Any]]) -> int:
         """Index a batch of documents.
 
         Args:
@@ -379,16 +371,12 @@ class SearchIndexManager:
         """
         try:
             # Create comprehensive endpoint document using the new processor
-            endpoint_doc = (
-                await self.document_processor.create_endpoint_document(
-                    endpoint_data
-                )
+            endpoint_doc = await self.document_processor.create_endpoint_document(
+                endpoint_data
             )
 
             # Convert to index-ready format
-            index_document = convert_endpoint_document_to_index_fields(
-                endpoint_doc
-            )
+            index_document = convert_endpoint_document_to_index_fields(endpoint_doc)
 
             return index_document
 
@@ -418,9 +406,7 @@ class SearchIndexManager:
         """
         try:
             with self.index.writer() as writer:
-                deleted_count = writer.delete_by_term(
-                    "endpoint_id", endpoint_id
-                )
+                deleted_count = writer.delete_by_term("endpoint_id", endpoint_id)
                 return deleted_count > 0
         except Exception:
             return False

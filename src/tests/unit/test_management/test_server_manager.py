@@ -48,13 +48,9 @@ class TestMCPServerManager:
             "daemon": True,
         }
 
-        with patch.object(
-            self.manager, "_validate_server_config"
-        ), patch.object(
+        with patch.object(self.manager, "_validate_server_config"), patch.object(
             self.manager.registry, "is_port_available", return_value=True
-        ), patch.object(
-            self.manager.registry, "cleanup_dead_servers"
-        ), patch.object(
+        ), patch.object(self.manager.registry, "cleanup_dead_servers"), patch.object(
             self.manager.daemon_manager,
             "start_daemon_server",
             return_value=mock_daemon_result,
@@ -74,9 +70,7 @@ class TestMCPServerManager:
                 start_time=1234567890.0,
             )
 
-            result = await self.manager.start_server(
-                server_config, daemon=True
-            )
+            result = await self.manager.start_server(server_config, daemon=True)
 
         assert result["status"] == "started"
         assert result["server_id"] == "test-server-id"
@@ -92,9 +86,7 @@ class TestMCPServerManager:
             "port": 8080,
         }
 
-        with patch.object(
-            self.manager, "_validate_server_config"
-        ), patch.object(
+        with patch.object(self.manager, "_validate_server_config"), patch.object(
             self.manager.registry, "is_port_available", return_value=False
         ):
             with pytest.raises(ServerError) as exc_info:
@@ -145,9 +137,7 @@ class TestMCPServerManager:
 
         with patch.object(
             self.manager.registry, "get_server", return_value=server_instance
-        ), patch.object(
-            self.manager.registry, "update_server_status"
-        ), patch.object(
+        ), patch.object(self.manager.registry, "update_server_status"), patch.object(
             self.manager, "_stop_daemon_server", return_value=True
         ), patch.object(
             self.manager.registry, "unregister_server"
@@ -161,9 +151,7 @@ class TestMCPServerManager:
     @pytest.mark.asyncio
     async def test_stop_server_not_found(self):
         """Test stopping non-existent server."""
-        with patch.object(
-            self.manager.registry, "get_server", return_value=None
-        ):
+        with patch.object(self.manager.registry, "get_server", return_value=None):
             with pytest.raises(ServerError) as exc_info:
                 await self.manager.stop_server("non-existent-id")
 
@@ -279,13 +267,9 @@ class TestMCPServerManager:
             ),
         ]
 
-        with patch.object(
-            self.manager.registry, "cleanup_dead_servers"
-        ), patch.object(
+        with patch.object(self.manager.registry, "cleanup_dead_servers"), patch.object(
             self.manager.registry, "get_all_servers", return_value=servers
-        ), patch.object(
-            self.manager, "get_server_status"
-        ) as mock_get_status:
+        ), patch.object(self.manager, "get_server_status") as mock_get_status:
             # Mock individual status calls
             mock_get_status.side_effect = [
                 {"server": {"id": "server-1"}, "status": "running"},
@@ -351,9 +335,7 @@ class TestMCPServerManager:
             mock_socket.return_value = mock_sock
 
             # Should not raise exception
-            await self.manager._wait_for_server_ready(
-                "localhost", 8080, timeout=1
-            )
+            await self.manager._wait_for_server_ready("localhost", 8080, timeout=1)
 
     @pytest.mark.asyncio
     async def test_wait_for_server_ready_timeout(self):
@@ -367,9 +349,7 @@ class TestMCPServerManager:
             mock_socket.return_value = mock_sock
 
             with pytest.raises(ServerError) as exc_info:
-                await self.manager._wait_for_server_ready(
-                    "localhost", 8080, timeout=1
-                )
+                await self.manager._wait_for_server_ready("localhost", 8080, timeout=1)
 
             assert "did not become ready" in str(exc_info.value)
 

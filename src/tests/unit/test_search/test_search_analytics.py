@@ -241,9 +241,7 @@ class TestSearchAnalyticsEngine:
         all_data = sample_analytics_data + duplicate_queries
 
         # Analyze patterns
-        analysis_result = await analytics_engine.analyze_search_patterns(
-            all_data
-        )
+        analysis_result = await analytics_engine.analyze_search_patterns(all_data)
 
         # Verify pattern analysis
         assert "query_patterns" in analysis_result
@@ -261,9 +259,7 @@ class TestSearchAnalyticsEngine:
 
         assert auth_pattern is not None
         assert auth_pattern["frequency"] == 5
-        assert auth_pattern["pattern_type"] in [
-            pt.value for pt in QueryPatternType
-        ]
+        assert auth_pattern["pattern_type"] in [pt.value for pt in QueryPatternType]
 
     @pytest.mark.asyncio
     async def test_user_session_analysis(self, analytics_engine):
@@ -335,8 +331,7 @@ class TestSearchAnalyticsEngine:
         for i, analytics in enumerate(sample_analytics_data):
             if i % 3 == 0:  # Some queries have clicks
                 analytics.results_clicked = [
-                    f"result_{j}"
-                    for j in range(min(analytics.result_count, 2))
+                    f"result_{j}" for j in range(min(analytics.result_count, 2))
                 ]
             if i >= 15:  # Some queries are abandoned
                 analytics.query_abandoned = True
@@ -353,9 +348,7 @@ class TestSearchAnalyticsEngine:
         assert effectiveness.user_engagement >= 0
 
         # Check that effectiveness calculations make sense
-        assert (
-            effectiveness.query_success_rate > 0
-        )  # Some queries should succeed
+        assert effectiveness.query_success_rate > 0  # Some queries should succeed
         assert (
             effectiveness.abandonment_rate > 0
         )  # Some queries are marked as abandoned
@@ -369,29 +362,21 @@ class TestSearchAnalyticsEngine:
         assert normalized == "user authentication system"
 
         # Test special character removal
-        normalized = analytics_engine._normalize_query_text(
-            "user@auth!system#"
-        )
+        normalized = analytics_engine._normalize_query_text("user@auth!system#")
         assert normalized == "user auth system"
 
         # Test multiple spaces
-        normalized = analytics_engine._normalize_query_text(
-            "user    auth   system"
-        )
+        normalized = analytics_engine._normalize_query_text("user    auth   system")
         assert normalized == "user auth system"
 
     def test_query_similarity(self, analytics_engine):
         """Test query similarity detection."""
         # Similar queries
-        assert analytics_engine._are_queries_similar(
-            "user auth", "user authentication"
-        )
+        assert analytics_engine._are_queries_similar("user auth", "user authentication")
         assert analytics_engine._are_queries_similar("get users", "users get")
 
         # Different queries
-        assert not analytics_engine._are_queries_similar(
-            "user auth", "product catalog"
-        )
+        assert not analytics_engine._are_queries_similar("user auth", "product catalog")
         assert not analytics_engine._are_queries_similar(
             "authentication", "completely different"
         )
@@ -410,9 +395,7 @@ class TestIndexPerformanceMonitor:
         """Test index metrics collection."""
         with patch("os.path.exists", return_value=True), patch(
             "os.walk",
-            return_value=[
-                ("/tmp/test_index", [], ["index.db", "segments.gen"])
-            ],
+            return_value=[("/tmp/test_index", [], ["index.db", "segments.gen"])],
         ), patch(
             "os.path.getsize", side_effect=[1024 * 1024, 512 * 1024]
         ):  # 1MB + 512KB
@@ -432,9 +415,7 @@ class TestIndexPerformanceMonitor:
         # Create metrics with high fragmentation
         with patch.object(
             index_monitor, "_calculate_fragmentation", return_value=0.35
-        ), patch.object(
-            index_monitor, "_trigger_optimization"
-        ) as mock_trigger:
+        ), patch.object(index_monitor, "_trigger_optimization") as mock_trigger:
             metrics = await index_monitor.collect_index_metrics()
 
             # Optimization should be triggered due to high fragmentation
@@ -484,9 +465,7 @@ class TestIndexPerformanceMonitor:
         base_time = datetime.now() - timedelta(days=7)
         for i in range(7):  # One week of data
             metrics = IndexMetrics(
-                index_size_bytes=(100 + i * 10)
-                * 1024
-                * 1024,  # 10MB growth per day
+                index_size_bytes=(100 + i * 10) * 1024 * 1024,  # 10MB growth per day
                 index_size_mb=100 + i * 10,
                 document_count=10000 + i * 1000,  # 1000 docs per day
                 field_count=10,
@@ -553,9 +532,7 @@ class TestPerformanceTester:
     async def test_load_testing(self, performance_tester):
         """Test load testing functionality."""
         # Use shorter duration for testing
-        with patch.object(
-            performance_tester, "_execute_load_test"
-        ) as mock_load_test:
+        with patch.object(performance_tester, "_execute_load_test") as mock_load_test:
             mock_result = Mock()
             mock_result.configuration.concurrent_users = 5
             mock_result.avg_response_time_ms = 75.0
@@ -576,16 +553,12 @@ class TestPerformanceTester:
     @pytest.mark.asyncio
     async def test_stress_testing(self, performance_tester):
         """Test stress testing functionality."""
-        with patch.object(
-            performance_tester, "_execute_load_test"
-        ) as mock_load_test:
+        with patch.object(performance_tester, "_execute_load_test") as mock_load_test:
             # Mock increasing degradation with load
             def side_effect(config):
                 result = Mock()
                 result.configuration = config
-                result.avg_response_time_ms = 50 + (
-                    config.concurrent_users * 5
-                )
+                result.avg_response_time_ms = 50 + (config.concurrent_users * 5)
                 result.failed_requests = max(0, config.concurrent_users - 10)
                 result.total_requests = config.concurrent_users * 10
                 return result
@@ -654,9 +627,7 @@ class TestAnalyticsDashboard:
         # Mock analytics engine
         analytics_engine.analyze_search_patterns = AsyncMock(
             return_value={
-                "query_patterns": [
-                    {"pattern_text": "user auth", "frequency": 10}
-                ],
+                "query_patterns": [{"pattern_text": "user auth", "frequency": 10}],
                 "user_behavior": {
                     "behavior_distribution": {"explorer": 5, "searcher": 3}
                 },
@@ -987,9 +958,7 @@ class TestIntegrationScenarios:
 
         # Process the analytics
         await performance_monitor._record_analytics(critical_analytics)
-        await performance_monitor._check_performance_thresholds(
-            critical_analytics
-        )
+        await performance_monitor._check_performance_thresholds(critical_analytics)
 
         # Verify alert escalation
         assert len(alerts_triggered) > 0

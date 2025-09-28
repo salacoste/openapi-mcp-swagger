@@ -68,9 +68,7 @@ class TestConversionPipeline:
     def test_pipeline_initialization(self):
         """Test pipeline initialization."""
         output_dir = os.path.join(self.temp_dir, "output")
-        pipeline = ConversionPipeline(
-            self.swagger_file, output_dir, {"verbose": True}
-        )
+        pipeline = ConversionPipeline(self.swagger_file, output_dir, {"verbose": True})
 
         assert pipeline.swagger_file == self.swagger_file
         assert pipeline.output_dir == output_dir
@@ -143,9 +141,7 @@ class TestConversionPipeline:
         with open(test_file, "w") as f:
             f.write("test content")
 
-        pipeline = ConversionPipeline(
-            self.swagger_file, output_dir, {"force": True}
-        )
+        pipeline = ConversionPipeline(self.swagger_file, output_dir, {"force": True})
 
         await pipeline._prepare_output_directory()
 
@@ -453,9 +449,7 @@ class TestConversionPerformance:
         conversion_time = end_time - start_time
 
         # Should complete in reasonable time (generous limit for test environment)
-        assert (
-            conversion_time < 10.0
-        ), f"Conversion took {conversion_time:.2f}s"
+        assert conversion_time < 10.0, f"Conversion took {conversion_time:.2f}s"
 
         # Check result
         assert result["status"] == "success"

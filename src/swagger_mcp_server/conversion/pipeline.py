@@ -80,9 +80,7 @@ class ConversionPipeline:
         self.start_time = time.time()
 
         try:
-            logger.info(
-                "Starting conversion pipeline", swagger_file=self.swagger_file
-            )
+            logger.info("Starting conversion pipeline", swagger_file=self.swagger_file)
 
             # Phase 1: Validation and preparation
             await self._validate_input_file()
@@ -90,9 +88,7 @@ class ConversionPipeline:
 
             # Phase 2: Core processing pipeline
             parsed_data = await self._execute_parsing_phase()
-            normalized_data = await self._execute_normalization_phase(
-                parsed_data
-            )
+            normalized_data = await self._execute_normalization_phase(parsed_data)
             database_path = await self._execute_storage_phase(normalized_data)
             search_index = await self._execute_indexing_phase(
                 normalized_data, database_path
@@ -102,9 +98,7 @@ class ConversionPipeline:
             server_config = await self._generate_mcp_server_config(
                 normalized_data, database_path
             )
-            deployment_package = await self._create_deployment_package(
-                server_config
-            )
+            deployment_package = await self._create_deployment_package(server_config)
 
             # Phase 4: Validation and finalization
             if not self.options.get("skip_validation", False):
@@ -137,9 +131,7 @@ class ConversionPipeline:
         """Validate input Swagger file."""
         with self.progress_tracker.track_phase("Validating input file"):
             if not os.path.exists(self.swagger_file):
-                raise ConversionError(
-                    f"Swagger file not found: {self.swagger_file}"
-                )
+                raise ConversionError(f"Swagger file not found: {self.swagger_file}")
 
             # Check file size
             file_size = os.path.getsize(self.swagger_file)
@@ -150,17 +142,11 @@ class ConversionPipeline:
 
             # Check if it's a URL (basic check)
             if self.swagger_file.startswith(("http://", "https://")):
-                raise ConversionError(
-                    "URL input not yet implemented in this version"
-                )
+                raise ConversionError("URL input not yet implemented in this version")
 
             # Basic file format check
-            if not self.swagger_file.lower().endswith(
-                (".json", ".yaml", ".yml")
-            ):
-                raise ConversionError(
-                    "Swagger file must be JSON or YAML format"
-                )
+            if not self.swagger_file.lower().endswith((".json", ".yaml", ".yml")):
+                raise ConversionError("Swagger file must be JSON or YAML format")
 
             self.conversion_stats["input_file_size"] = file_size
 
@@ -192,9 +178,7 @@ class ConversionPipeline:
 
     async def _execute_parsing_phase(self) -> Dict[str, Any]:
         """Execute parsing phase with Epic 1 integration."""
-        with self.progress_tracker.track_phase(
-            "Parsing Swagger specification"
-        ):
+        with self.progress_tracker.track_phase("Parsing Swagger specification"):
             try:
                 # Initialize parser from Epic 1
                 parser = SwaggerParser()
@@ -228,9 +212,7 @@ class ConversionPipeline:
                 return parsed_data
 
             except Exception as e:
-                raise ConversionError(
-                    f"Failed to parse Swagger file: {str(e)}"
-                )
+                raise ConversionError(f"Failed to parse Swagger file: {str(e)}")
 
     async def _execute_normalization_phase(
         self, parsed_data: Dict[str, Any]
@@ -242,9 +224,7 @@ class ConversionPipeline:
                 normalizer = SchemaNormalizer()
 
                 # Normalize the parsed data
-                normalized_data = await normalizer.normalize_schema_data(
-                    parsed_data
-                )
+                normalized_data = await normalizer.normalize_schema_data(parsed_data)
 
                 # Update statistics
                 self.conversion_stats.update(
@@ -259,20 +239,14 @@ class ConversionPipeline:
                 return normalized_data
 
             except Exception as e:
-                raise ConversionError(
-                    f"Failed to normalize API structure: {str(e)}"
-                )
+                raise ConversionError(f"Failed to normalize API structure: {str(e)}")
 
-    async def _execute_storage_phase(
-        self, normalized_data: Dict[str, Any]
-    ) -> str:
+    async def _execute_storage_phase(self, normalized_data: Dict[str, Any]) -> str:
         """Execute storage phase with Epic 1 integration."""
         with self.progress_tracker.track_phase("Setting up database storage"):
             try:
                 # Create database file path
-                database_path = os.path.join(
-                    self.output_dir, "data", "mcp_server.db"
-                )
+                database_path = os.path.join(self.output_dir, "data", "mcp_server.db")
 
                 # Initialize database from Epic 1
                 database = Database(database_path)
@@ -293,9 +267,7 @@ class ConversionPipeline:
                 return database_path
 
             except Exception as e:
-                raise ConversionError(
-                    f"Failed to set up database storage: {str(e)}"
-                )
+                raise ConversionError(f"Failed to set up database storage: {str(e)}")
 
     async def _execute_indexing_phase(
         self, normalized_data: Dict[str, Any], database_path: str
@@ -304,9 +276,7 @@ class ConversionPipeline:
         with self.progress_tracker.track_phase("Building search index"):
             try:
                 # Create search index directory
-                index_path = os.path.join(
-                    self.output_dir, "data", "search_index"
-                )
+                index_path = os.path.join(self.output_dir, "data", "search_index")
                 os.makedirs(index_path, exist_ok=True)
 
                 # Initialize search components from Epic 3
@@ -321,26 +291,20 @@ class ConversionPipeline:
                     {
                         "search_index_path": index_path,
                         "indexing_completed": True,
-                        "indexed_documents": len(
-                            normalized_data.get("endpoints", [])
-                        ),
+                        "indexed_documents": len(normalized_data.get("endpoints", [])),
                     }
                 )
 
                 return index_path
 
             except Exception as e:
-                raise ConversionError(
-                    f"Failed to build search index: {str(e)}"
-                )
+                raise ConversionError(f"Failed to build search index: {str(e)}")
 
     async def _generate_mcp_server_config(
         self, normalized_data: Dict[str, Any], database_path: str
     ) -> Dict[str, Any]:
         """Generate MCP server configuration."""
-        with self.progress_tracker.track_phase(
-            "Generating MCP server configuration"
-        ):
+        with self.progress_tracker.track_phase("Generating MCP server configuration"):
             try:
                 api_info = normalized_data.get("info", {})
 
@@ -358,12 +322,8 @@ class ConversionPipeline:
                     ),
                     "swagger_file": self.swagger_file,
                     "generation_date": datetime.now().isoformat(),
-                    "endpoint_count": self.conversion_stats.get(
-                        "endpoints_found", 0
-                    ),
-                    "schema_count": self.conversion_stats.get(
-                        "schemas_found", 0
-                    ),
+                    "endpoint_count": self.conversion_stats.get("endpoints_found", 0),
+                    "schema_count": self.conversion_stats.get("schemas_found", 0),
                 }
 
                 return server_config
@@ -382,16 +342,12 @@ class ConversionPipeline:
         name = re.sub(r"[^a-zA-Z0-9\-_]", "", title.lower().replace(" ", "-"))
         return name or "swagger-mcp-server"
 
-    async def _create_deployment_package(
-        self, server_config: Dict[str, Any]
-    ) -> str:
+    async def _create_deployment_package(self, server_config: Dict[str, Any]) -> str:
         """Create complete deployment package."""
         with self.progress_tracker.track_phase("Creating deployment package"):
             try:
-                package_path = (
-                    await self.package_generator.create_deployment_package(
-                        server_config
-                    )
+                package_path = await self.package_generator.create_deployment_package(
+                    server_config
                 )
 
                 self.conversion_stats.update(
@@ -404,18 +360,14 @@ class ConversionPipeline:
                 return package_path
 
             except Exception as e:
-                raise ConversionError(
-                    f"Failed to create deployment package: {str(e)}"
-                )
+                raise ConversionError(f"Failed to create deployment package: {str(e)}")
 
     async def _validate_generated_server(self, deployment_package: str):
         """Validate generated MCP server functionality."""
         with self.progress_tracker.track_phase("Validating generated server"):
             try:
-                validation_results = (
-                    await self.validator.validate_generated_server(
-                        deployment_package
-                    )
+                validation_results = await self.validator.validate_generated_server(
+                    deployment_package
                 )
 
                 if not validation_results["overall_status"] == "passed":
@@ -431,9 +383,7 @@ class ConversionPipeline:
                 )
 
             except Exception as e:
-                raise ConversionError(
-                    f"Failed to validate generated server: {str(e)}"
-                )
+                raise ConversionError(f"Failed to validate generated server: {str(e)}")
 
     async def _generate_conversion_report(self) -> Dict[str, Any]:
         """Generate comprehensive conversion report."""
@@ -472,9 +422,7 @@ class ConversionPipeline:
 
         return report
 
-    async def _handle_conversion_error(
-        self, error: Exception
-    ) -> Dict[str, Any]:
+    async def _handle_conversion_error(self, error: Exception) -> Dict[str, Any]:
         """Handle conversion errors and generate diagnostic report."""
         duration = time.time() - self.start_time if self.start_time else 0
 
@@ -483,16 +431,12 @@ class ConversionPipeline:
             "error_message": str(error),
             "conversion_stats": self.conversion_stats,
             "duration": f"{duration:.1f}s",
-            "troubleshooting": self._generate_troubleshooting_suggestions(
-                error
-            ),
+            "troubleshooting": self._generate_troubleshooting_suggestions(error),
         }
 
         return error_report
 
-    def _generate_troubleshooting_suggestions(
-        self, error: Exception
-    ) -> List[str]:
+    def _generate_troubleshooting_suggestions(self, error: Exception) -> List[str]:
         """Generate troubleshooting suggestions based on error type."""
         suggestions = []
 
@@ -503,14 +447,10 @@ class ConversionPipeline:
             suggestions.append("Ensure you have read permissions for the file")
 
         elif "permission" in error_msg:
-            suggestions.append(
-                "Check write permissions for the output directory"
-            )
+            suggestions.append("Check write permissions for the output directory")
             suggestions.append("Try running with appropriate permissions")
 
-        elif (
-            "parse" in error_msg or "json" in error_msg or "yaml" in error_msg
-        ):
+        elif "parse" in error_msg or "json" in error_msg or "yaml" in error_msg:
             suggestions.append(
                 "Validate your Swagger file syntax using online validators"
             )
@@ -520,21 +460,15 @@ class ConversionPipeline:
 
         elif "memory" in error_msg or "size" in error_msg:
             suggestions.append("Try with a smaller Swagger file")
-            suggestions.append(
-                "Increase available memory for the conversion process"
-            )
+            suggestions.append("Increase available memory for the conversion process")
 
         else:
             suggestions.append(
                 "Try running with --verbose for more detailed error information"
             )
-            suggestions.append(
-                "Check that all dependencies are properly installed"
-            )
+            suggestions.append("Check that all dependencies are properly installed")
 
-        suggestions.append(
-            "Consult the documentation for common issues and solutions"
-        )
+        suggestions.append("Consult the documentation for common issues and solutions")
 
         return suggestions
 
@@ -594,9 +528,7 @@ class ConversionPipeline:
 
         return True
 
-    def _estimate_conversion_time(
-        self, endpoint_count: int, schema_count: int
-    ) -> str:
+    def _estimate_conversion_time(self, endpoint_count: int, schema_count: int) -> str:
         """Estimate conversion time based on API complexity."""
         # Rough estimation based on processing complexity
         base_time = 10  # seconds

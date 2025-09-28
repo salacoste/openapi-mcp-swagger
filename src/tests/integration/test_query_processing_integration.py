@@ -282,9 +282,7 @@ class TestBasicQueryProcessing:
         assert len(response.results) > 0
 
         # Should find user-related endpoints
-        user_results = [
-            r for r in response.results if "user" in r.description.lower()
-        ]
+        user_results = [r for r in response.results if "user" in r.description.lower()]
         assert len(user_results) > 0
 
     @pytest.mark.asyncio
@@ -382,9 +380,7 @@ class TestFieldSpecificQueries:
 
         if response.total_results > 0:
             # Should prioritize POST endpoints
-            post_results = [
-                r for r in response.results if r.http_method == "POST"
-            ]
+            post_results = [r for r in response.results if r.http_method == "POST"]
             # Mock may not strictly filter, but should boost POST results
 
     @pytest.mark.asyncio
@@ -421,9 +417,7 @@ class TestQuerySuggestions:
     async def test_typo_correction_suggestions(self, mock_search_engine):
         """Test typo correction in query suggestions."""
         # Search with a typo
-        response = await mock_search_engine.search(
-            "autentication"
-        )  # Missing 'h'
+        response = await mock_search_engine.search("autentication")  # Missing 'h'
 
         # Check if suggestions are provided for low result count
         if hasattr(response, "metadata") and response.metadata:
@@ -515,9 +509,7 @@ class TestNaturalLanguageQueries:
     @pytest.mark.asyncio
     async def test_natural_language_query(self, mock_search_engine):
         """Test natural language query processing."""
-        response = await mock_search_engine.search(
-            "how to create a new user account"
-        )
+        response = await mock_search_engine.search("how to create a new user account")
 
         # Should find user creation endpoints
         assert response.total_results > 0
@@ -525,17 +517,14 @@ class TestNaturalLanguageQueries:
         create_results = [
             r
             for r in response.results
-            if "create" in r.description.lower()
-            or "create" in r.summary.lower()
+            if "create" in r.description.lower() or "create" in r.summary.lower()
         ]
         assert len(create_results) > 0
 
     @pytest.mark.asyncio
     async def test_question_based_query(self, mock_search_engine):
         """Test question-based query processing."""
-        response = await mock_search_engine.search(
-            "how to authenticate users?"
-        )
+        response = await mock_search_engine.search("how to authenticate users?")
 
         # Should find authentication endpoints
         assert response.total_results > 0
@@ -543,17 +532,14 @@ class TestNaturalLanguageQueries:
         auth_results = [
             r
             for r in response.results
-            if "auth" in r.description.lower()
-            or "login" in r.description.lower()
+            if "auth" in r.description.lower() or "login" in r.description.lower()
         ]
         assert len(auth_results) > 0
 
     @pytest.mark.asyncio
     async def test_task_oriented_query(self, mock_search_engine):
         """Test task-oriented query processing."""
-        response = await mock_search_engine.search(
-            "delete user account permanently"
-        )
+        response = await mock_search_engine.search("delete user account permanently")
 
         # Should find delete endpoints
         assert response.total_results > 0

@@ -129,10 +129,7 @@ class UnifiedSearchInterface:
         if page < 1:
             raise ValueError("Page number must be >= 1")
 
-        if (
-            per_page < 1
-            or per_page > self.config.performance.max_search_results
-        ):
+        if per_page < 1 or per_page > self.config.performance.max_search_results:
             raise ValueError(
                 f"per_page must be between 1 and {self.config.performance.max_search_results}"
             )
@@ -155,15 +152,13 @@ class UnifiedSearchInterface:
 
             # Execute endpoint search
             if execute_endpoints:
-                endpoint_search_response = (
-                    await self.search_engine.search_advanced(
-                        query=query,
-                        filters=filters,
-                        page=1,  # Get all for unified processing
-                        per_page=self.config.performance.max_search_results,
-                        include_organization=False,
-                        include_metadata=True,
-                    )
+                endpoint_search_response = await self.search_engine.search_advanced(
+                    query=query,
+                    filters=filters,
+                    page=1,  # Get all for unified processing
+                    per_page=self.config.performance.max_search_results,
+                    include_organization=False,
+                    include_metadata=True,
                 )
 
                 endpoint_results = endpoint_search_response.get("results", [])
@@ -185,9 +180,7 @@ class UnifiedSearchInterface:
                             "tags": result.get("tags", ""),
                             "deprecated": result.get("deprecated", False),
                             "operation_type": result.get("operation_type", ""),
-                            "complexity_level": result.get(
-                                "complexity_level", ""
-                            ),
+                            "complexity_level": result.get("complexity_level", ""),
                             "authentication_info": result.get(
                                 "authentication_info", {}
                             ),
@@ -215,30 +208,18 @@ class UnifiedSearchInterface:
                         highlights=result.get("highlights", {}),
                         metadata={
                             "schema_type": result["schema_type"],
-                            "property_count": len(
-                                result.get("property_names", [])
-                            ),
-                            "complexity_level": result.get(
-                                "complexity_level", ""
-                            ),
-                            "usage_frequency": result.get(
-                                "usage_frequency", 0
-                            ),
+                            "property_count": len(result.get("property_names", [])),
+                            "complexity_level": result.get("complexity_level", ""),
+                            "usage_frequency": result.get("usage_frequency", 0),
                             "composition_type": result.get("composition_type"),
-                            "validation_rules": result.get(
-                                "validation_rules", {}
-                            ),
+                            "validation_rules": result.get("validation_rules", {}),
                         },
                     )
                     all_results.append(unified_result)
 
             # Generate cross-references if requested
             cross_references = {}
-            if (
-                include_cross_references
-                and endpoint_results
-                and schema_results
-            ):
+            if include_cross_references and endpoint_results and schema_results:
                 cross_references = await self._generate_cross_references(
                     endpoint_results, schema_results
                 )
@@ -251,9 +232,7 @@ class UnifiedSearchInterface:
             # Organize results if requested
             organization = {}
             if include_organization:
-                organization = await self._organize_unified_results(
-                    all_results, query
-                )
+                organization = await self._organize_unified_results(all_results, query)
 
             # Apply intelligent ranking to mixed results
             ranked_results = self._rank_unified_results(
@@ -395,15 +374,11 @@ class UnifiedSearchInterface:
 
         # Highlight schema name
         if query_lower in doc.schema_name.lower():
-            highlights["schema_name"] = self._highlight_text(
-                doc.schema_name, query
-            )
+            highlights["schema_name"] = self._highlight_text(doc.schema_name, query)
 
         # Highlight description
         if query_lower in doc.description.lower():
-            highlights["description"] = self._highlight_text(
-                doc.description, query
-            )
+            highlights["description"] = self._highlight_text(doc.description, query)
 
         # Highlight matching property names
         matching_props = [
@@ -576,12 +551,8 @@ class UnifiedSearchInterface:
             if result.result_type == ResultType.ENDPOINT:
                 # Add schema relationships for endpoints
                 endpoint_id = result.result_id
-                if endpoint_id in cross_references.get(
-                    "endpoint_to_schema", {}
-                ):
-                    schema_deps = cross_references["endpoint_to_schema"][
-                        endpoint_id
-                    ]
+                if endpoint_id in cross_references.get("endpoint_to_schema", {}):
+                    schema_deps = cross_references["endpoint_to_schema"][endpoint_id]
                     for schema_dep in schema_deps:
                         relationships.append(
                             {
@@ -597,9 +568,7 @@ class UnifiedSearchInterface:
                 # Add endpoint relationships for schemas
                 schema_id = result.result_id
                 if schema_id in cross_references.get("schema_to_endpoint", {}):
-                    endpoint_usages = cross_references["schema_to_endpoint"][
-                        schema_id
-                    ]
+                    endpoint_usages = cross_references["schema_to_endpoint"][schema_id]
                     for endpoint_usage in endpoint_usages:
                         relationships.append(
                             {

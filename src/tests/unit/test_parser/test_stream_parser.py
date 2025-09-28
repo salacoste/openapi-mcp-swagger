@@ -97,9 +97,7 @@ class TestSwaggerStreamParser:
                         "required": ["id", "name", "email"],
                     }
                 },
-                "securitySchemes": {
-                    "bearerAuth": {"type": "http", "scheme": "bearer"}
-                },
+                "securitySchemes": {"bearerAuth": {"type": "http", "scheme": "bearer"}},
             },
             "x-custom-extension": "test-value",
         }
@@ -207,9 +205,7 @@ class TestSwaggerStreamParser:
         assert parser_with_config.config.chunk_size_bytes == 4096
         assert parser_with_config.config.max_memory_mb == 1024
 
-    async def test_parse_simple_file_success(
-        self, parser, simple_openapi_file
-    ):
+    async def test_parse_simple_file_success(self, parser, simple_openapi_file):
         """Test parsing simple OpenAPI file successfully."""
         result = await parser.parse(simple_openapi_file)
 
@@ -228,9 +224,7 @@ class TestSwaggerStreamParser:
         assert result.metrics.file_size_bytes > 0
         assert result.metrics.parse_duration_ms >= 0
 
-    async def test_parse_large_file_performance(
-        self, parser, large_openapi_file
-    ):
+    async def test_parse_large_file_performance(self, parser, large_openapi_file):
         """Test parsing large file within performance limits."""
         result = await parser.parse(large_openapi_file)
 
@@ -238,12 +232,8 @@ class TestSwaggerStreamParser:
         assert result.status == ParseStatus.COMPLETED
 
         # Performance checks
-        assert (
-            result.metrics.parse_duration_ms < 5000
-        )  # Should be under 5 seconds
-        assert (
-            result.metrics.memory_peak_mb < 100
-        )  # Should use reasonable memory
+        assert result.metrics.parse_duration_ms < 5000  # Should be under 5 seconds
+        assert result.metrics.memory_peak_mb < 100  # Should use reasonable memory
 
         # Quality metrics
         assert result.metrics.endpoints_found == 200  # 100 GET + 100 POST
@@ -282,9 +272,7 @@ class TestSwaggerStreamParser:
         if result.metrics.memory_peak_mb > 0:
             assert result.metrics.memory_peak_mb < 100
 
-    async def test_parse_malformed_json_error(
-        self, parser, malformed_json_file
-    ):
+    async def test_parse_malformed_json_error(self, parser, malformed_json_file):
         """Test parsing malformed JSON file."""
         result = await parser.parse(malformed_json_file)
 
@@ -318,9 +306,7 @@ class TestSwaggerStreamParser:
 
         assert "exceeds maximum" in str(exc_info.value)
 
-    async def test_extract_api_info_complete(
-        self, parser, simple_openapi_file
-    ):
+    async def test_extract_api_info_complete(self, parser, simple_openapi_file):
         """Test extraction of complete API information."""
         result = await parser.parse(simple_openapi_file)
 
@@ -400,9 +386,7 @@ class TestSwaggerStreamParser:
             "empty_object": {},
             "empty_array": [],
             "nested_array": [1, 2, {"nested": "value"}],
-            "complex_nesting": {
-                "level1": {"level2": {"level3": ["item1", "item2"]}}
-            },
+            "complex_nesting": {"level1": {"level2": {"level3": ["item1", "item2"]}}},
         }
 
         edge_file = tmp_path / "edge_cases.json"

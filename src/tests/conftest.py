@@ -54,9 +54,7 @@ def sample_openapi_spec() -> Dict[str, Any]:
                                 "application/json": {
                                     "schema": {
                                         "type": "array",
-                                        "items": {
-                                            "$ref": "#/components/schemas/User"
-                                        },
+                                        "items": {"$ref": "#/components/schemas/User"},
                                     }
                                 }
                             },
@@ -79,9 +77,7 @@ def sample_openapi_spec() -> Dict[str, Any]:
                             "description": "User created",
                             "content": {
                                 "application/json": {
-                                    "schema": {
-                                        "$ref": "#/components/schemas/User"
-                                    }
+                                    "schema": {"$ref": "#/components/schemas/User"}
                                 }
                             },
                         }
@@ -104,9 +100,7 @@ def sample_openapi_spec() -> Dict[str, Any]:
                             "description": "User found",
                             "content": {
                                 "application/json": {
-                                    "schema": {
-                                        "$ref": "#/components/schemas/User"
-                                    }
+                                    "schema": {"$ref": "#/components/schemas/User"}
                                 }
                             },
                         },

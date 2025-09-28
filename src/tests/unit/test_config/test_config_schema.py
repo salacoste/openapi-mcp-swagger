@@ -46,9 +46,7 @@ class TestConfigurationSchema:
         assert "verbosity" in help_text.lower()
 
         # Test nested keys
-        help_text = ConfigurationSchema.get_configuration_help(
-            "server.ssl.enabled"
-        )
+        help_text = ConfigurationSchema.get_configuration_help("server.ssl.enabled")
         assert "ssl" in help_text.lower() or "tls" in help_text.lower()
 
         help_text = ConfigurationSchema.get_configuration_help(
@@ -58,14 +56,10 @@ class TestConfigurationSchema:
 
     def test_get_configuration_help_invalid_keys(self):
         """Test getting help for invalid configuration keys."""
-        help_text = ConfigurationSchema.get_configuration_help(
-            "nonexistent.key"
-        )
+        help_text = ConfigurationSchema.get_configuration_help("nonexistent.key")
         assert help_text is None
 
-        help_text = ConfigurationSchema.get_configuration_help(
-            "server.nonexistent"
-        )
+        help_text = ConfigurationSchema.get_configuration_help("server.nonexistent")
         assert help_text is None
 
     def test_get_all_configuration_keys(self):
@@ -436,9 +430,7 @@ class TestConfigurationSchema:
                 if definition.get("type") == "dict" and "schema" in definition:
                     # Nested dictionary - recurse
                     expected_keys.extend(
-                        collect_keys_from_schema(
-                            definition["schema"], current_key
-                        )
+                        collect_keys_from_schema(definition["schema"], current_key)
                     )
                 elif "default" in definition or "type" in definition:
                     # Leaf value

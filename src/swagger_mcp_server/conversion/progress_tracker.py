@@ -83,18 +83,14 @@ class ConversionProgressTracker:
 
             # Show estimated time remaining
             if self.current_phase > 0:
-                avg_phase_time = sum(self.phase_durations) / len(
-                    self.phase_durations
-                )
+                avg_phase_time = sum(self.phase_durations) / len(self.phase_durations)
                 remaining_phases = total_phases - self.current_phase
                 estimated_remaining = avg_phase_time * remaining_phases
                 click.echo(
                     f"   Estimated time remaining: {self._format_duration(estimated_remaining)}"
                 )
 
-    def _display_phase_complete(
-        self, phase_name: str, icon: str, duration: float
-    ):
+    def _display_phase_complete(self, phase_name: str, icon: str, duration: float):
         """Display phase completion with timing information."""
         if self.verbose:
             click.echo(
@@ -114,9 +110,7 @@ class ConversionProgressTracker:
         self, phase_name: str, icon: str, duration: float, error: str
     ):
         """Display phase error with diagnostic information."""
-        click.echo(
-            f"   ❌ {phase_name} failed after {self._format_duration(duration)}"
-        )
+        click.echo(f"   ❌ {phase_name} failed after {self._format_duration(duration)}")
 
         if self.verbose:
             click.echo(f"   Error: {error}")
@@ -187,21 +181,15 @@ class ConversionProgressTracker:
         avg_phase_time = sum(self.phase_durations) / len(self.phase_durations)
 
         # Weight remaining phases
-        remaining_weight = sum(
-            phase[1] for phase in self.phases[self.current_phase :]
-        )
-        completed_weight = sum(
-            phase[1] for phase in self.phases[: self.current_phase]
-        )
+        remaining_weight = sum(phase[1] for phase in self.phases[self.current_phase :])
+        completed_weight = sum(phase[1] for phase in self.phases[: self.current_phase])
 
         if completed_weight > 0:
             # Adjust average time based on phase weights
             total_weight = sum(phase[1] for phase in self.phases)
             weight_factor = remaining_weight / completed_weight
             estimated_remaining = (
-                avg_phase_time
-                * len(self.phases[self.current_phase :])
-                * weight_factor
+                avg_phase_time * len(self.phases[self.current_phase :]) * weight_factor
             )
 
             return self._format_duration(estimated_remaining)

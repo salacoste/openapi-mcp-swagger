@@ -166,9 +166,7 @@ class TestSearchIndexManager:
             else:
                 return []  # No more data after first batch
 
-        index_manager.endpoint_repo.get_all = AsyncMock(
-            side_effect=mock_get_all
-        )
+        index_manager.endpoint_repo.get_all = AsyncMock(side_effect=mock_get_all)
 
         # Mock the document creation
         async def mock_create_search_document(endpoint):
@@ -251,9 +249,7 @@ class TestSearchIndexManager:
             "responses": {},
         }
 
-        index_manager.endpoint_repo.get_by_id = AsyncMock(
-            return_value=updated_endpoint
-        )
+        index_manager.endpoint_repo.get_by_id = AsyncMock(return_value=updated_endpoint)
 
         # Update document
         result = await index_manager.update_endpoint_document("1")
@@ -423,9 +419,7 @@ class TestDocumentProcessing:
         document = await index_manager._create_search_document(endpoint_data)
 
         assert "id (string): User identifier" in document["parameters"]
-        assert (
-            "include (array): Include related data" in document["parameters"]
-        )
+        assert "include (array): Include related data" in document["parameters"]
         assert "id include" == document["parameter_names"]
 
     @pytest.mark.asyncio
@@ -513,9 +507,7 @@ class TestBatchProcessing:
             end = offset + limit if limit else len(all_endpoints)
             return all_endpoints[offset:end]
 
-        index_manager.endpoint_repo.get_all = AsyncMock(
-            side_effect=mock_get_all
-        )
+        index_manager.endpoint_repo.get_all = AsyncMock(side_effect=mock_get_all)
 
         # Process in batches
         batch_count = 0

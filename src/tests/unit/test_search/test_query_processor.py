@@ -126,9 +126,7 @@ class TestQueryPreprocessing:
             results.append(processed.normalized_terms)
 
         # All should produce similar normalized terms
-        assert (
-            len(set(str(r) for r in results)) <= 2
-        )  # Allow for minor variations
+        assert len(set(str(r) for r in results)) <= 2  # Allow for minor variations
 
 
 class TestBooleanQueryProcessing:
@@ -333,9 +331,7 @@ class TestWhooshQueryGeneration:
             "parameters",
             "tags",
         ]
-        query = query_processor.generate_whoosh_query(
-            processed_query, schema_fields
-        )
+        query = query_processor.generate_whoosh_query(processed_query, schema_fields)
 
         assert query is not None
         # Should be a compound query for enhanced terms
@@ -360,9 +356,7 @@ class TestWhooshQueryGeneration:
             "summary",
             "description",
         ]
-        query = query_processor.generate_whoosh_query(
-            processed_query, schema_fields
-        )
+        query = query_processor.generate_whoosh_query(processed_query, schema_fields)
 
         assert query is not None
 
@@ -381,9 +375,7 @@ class TestWhooshQueryGeneration:
         )
 
         schema_fields = ["endpoint_path", "summary", "description"]
-        query = query_processor.generate_whoosh_query(
-            processed_query, schema_fields
-        )
+        query = query_processor.generate_whoosh_query(processed_query, schema_fields)
 
         assert query is not None
 
@@ -402,9 +394,7 @@ class TestWhooshQueryGeneration:
         )
 
         schema_fields = ["endpoint_path", "summary", "description"]
-        query = query_processor.generate_whoosh_query(
-            processed_query, schema_fields
-        )
+        query = query_processor.generate_whoosh_query(processed_query, schema_fields)
 
         assert query is not None
 
@@ -413,9 +403,7 @@ class TestQuerySuggestions:
     """Test query suggestion generation."""
 
     @pytest.mark.asyncio
-    async def test_typo_fix_suggestions(
-        self, query_processor, sample_available_terms
-    ):
+    async def test_typo_fix_suggestions(self, query_processor, sample_available_terms):
         """Test typo fix suggestions."""
         query = "autentication"  # Typo in "authentication"
         suggestions = await query_processor.generate_query_suggestions(
@@ -431,9 +419,7 @@ class TestQuerySuggestions:
     async def test_broader_query_suggestions(self, query_processor):
         """Test broader query suggestions for zero results."""
         query = "very specific complex query terms"
-        suggestions = await query_processor.generate_query_suggestions(
-            query, 0
-        )
+        suggestions = await query_processor.generate_query_suggestions(query, 0)
 
         assert len(suggestions) > 0
         # Should suggest broader alternatives
@@ -444,9 +430,7 @@ class TestQuerySuggestions:
     async def test_refinement_suggestions(self, query_processor):
         """Test refinement suggestions for few results."""
         query = "user"
-        suggestions = await query_processor.generate_query_suggestions(
-            query, 3
-        )
+        suggestions = await query_processor.generate_query_suggestions(query, 3)
 
         assert len(suggestions) > 0
         # Should suggest refinements
@@ -457,9 +441,7 @@ class TestQuerySuggestions:
     async def test_api_pattern_suggestions(self, query_processor):
         """Test API pattern suggestions."""
         query = "user create"
-        suggestions = await query_processor.generate_query_suggestions(
-            query, 3
-        )
+        suggestions = await query_processor.generate_query_suggestions(query, 3)
 
         # Should include API pattern suggestions
         assert len(suggestions) > 0
@@ -469,9 +451,7 @@ class TestQuerySuggestions:
     async def test_suggestion_limit(self, query_processor):
         """Test that suggestions are limited to reasonable number."""
         query = "user authentication api endpoint"
-        suggestions = await query_processor.generate_query_suggestions(
-            query, 0
-        )
+        suggestions = await query_processor.generate_query_suggestions(query, 0)
 
         # Should not exceed 5 suggestions
         assert len(suggestions) <= 5
@@ -480,9 +460,7 @@ class TestQuerySuggestions:
     async def test_suggestion_scoring(self, query_processor):
         """Test that suggestions are scored and sorted."""
         query = "user"
-        suggestions = await query_processor.generate_query_suggestions(
-            query, 0
-        )
+        suggestions = await query_processor.generate_query_suggestions(query, 0)
 
         if len(suggestions) > 1:
             # Should be sorted by score (descending)
@@ -561,9 +539,7 @@ class TestNLTKIntegration:
 
     def test_nltk_availability_handling(self, search_config):
         """Test handling when NLTK is not available."""
-        with patch(
-            "swagger_mcp_server.search.query_processor.NLTK_AVAILABLE", False
-        ):
+        with patch("swagger_mcp_server.search.query_processor.NLTK_AVAILABLE", False):
             processor = QueryProcessor(search_config)
             assert processor.stemmer is None
             assert processor.stop_words == set()
@@ -571,9 +547,7 @@ class TestNLTKIntegration:
     @pytest.mark.asyncio
     async def test_fallback_processing_without_nltk(self, search_config):
         """Test query processing fallback when NLTK is unavailable."""
-        with patch(
-            "swagger_mcp_server.search.query_processor.NLTK_AVAILABLE", False
-        ):
+        with patch("swagger_mcp_server.search.query_processor.NLTK_AVAILABLE", False):
             processor = QueryProcessor(search_config)
             query = "users authentication endpoints"
             processed = await processor.process_query(query)
@@ -631,9 +605,7 @@ class TestQueryProcessorIntegration:
             "summary",
             "description",
         ]
-        whoosh_query = query_processor.generate_whoosh_query(
-            processed, schema_fields
-        )
+        whoosh_query = query_processor.generate_whoosh_query(processed, schema_fields)
         assert whoosh_query is not None
 
     @pytest.mark.asyncio
@@ -648,6 +620,4 @@ class TestQueryProcessorIntegration:
 
         assert len(suggestions) > 0
         assert all(isinstance(s, QuerySuggestion) for s in suggestions)
-        assert all(
-            hasattr(s, "query") and hasattr(s, "score") for s in suggestions
-        )
+        assert all(hasattr(s, "query") and hasattr(s, "score") for s in suggestions)

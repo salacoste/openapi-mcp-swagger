@@ -132,14 +132,10 @@ class DatabaseManager:
 
                 self._initialized = True
 
-                self.logger.info(
-                    "Database initialization completed successfully"
-                )
+                self.logger.info("Database initialization completed successfully")
 
             except Exception as e:
-                self.logger.error(
-                    "Database initialization failed", error=str(e)
-                )
+                self.logger.error("Database initialization failed", error=str(e))
                 raise
 
     async def _configure_sqlite(self) -> None:
@@ -183,9 +179,7 @@ class DatabaseManager:
 
                 await conn.commit()
 
-                self.logger.info(
-                    "FTS5 tables and triggers created successfully"
-                )
+                self.logger.info("FTS5 tables and triggers created successfully")
 
             except Exception as e:
                 self.logger.error("Failed to setup FTS5 tables", error=str(e))
@@ -209,14 +203,10 @@ class DatabaseManager:
                     applied_versions=applied_versions,
                 )
             else:
-                self.logger.info(
-                    "Database is up to date, no migrations needed"
-                )
+                self.logger.info("Database is up to date, no migrations needed")
 
         except Exception as e:
-            self.logger.error(
-                "Failed to run database migrations", error=str(e)
-            )
+            self.logger.error("Failed to run database migrations", error=str(e))
             # Don't fail initialization if migrations fail - log and continue
             # This allows manual migration handling if needed
 
@@ -242,16 +232,12 @@ class DatabaseManager:
                 yield session
             except Exception as e:
                 await session.rollback()
-                self.logger.error(
-                    "Database session error, rolling back", error=str(e)
-                )
+                self.logger.error("Database session error, rolling back", error=str(e))
                 raise
             finally:
                 await session.close()
 
-    async def execute_raw_sql(
-        self, sql: str, params: Optional[tuple] = None
-    ) -> Any:
+    async def execute_raw_sql(self, sql: str, params: Optional[tuple] = None) -> Any:
         """Execute raw SQL query."""
         async with aiosqlite.connect(self.config.database_path) as conn:
             if params:
@@ -308,9 +294,7 @@ class DatabaseManager:
 
         try:
             for table in tables:
-                result = await self.execute_raw_sql(
-                    f"SELECT COUNT(*) FROM {table}"
-                )
+                result = await self.execute_raw_sql(f"SELECT COUNT(*) FROM {table}")
                 counts[table] = result[0][0] if result else 0
         except Exception as e:
             self.logger.warning("Failed to get table counts", error=str(e))
@@ -333,9 +317,7 @@ class DatabaseManager:
             async with aiosqlite.connect(backup_path) as conn:
                 await conn.execute("PRAGMA integrity_check")
 
-            self.logger.info(
-                "Database backup created", backup_path=backup_path
-            )
+            self.logger.info("Database backup created", backup_path=backup_path)
 
             return backup_path
 
@@ -370,9 +352,7 @@ class DatabaseManager:
             self._initialized = False
             await self.initialize()
 
-            self.logger.info(
-                "Database restored from backup", backup_path=backup_path
-            )
+            self.logger.info("Database restored from backup", backup_path=backup_path)
 
         except Exception as e:
             self.logger.error(
@@ -456,9 +436,7 @@ class DatabaseManager:
             migration_manager = MigrationManager(self)
             return await migration_manager.validate_database_integrity()
         except Exception as e:
-            self.logger.error(
-                "Failed to validate database integrity", error=str(e)
-            )
+            self.logger.error("Failed to validate database integrity", error=str(e))
             return {"error": str(e)}
 
     async def close(self) -> None:

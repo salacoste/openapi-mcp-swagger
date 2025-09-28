@@ -126,9 +126,7 @@ class EndpointDocumentProcessor:
             ValueError: If required endpoint data is missing
         """
         if not endpoint_data.get("id") or not endpoint_data.get("path"):
-            raise ValueError(
-                "Endpoint data must include 'id' and 'path' fields"
-            )
+            raise ValueError("Endpoint data must include 'id' and 'path' fields")
 
         # Extract path information
         path_segments = self.extract_path_segments(endpoint_data["path"])
@@ -220,9 +218,7 @@ class EndpointDocumentProcessor:
         """
         # Remove path parameters: /users/{id}/posts → /users/posts
         clean_path = re.sub(r"\{[^}]+\}", "", path)
-        clean_path = re.sub(
-            r":[^/]+", "", clean_path
-        )  # Handle :id style parameters
+        clean_path = re.sub(r":[^/]+", "", clean_path)  # Handle :id style parameters
 
         # Split and filter segments
         segments = [
@@ -275,9 +271,7 @@ class EndpointDocumentProcessor:
 
             name = param.get("name", "")
             description = param.get("description", "")
-            param_type = param.get(
-                "type", param.get("schema", {}).get("type", "")
-            )
+            param_type = param.get("type", param.get("schema", {}).get("type", ""))
             param_in = param.get("in", "")
             is_required = param.get("required", False)
 
@@ -316,9 +310,7 @@ class EndpointDocumentProcessor:
             "cookie_params": cookie_params,
         }
 
-    async def extract_response_info(
-        self, responses: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    async def extract_response_info(self, responses: Dict[str, Any]) -> Dict[str, Any]:
         """Extract comprehensive response information.
 
         Args:
@@ -419,9 +411,7 @@ class EndpointDocumentProcessor:
             "scheme_types": list(scheme_types),
         }
 
-    def extract_operation_info(
-        self, endpoint_data: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def extract_operation_info(self, endpoint_data: Dict[str, Any]) -> Dict[str, Any]:
         """Extract operation-level information.
 
         Args:
@@ -436,9 +426,7 @@ class EndpointDocumentProcessor:
             "operation_id": endpoint_data.get(
                 "operationId", endpoint_data.get("operation_id", "")
             ),
-            "external_docs": endpoint_data.get("externalDocs", {}).get(
-                "url", ""
-            ),
+            "external_docs": endpoint_data.get("externalDocs", {}).get("url", ""),
         }
 
     def extract_resource_name(self, path: str) -> str:
@@ -459,9 +447,7 @@ class EndpointDocumentProcessor:
 
         return segments[0] if segments else ""
 
-    def classify_operation_type(
-        self, method: str, path: str, summary: str
-    ) -> str:
+    def classify_operation_type(self, method: str, path: str, summary: str) -> str:
         """Classify the operation type based on method, path, and summary.
 
         Args:
@@ -480,15 +466,12 @@ class EndpointDocumentProcessor:
         if any(word in summary_lower for word in ["create", "add", "new"]):
             return "create"
         elif any(
-            word in summary_lower
-            for word in ["update", "modify", "change", "edit"]
+            word in summary_lower for word in ["update", "modify", "change", "edit"]
         ):
             return "update"
         elif any(word in summary_lower for word in ["delete", "remove"]):
             return "delete"
-        elif any(
-            word in summary_lower for word in ["search", "find", "query"]
-        ):
+        elif any(word in summary_lower for word in ["search", "find", "query"]):
             return "search"
         elif any(word in summary_lower for word in ["list", "get all"]):
             return "list"
@@ -594,9 +577,7 @@ class EndpointDocumentProcessor:
             # Split camelCase and snake_case
             words = re.sub(r"([a-z])([A-Z])", r"\1 \2", operation_id)
             words = words.replace("_", " ").replace("-", " ")
-            keywords.update(
-                word.lower() for word in words.split() if len(word) > 2
-            )
+            keywords.update(word.lower() for word in words.split() if len(word) > 2)
 
         return sorted(list(keywords))
 
@@ -629,9 +610,7 @@ class EndpointDocumentProcessor:
             if isinstance(response, dict):
                 content = response.get("content", {})
                 for content_type, schema_info in content.items():
-                    if schema_info.get("example") or schema_info.get(
-                        "examples"
-                    ):
+                    if schema_info.get("example") or schema_info.get("examples"):
                         return True
 
         return False

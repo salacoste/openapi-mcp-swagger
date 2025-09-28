@@ -51,9 +51,7 @@ class TestMethodMetrics:
         assert metrics.total_requests == 3
         assert metrics.total_errors == 0
         assert abs(metrics.total_response_time - 0.45) < 0.001
-        assert (
-            abs(metrics.avg_response_time - 150.0) < 0.001
-        )  # (100+200+150)/3 = 150ms
+        assert abs(metrics.avg_response_time - 150.0) < 0.001  # (100+200+150)/3 = 150ms
         assert len(metrics.response_times) == 3
 
     def test_record_request_with_errors(self):
@@ -258,9 +256,7 @@ class TestPerformanceMonitor:
         monitor = PerformanceMonitor()
 
         monitor.update_database_pool_utilization(0.8)
-        assert (
-            abs(monitor.system_metrics.database_pool_utilization - 0.8) < 0.001
-        )
+        assert abs(monitor.system_metrics.database_pool_utilization - 0.8) < 0.001
 
     def test_get_performance_metrics(self):
         """Test getting performance metrics."""
@@ -501,9 +497,7 @@ class TestHealthChecker:
         checker = HealthChecker(monitor)
 
         # Record requests near threshold (degraded but not unhealthy)
-        monitor.record_request(
-            "searchEndpoints", 0.09
-        )  # 90ms (90% of 100ms threshold)
+        monitor.record_request("searchEndpoints", 0.09)  # 90ms (90% of 100ms threshold)
 
         health = await checker.check_performance_health()
 
@@ -619,9 +613,7 @@ class TestMCPServerMonitoringIntegration:
         server.schema_repo = AsyncMock()
         server.metadata_repo = AsyncMock()
         server.db_manager = AsyncMock()
-        server.db_manager.health_check = AsyncMock(
-            return_value={"status": "healthy"}
-        )
+        server.db_manager.health_check = AsyncMock(return_value={"status": "healthy"})
         return server
 
     @pytest.mark.asyncio
@@ -645,10 +637,7 @@ class TestMCPServerMonitoringIntegration:
 
         # Test update connection count
         server.update_connection_count(10)
-        assert (
-            server.performance_monitor.system_metrics.concurrent_connections
-            == 10
-        )
+        assert server.performance_monitor.system_metrics.concurrent_connections == 10
 
         # Test update database pool utilization
         server.update_database_pool_utilization(0.7)
@@ -682,9 +671,7 @@ class TestMCPServerMonitoringIntegration:
 
         # Check that metrics were recorded
         metrics = await server.get_performance_metrics()
-        search_metrics = metrics["performance_metrics"].get(
-            "searchEndpoints", {}
-        )
+        search_metrics = metrics["performance_metrics"].get("searchEndpoints", {})
 
         # Should have at least attempted to record metrics
         assert isinstance(search_metrics, dict)

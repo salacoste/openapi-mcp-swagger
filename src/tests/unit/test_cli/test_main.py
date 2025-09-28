@@ -53,9 +53,7 @@ class TestCLI:
 
     def test_convert_command_basic(self):
         """Test convert command with basic parameters."""
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             # Create a simple swagger file
             swagger_data = {
                 "swagger": "2.0",
@@ -68,18 +66,13 @@ class TestCLI:
             try:
                 result = self.runner.invoke(cli, ["convert", f.name])
                 assert result.exit_code == 0
-                assert (
-                    "Starting Swagger to MCP Server conversion"
-                    in result.output
-                )
+                assert "Starting Swagger to MCP Server conversion" in result.output
             finally:
                 os.unlink(f.name)
 
     def test_convert_command_with_options(self):
         """Test convert command with all options."""
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             swagger_data = {
                 "openapi": "3.0.0",
                 "info": {"title": "Test API", "version": "1.0"},
@@ -104,10 +97,7 @@ class TestCLI:
                     ],
                 )
                 assert result.exit_code == 0
-                assert (
-                    "Starting Swagger to MCP Server conversion"
-                    in result.output
-                )
+                assert "Starting Swagger to MCP Server conversion" in result.output
                 assert "/tmp/test-server" in result.output
                 assert "Conversion completed successfully" in result.output
             finally:
@@ -187,9 +177,7 @@ class TestCLI:
 
     def test_config_command_set(self):
         """Test config command set action."""
-        result = self.runner.invoke(
-            cli, ["config", "set", "server.port", "9000"]
-        )
+        result = self.runner.invoke(cli, ["config", "set", "server.port", "9000"])
         assert result.exit_code == 0
         assert "Failed to set configuration" in result.output
         assert "server.port" in result.output
@@ -251,9 +239,7 @@ class TestCLIContext:
 
     def test_cli_context_config_loading(self):
         """Test CLI context configuration loading."""
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".yaml", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             f.write("server:\n  port: 9000\n")
             f.flush()
 
@@ -295,9 +281,7 @@ class TestCLIIntegration:
     def test_command_chaining(self):
         """Test that commands work independently."""
         # Create a temporary swagger file
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             swagger_data = {
                 "openapi": "3.0.0",
                 "info": {"title": "Test API", "version": "1.0"},
@@ -344,9 +328,7 @@ class TestCLIIntegration:
             # Test with quiet (skip help as it doesn't respect quiet)
             if command != ["help"]:
                 result = self.runner.invoke(cli, ["--quiet"] + command)
-                assert (
-                    result.exit_code == 0
-                ), f"Quiet mode failed for {command}"
+                assert result.exit_code == 0, f"Quiet mode failed for {command}"
 
 
 @pytest.mark.performance
@@ -404,9 +386,7 @@ class TestCLICrossPlatform:
 
     def test_path_handling(self):
         """Test cross-platform path handling."""
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             swagger_data = {
                 "openapi": "3.0.0",
                 "info": {"title": "Test", "version": "1.0"},

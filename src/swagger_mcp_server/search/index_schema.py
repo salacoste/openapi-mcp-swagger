@@ -94,9 +94,7 @@ class IndexSchema:
             response_types=KEYWORD(stored=True),
             response_schemas=TEXT(stored=True, analyzer=STANDARD_ANALYZER),
             status_codes=KEYWORD(stored=True),
-            response_descriptions=TEXT(
-                stored=True, analyzer=TECHNICAL_ANALYZER
-            ),
+            response_descriptions=TEXT(stored=True, analyzer=TECHNICAL_ANALYZER),
             # Security and authentication
             security_requirements=KEYWORD(stored=True),
             security_scopes=KEYWORD(stored=True),
@@ -200,9 +198,7 @@ def convert_endpoint_document_to_index_fields(endpoint_doc) -> Dict[str, Any]:
         # Response information
         "response_types": " ".join(endpoint_doc.response_types),
         "response_schemas": " ".join(endpoint_doc.response_schemas),
-        "status_codes": " ".join(
-            str(code) for code in endpoint_doc.status_codes
-        ),
+        "status_codes": " ".join(str(code) for code in endpoint_doc.status_codes),
         "response_descriptions": endpoint_doc.response_descriptions,
         # Security and authentication
         "security_requirements": " ".join(endpoint_doc.security_requirements),

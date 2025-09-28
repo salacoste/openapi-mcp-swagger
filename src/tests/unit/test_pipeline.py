@@ -37,18 +37,14 @@ class MockStageResult:
 class MockStage(ProcessingStage):
     """Mock processing stage for testing."""
 
-    def __init__(
-        self, name: str, should_succeed: bool = True, result_data: Any = None
-    ):
+    def __init__(self, name: str, should_succeed: bool = True, result_data: Any = None):
         super().__init__(name)
         self.should_succeed = should_succeed
         self.result_data = result_data
         self.execute_called = False
         self.rollback_called = False
 
-    async def execute(
-        self, input_data: Any, context: PipelineContext
-    ) -> StageResult:
+    async def execute(self, input_data: Any, context: PipelineContext) -> StageResult:
         """Mock execute method."""
         self.execute_called = True
 
@@ -113,15 +109,9 @@ class TestPipelineComponents:
     async def test_successful_pipeline_execution(self):
         """Test successful pipeline execution with mock stages."""
         # Create mock stages
-        stage1 = MockStage(
-            "stage1", should_succeed=True, result_data="stage1_output"
-        )
-        stage2 = MockStage(
-            "stage2", should_succeed=True, result_data="stage2_output"
-        )
-        stage3 = MockStage(
-            "stage3", should_succeed=True, result_data="final_output"
-        )
+        stage1 = MockStage("stage1", should_succeed=True, result_data="stage1_output")
+        stage2 = MockStage("stage2", should_succeed=True, result_data="stage2_output")
+        stage3 = MockStage("stage3", should_succeed=True, result_data="final_output")
 
         # Create pipeline with mock stages
         with patch("swagger_mcp_server.pipeline.get_db_manager"):
@@ -193,16 +183,10 @@ class TestPipelineComponents:
 
             # Mock individual file processing
             async def mock_process_file(file_path):
-                return ProcessingResult(
-                    success=True, file_path=file_path, api_id=1
-                )
+                return ProcessingResult(success=True, file_path=file_path, api_id=1)
 
-            with patch.object(
-                pipeline, "process_file", side_effect=mock_process_file
-            ):
-                result = await pipeline.process_batch(
-                    ["file1.json", "file2.json"]
-                )
+            with patch.object(pipeline, "process_file", side_effect=mock_process_file):
+                result = await pipeline.process_batch(["file1.json", "file2.json"])
 
             assert result.total_files == 2
             assert result.successful_files == 2
@@ -223,16 +207,10 @@ class TestPipelineComponents:
                         file_path=file_path,
                         errors=["Mock failure"],
                     )
-                return ProcessingResult(
-                    success=True, file_path=file_path, api_id=1
-                )
+                return ProcessingResult(success=True, file_path=file_path, api_id=1)
 
-            with patch.object(
-                pipeline, "process_file", side_effect=mock_process_file
-            ):
-                result = await pipeline.process_batch(
-                    ["success.json", "fail.json"]
-                )
+            with patch.object(pipeline, "process_file", side_effect=mock_process_file):
+                result = await pipeline.process_batch(["success.json", "fail.json"])
 
             assert result.total_files == 2
             assert result.successful_files == 1
@@ -277,9 +255,7 @@ class TestPipelineComponents:
         """Test BatchProcessingResult creation and aggregation."""
         individual_results = [
             ProcessingResult(success=True, file_path="file1.json", api_id=1),
-            ProcessingResult(
-                success=False, file_path="file2.json", errors=["error"]
-            ),
+            ProcessingResult(success=False, file_path="file2.json", errors=["error"]),
         ]
 
         batch_result = BatchProcessingResult(
@@ -340,9 +316,7 @@ class TestPipelineEdgeCases:
             pipeline = SwaggerProcessingPipeline()
             pipeline.stages = [ExceptionStage()]
 
-            with patch.object(
-                pipeline, "_calculate_file_hash", return_value="hash"
-            ):
+            with patch.object(pipeline, "_calculate_file_hash", return_value="hash"):
                 result = await pipeline.process_file("test.json")
 
             assert result.success is False

@@ -19,9 +19,7 @@ class TestParserPerformance:
         """Create parser optimized for performance testing."""
         config = ParserConfig(
             chunk_size_bytes=16384,  # Larger chunks for better performance
-            progress_interval_bytes=2
-            * 1024
-            * 1024,  # Less frequent progress reports
+            progress_interval_bytes=2 * 1024 * 1024,  # Less frequent progress reports
             validate_openapi=False,  # Skip validation for pure parsing performance
             collect_warnings=False,  # Skip warning collection
         )
@@ -100,9 +98,7 @@ class TestParserPerformance:
                             },
                         },
                         "400": {"$ref": "#/components/responses/BadRequest"},
-                        "500": {
-                            "$ref": "#/components/responses/InternalError"
-                        },
+                        "500": {"$ref": "#/components/responses/InternalError"},
                     },
                     "tags": [resource],
                     "security": [{"bearerAuth": []}],
@@ -343,9 +339,7 @@ class TestParserPerformance:
                         "description": "Bad request",
                         "content": {
                             "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/Error"
-                                }
+                                "schema": {"$ref": "#/components/schemas/Error"}
                             }
                         },
                     },
@@ -353,9 +347,7 @@ class TestParserPerformance:
                         "description": "Resource not found",
                         "content": {
                             "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/Error"
-                                }
+                                "schema": {"$ref": "#/components/schemas/Error"}
                             }
                         },
                     },
@@ -363,9 +355,7 @@ class TestParserPerformance:
                         "description": "Resource conflict",
                         "content": {
                             "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/Error"
-                                }
+                                "schema": {"$ref": "#/components/schemas/Error"}
                             }
                         },
                     },
@@ -373,9 +363,7 @@ class TestParserPerformance:
                         "description": "Internal server error",
                         "content": {
                             "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/Error"
-                                }
+                                "schema": {"$ref": "#/components/schemas/Error"}
                             }
                         },
                     },
@@ -518,9 +506,7 @@ class TestParserPerformance:
         duration_seconds = end_time - start_time
 
         # Verify success
-        assert (
-            result.is_success is True
-        ), f"Parsing failed: {result.metrics.errors}"
+        assert result.is_success is True, f"Parsing failed: {result.metrics.errors}"
 
         # Performance requirements from Story 1.5 AC: 2
         assert (
@@ -532,9 +518,7 @@ class TestParserPerformance:
         assert result.metrics.memory_peak_mb < 500  # Reasonable memory usage
 
         # Quality checks
-        assert (
-            result.metrics.endpoints_found >= 30
-        )  # Should find many endpoints
+        assert result.metrics.endpoints_found >= 30  # Should find many endpoints
         assert result.metrics.schemas_found >= 20  # Should find many schemas
 
         print(f"✅ Ozon-like API parsed in {duration_seconds:.2f}s")
@@ -575,8 +559,7 @@ class TestParserPerformance:
 
         # Parse same file concurrently
         tasks = [
-            performance_parser.parse(ozon_like_api_file)
-            for _ in range(num_concurrent)
+            performance_parser.parse(ozon_like_api_file) for _ in range(num_concurrent)
         ]
         results = await asyncio.gather(*tasks)
 
@@ -620,9 +603,7 @@ class TestParserPerformance:
 
         # Time both approaches
         start_time = time.time()
-        result_with_progress = await parser_with_progress.parse(
-            ozon_like_api_file
-        )
+        result_with_progress = await parser_with_progress.parse(ozon_like_api_file)
         time_with_progress = time.time() - start_time
 
         start_time = time.time()
@@ -668,9 +649,7 @@ class TestParserPerformance:
         print(f"✅ Processing speed: {speed_mb_per_sec:.2f}MB/s")
 
     @pytest.mark.benchmark
-    def test_parsing_benchmark(
-        self, benchmark, performance_parser, ozon_like_api_file
-    ):
+    def test_parsing_benchmark(self, benchmark, performance_parser, ozon_like_api_file):
         """Benchmark parsing performance using pytest-benchmark."""
 
         async def parse_file():
@@ -691,9 +670,7 @@ class TestParserPerformance:
         assert result.metrics.schemas_found > 0
 
     @pytest.mark.performance
-    async def test_error_handling_performance(
-        self, performance_parser, tmp_path
-    ):
+    async def test_error_handling_performance(self, performance_parser, tmp_path):
         """Test that error handling doesn't significantly impact performance."""
         # Create file with many small errors
         malformed_paths = {}

@@ -34,9 +34,7 @@ def test_configure_logging_with_file():
         temp_file = f.name
 
     try:
-        logger = configure_logging(
-            level="INFO", log_file=temp_file, json_logs=False
-        )
+        logger = configure_logging(level="INFO", log_file=temp_file, json_logs=False)
 
         # Check that logger has expected attributes and file was created
         assert hasattr(logger, "info")
@@ -99,9 +97,7 @@ def test_json_logging_format():
         temp_file = f.name
 
     try:
-        logger = configure_logging(
-            level="INFO", log_file=temp_file, json_logs=True
-        )
+        logger = configure_logging(level="INFO", log_file=temp_file, json_logs=True)
 
         # Check that logger has expected attributes and file was created
         assert hasattr(logger, "info")

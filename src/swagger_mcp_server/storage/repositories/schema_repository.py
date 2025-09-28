@@ -282,9 +282,7 @@ class SchemaRepository(BaseRepository[Schema]):
                 return []
 
             # Get all schemas that are in the dependencies list
-            stmt = select(Schema).where(
-                Schema.name.in_(schema.schema_dependencies)
-            )
+            stmt = select(Schema).where(Schema.name.in_(schema.schema_dependencies))
 
             if api_id:
                 stmt = stmt.where(Schema.api_id == api_id)
@@ -301,9 +299,7 @@ class SchemaRepository(BaseRepository[Schema]):
                 api_id=api_id,
                 error=str(e),
             )
-            raise RepositoryError(
-                f"Failed to get schema dependencies: {str(e)}"
-            )
+            raise RepositoryError(f"Failed to get schema dependencies: {str(e)}")
 
     async def get_most_referenced(
         self, api_id: Optional[int] = None, limit: int = 10
@@ -328,13 +324,9 @@ class SchemaRepository(BaseRepository[Schema]):
                 api_id=api_id,
                 error=str(e),
             )
-            raise RepositoryError(
-                f"Failed to get most referenced schemas: {str(e)}"
-            )
+            raise RepositoryError(f"Failed to get most referenced schemas: {str(e)}")
 
-    async def get_unused_schemas(
-        self, api_id: Optional[int] = None
-    ) -> List[Schema]:
+    async def get_unused_schemas(self, api_id: Optional[int] = None) -> List[Schema]:
         """Get schemas that are not referenced by any endpoint or other schema."""
         try:
             stmt = select(Schema).where(Schema.reference_count == 0)
@@ -422,13 +414,9 @@ class SchemaRepository(BaseRepository[Schema]):
                 api_id=api_id,
                 error=str(e),
             )
-            raise RepositoryError(
-                f"Failed to find schemas with property: {str(e)}"
-            )
+            raise RepositoryError(f"Failed to find schemas with property: {str(e)}")
 
-    async def get_statistics(
-        self, api_id: Optional[int] = None
-    ) -> Dict[str, Any]:
+    async def get_statistics(self, api_id: Optional[int] = None) -> Dict[str, Any]:
         """Get schema statistics."""
         try:
             base_query = select(Schema)
@@ -436,16 +424,12 @@ class SchemaRepository(BaseRepository[Schema]):
                 base_query = base_query.where(Schema.api_id == api_id)
 
             # Total count
-            total_query = select(func.count()).select_from(
-                base_query.subquery()
-            )
+            total_query = select(func.count()).select_from(base_query.subquery())
             total_result = await self.session.execute(total_query)
             total_schemas = total_result.scalar() or 0
 
             # Type distribution
-            type_query = select(
-                Schema.type, func.count(Schema.type).label("count")
-            )
+            type_query = select(Schema.type, func.count(Schema.type).label("count"))
             if api_id:
                 type_query = type_query.where(Schema.api_id == api_id)
 
@@ -455,25 +439,17 @@ class SchemaRepository(BaseRepository[Schema]):
             types = {row.type: row.count for row in type_result.fetchall()}
 
             # Deprecated count
-            deprecated_query = select(func.count()).where(
-                Schema.deprecated == True
-            )
+            deprecated_query = select(func.count()).where(Schema.deprecated == True)
             if api_id:
-                deprecated_query = deprecated_query.where(
-                    Schema.api_id == api_id
-                )
+                deprecated_query = deprecated_query.where(Schema.api_id == api_id)
 
             deprecated_result = await self.session.execute(deprecated_query)
             deprecated_count = deprecated_result.scalar() or 0
 
             # Referenced count
-            referenced_query = select(func.count()).where(
-                Schema.reference_count > 0
-            )
+            referenced_query = select(func.count()).where(Schema.reference_count > 0)
             if api_id:
-                referenced_query = referenced_query.where(
-                    Schema.api_id == api_id
-                )
+                referenced_query = referenced_query.where(Schema.api_id == api_id)
 
             referenced_result = await self.session.execute(referenced_query)
             referenced_count = referenced_result.scalar() or 0
@@ -483,9 +459,7 @@ class SchemaRepository(BaseRepository[Schema]):
                 func.avg(func.json_array_length(Schema.property_names))
             )
             if api_id:
-                avg_props_query = avg_props_query.where(
-                    Schema.api_id == api_id
-                )
+                avg_props_query = avg_props_query.where(Schema.api_id == api_id)
 
             avg_props_result = await self.session.execute(avg_props_query)
             avg_properties = avg_props_result.scalar() or 0
@@ -498,9 +472,7 @@ class SchemaRepository(BaseRepository[Schema]):
                 "unused_count": total_schemas - referenced_count,
                 "average_properties": round(float(avg_properties), 2),
                 "usage_rate": (
-                    (referenced_count / total_schemas * 100)
-                    if total_schemas > 0
-                    else 0
+                    (referenced_count / total_schemas * 100) if total_schemas > 0 else 0
                 ),
             }
 
@@ -510,24 +482,16 @@ class SchemaRepository(BaseRepository[Schema]):
             )
             raise RepositoryError(f"Failed to get schema statistics: {str(e)}")
 
-    async def update_reference_counts(
-        self, api_id: Optional[int] = None
-    ) -> None:
+    async def update_reference_counts(self, api_id: Optional[int] = None) -> None:
         """Update reference counts for all schemas."""
         try:
             # This would typically be called after importing/updating API data
             # For now, implement a simple version that counts dependencies
-            schemas = (
-                await self.get_by_api_id(api_id)
-                if api_id
-                else await self.list()
-            )
+            schemas = await self.get_by_api_id(api_id) if api_id else await self.list()
 
             for schema in schemas:
                 # Count how many other schemas reference this one
-                dependents = await self.get_dependent_schemas(
-                    schema.name, api_id
-                )
+                dependents = await self.get_dependent_schemas(schema.name, api_id)
                 schema.reference_count = len(dependents)
                 await self.update(schema)
 
@@ -543,6 +507,4 @@ class SchemaRepository(BaseRepository[Schema]):
                 api_id=api_id,
                 error=str(e),
             )
-            raise RepositoryError(
-                f"Failed to update reference counts: {str(e)}"
-            )
+            raise RepositoryError(f"Failed to update reference counts: {str(e)}")

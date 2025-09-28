@@ -123,10 +123,7 @@ class SchemaNormalizer:
 
             # Step 5: Validate consistency
             consistency_report = {}
-            if (
-                self.config.validate_consistency
-                and not self.config.performance_mode
-            ):
+            if self.config.validate_consistency and not self.config.performance_mode:
                 self.logger.info("Step 5: Validating consistency")
                 consistency_report = self._validate_consistency(
                     endpoints, schemas, security_schemes
@@ -173,9 +170,7 @@ class SchemaNormalizer:
             return result
 
         except Exception as e:
-            self.logger.error(
-                "Critical error during normalization", error=str(e)
-            )
+            self.logger.error("Critical error during normalization", error=str(e))
             # Return partial result with error
             return NormalizationResult(
                 endpoints=[],
@@ -199,9 +194,7 @@ class SchemaNormalizer:
             self.logger.warning("No paths found in OpenAPI document")
             return [], [], ["No API paths defined"]
 
-        return self.endpoint_normalizer.normalize_endpoints(
-            paths_data, global_security
-        )
+        return self.endpoint_normalizer.normalize_endpoints(paths_data, global_security)
 
     def _process_schemas(
         self, openapi_data: Dict[str, Any]
@@ -213,9 +206,7 @@ class SchemaNormalizer:
             self.logger.info("No schema definitions found")
             return {}, [], ["No schema definitions found"]
 
-        return self.schema_processor.process_schemas(
-            components_data, openapi_data
-        )
+        return self.schema_processor.process_schemas(components_data, openapi_data)
 
     def _map_security_schemes(
         self, openapi_data: Dict[str, Any]
@@ -244,10 +235,8 @@ class SchemaNormalizer:
         # Extensions from endpoints
         for endpoint in endpoints:
             if hasattr(endpoint, "extensions") and endpoint.extensions:
-                extension_warnings = (
-                    self.extension_handler.validate_extensions(
-                        endpoint.extensions
-                    )
+                extension_warnings = self.extension_handler.validate_extensions(
+                    endpoint.extensions
                 )
                 warnings.extend(extension_warnings)
                 all_extensions.append(endpoint.extensions)
@@ -255,10 +244,8 @@ class SchemaNormalizer:
         # Extensions from schemas
         for schema in schemas.values():
             if hasattr(schema, "extensions") and schema.extensions:
-                extension_warnings = (
-                    self.extension_handler.validate_extensions(
-                        schema.extensions
-                    )
+                extension_warnings = self.extension_handler.validate_extensions(
+                    schema.extensions
                 )
                 warnings.extend(extension_warnings)
                 all_extensions.append(schema.extensions)
@@ -266,10 +253,8 @@ class SchemaNormalizer:
         # Extensions from security schemes
         for scheme in security_schemes.values():
             if hasattr(scheme, "extensions") and scheme.extensions:
-                extension_warnings = (
-                    self.extension_handler.validate_extensions(
-                        scheme.extensions
-                    )
+                extension_warnings = self.extension_handler.validate_extensions(
+                    scheme.extensions
                 )
                 warnings.extend(extension_warnings)
                 all_extensions.append(scheme.extensions)
@@ -312,10 +297,8 @@ class SchemaNormalizer:
 
             # Apply performance optimizations if enabled
             if self.config.enable_search_optimization:
-                search_index = (
-                    self.search_optimizer.optimize_search_performance(
-                        search_index
-                    )
+                search_index = self.search_optimizer.optimize_search_performance(
+                    search_index
                 )
 
             return search_index
@@ -348,9 +331,9 @@ class SchemaNormalizer:
 
         # Endpoint statistics
         if endpoints:
-            stats[
-                "endpoints"
-            ] = self.endpoint_normalizer.get_endpoint_statistics(endpoints)
+            stats["endpoints"] = self.endpoint_normalizer.get_endpoint_statistics(
+                endpoints
+            )
 
         # Security statistics
         if security_schemes:
@@ -366,9 +349,7 @@ class SchemaNormalizer:
 
         # Search statistics
         if search_index:
-            stats["search"] = self.search_optimizer.get_search_statistics(
-                search_index
-            )
+            stats["search"] = self.search_optimizer.get_search_statistics(search_index)
 
         # Quality metrics
         stats["quality_metrics"] = self._calculate_quality_metrics(
@@ -399,9 +380,7 @@ class SchemaNormalizer:
         documented_endpoints = sum(
             1 for ep in endpoints if ep.description or ep.summary
         )
-        metrics["documentation_coverage"] = (
-            documented_endpoints / len(endpoints) * 100
-        )
+        metrics["documentation_coverage"] = documented_endpoints / len(endpoints) * 100
 
         # Schema complexity (average properties per schema)
         if schemas:
@@ -413,15 +392,11 @@ class SchemaNormalizer:
         # Security coverage
         secured_endpoints = sum(1 for ep in endpoints if ep.security)
         if endpoints:
-            metrics["security_coverage"] = (
-                secured_endpoints / len(endpoints) * 100
-            )
+            metrics["security_coverage"] = secured_endpoints / len(endpoints) * 100
 
         # Completeness score (endpoints with operation IDs)
         complete_endpoints = sum(1 for ep in endpoints if ep.operation_id)
-        metrics["completeness_score"] = (
-            complete_endpoints / len(endpoints) * 100
-        )
+        metrics["completeness_score"] = complete_endpoints / len(endpoints) * 100
 
         # Overall quality score (weighted average)
         quality_components = [
@@ -431,16 +406,12 @@ class SchemaNormalizer:
             (min(100, metrics["schema_complexity"] * 10), 0.2),  # Cap at 100
         ]
 
-        weighted_sum = sum(
-            score * weight for score, weight in quality_components
-        )
+        weighted_sum = sum(score * weight for score, weight in quality_components)
         metrics["overall_quality_score"] = weighted_sum
 
         return metrics
 
-    def get_normalization_summary(
-        self, result: NormalizationResult
-    ) -> Dict[str, Any]:
+    def get_normalization_summary(self, result: NormalizationResult) -> Dict[str, Any]:
         """Generate a human-readable summary of normalization results.
 
         Args:
@@ -466,10 +437,7 @@ class SchemaNormalizer:
         }
 
         # Add recommendations based on results
-        if (
-            result.consistency_report
-            and "recommendations" in result.consistency_report
-        ):
+        if result.consistency_report and "recommendations" in result.consistency_report:
             summary["recommendations"].extend(
                 result.consistency_report["recommendations"]
             )

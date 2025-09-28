@@ -82,9 +82,7 @@ class MCPServerManager:
                 return await self._start_interactive_server(server_config)
 
         except Exception as e:
-            logger.error(
-                "Failed to start server", error=str(e), config=server_config
-            )
+            logger.error("Failed to start server", error=str(e), config=server_config)
             if isinstance(e, ServerError):
                 raise
             else:
@@ -118,13 +116,9 @@ class MCPServerManager:
 
             # Stop based on server type
             if server_id in self.interactive_servers:
-                success = await self._stop_interactive_server(
-                    server_id, force, timeout
-                )
+                success = await self._stop_interactive_server(server_id, force, timeout)
             else:
-                success = await self._stop_daemon_server(
-                    server_id, force, timeout
-                )
+                success = await self._stop_daemon_server(server_id, force, timeout)
 
             if success:
                 # Remove from registry
@@ -165,13 +159,11 @@ class MCPServerManager:
 
             # Get process metrics
             async with self.process_monitor:
-                process_metrics = (
-                    await self.process_monitor.get_process_metrics(server.pid)
+                process_metrics = await self.process_monitor.get_process_metrics(
+                    server.pid
                 )
                 if not process_metrics:
-                    await self.registry.update_server_status(
-                        server_id, "stopped"
-                    )
+                    await self.registry.update_server_status(server_id, "stopped")
                     return {
                         "server": server.to_dict(),
                         "status": "stopped",
@@ -192,9 +184,7 @@ class MCPServerManager:
             if health_status.is_healthy:
                 await self.registry.update_server_status(server_id, "running")
             else:
-                await self.registry.update_server_status(
-                    server_id, "unhealthy"
-                )
+                await self.registry.update_server_status(server_id, "unhealthy")
 
             return {
                 "server": server.to_dict(),
@@ -273,9 +263,7 @@ class MCPServerManager:
         except Exception as e:
             raise ServerError(f"Failed to get all servers status: {str(e)}")
 
-    async def restart_server(
-        self, server_id: str, timeout: int = 30
-    ) -> Dict[str, Any]:
+    async def restart_server(self, server_id: str, timeout: int = 30) -> Dict[str, Any]:
         """Restart a running server.
 
         Args:
@@ -312,9 +300,7 @@ class MCPServerManager:
             await asyncio.sleep(1)
 
             # Start the server again
-            start_result = await self.start_server(
-                server_config, daemon=daemon_mode
-            )
+            start_result = await self.start_server(server_config, daemon=daemon_mode)
 
             return {
                 "status": "restarted",
@@ -357,9 +343,7 @@ class MCPServerManager:
     ) -> Dict[str, Any]:
         """Start server in daemon mode."""
         # Start daemon process
-        process_info = await self.daemon_manager.start_daemon_server(
-            server_config
-        )
+        process_info = await self.daemon_manager.start_daemon_server(server_config)
 
         # Register server
         server_instance = await self.registry.register_server(
@@ -367,9 +351,7 @@ class MCPServerManager:
         )
 
         # Wait for server to be ready
-        await self._wait_for_server_ready(
-            server_instance.host, server_instance.port
-        )
+        await self._wait_for_server_ready(server_instance.host, server_instance.port)
 
         # Update status to running
         await self.registry.update_server_status(server_instance.id, "running")
@@ -436,9 +418,7 @@ class MCPServerManager:
             )
             return False
 
-    async def _wait_for_server_ready(
-        self, host: str, port: int, timeout: int = 30
-    ):
+    async def _wait_for_server_ready(self, host: str, port: int, timeout: int = 30):
         """Wait for server to be ready to accept connections."""
         start_time = time.time()
 

@@ -57,9 +57,7 @@ class EndpointNormalizer:
             errors.append("Paths object must be a dictionary")
             return normalized_endpoints, errors, warnings
 
-        self.logger.info(
-            "Starting endpoint normalization", paths_count=len(paths_data)
-        )
+        self.logger.info("Starting endpoint normalization", paths_count=len(paths_data))
 
         for path_name, path_item in paths_data.items():
             if not isinstance(path_name, str):
@@ -160,9 +158,7 @@ class EndpointNormalizer:
         # Normalize request body
         request_body = None
         if "requestBody" in operation:
-            request_body = self._normalize_request_body(
-                operation["requestBody"]
-            )
+            request_body = self._normalize_request_body(operation["requestBody"])
 
         # Normalize responses
         responses = self._normalize_responses(operation.get("responses", {}))
@@ -399,9 +395,7 @@ class EndpointNormalizer:
 
         return normalized
 
-    def _extract_schema_dependencies(
-        self, operation: Dict[str, Any]
-    ) -> Set[str]:
+    def _extract_schema_dependencies(self, operation: Dict[str, Any]) -> Set[str]:
         """Extract all schema dependencies from an operation.
 
         Args:
@@ -416,9 +410,7 @@ class EndpointNormalizer:
         for param in operation.get("parameters", []):
             if isinstance(param, dict):
                 schema_ref = param.get("schema", {}).get("$ref")
-                if schema_ref and schema_ref.startswith(
-                    "#/components/schemas/"
-                ):
+                if schema_ref and schema_ref.startswith("#/components/schemas/"):
                     schema_name = schema_ref.split("/")[-1]
                     dependencies.add(schema_name)
 
@@ -430,16 +422,12 @@ class EndpointNormalizer:
 
         # Extract from request body
         request_body = operation.get("requestBody", {})
-        dependencies.update(
-            self._extract_schema_refs_from_content(request_body)
-        )
+        dependencies.update(self._extract_schema_refs_from_content(request_body))
 
         # Extract from responses
         for response in operation.get("responses", {}).values():
             if isinstance(response, dict):
-                dependencies.update(
-                    self._extract_schema_refs_from_content(response)
-                )
+                dependencies.update(self._extract_schema_refs_from_content(response))
 
         return dependencies
 
@@ -469,9 +457,7 @@ class EndpointNormalizer:
                 if isinstance(media_type_obj, dict):
                     schema = media_type_obj.get("schema", {})
                     if isinstance(schema, dict):
-                        dependencies.update(
-                            self._extract_refs_recursively(schema)
-                        )
+                        dependencies.update(self._extract_refs_recursively(schema))
 
         return dependencies
 
@@ -572,16 +558,12 @@ class EndpointNormalizer:
         # Check for extra path parameters
         extra_params = actual_path_params - path_template_params
         if extra_params:
-            errors.append(
-                f"Extra path parameters not in template: {extra_params}"
-            )
+            errors.append(f"Extra path parameters not in template: {extra_params}")
 
         # Validate that all path parameters are required
         for param in parameters:
             if param.location == ParameterLocation.PATH and not param.required:
-                errors.append(
-                    f"Path parameter '{param.name}' must be required"
-                )
+                errors.append(f"Path parameter '{param.name}' must be required")
 
         return errors
 
@@ -643,9 +625,7 @@ class EndpointNormalizer:
 
             # Dependencies
             stats["schema_dependencies"].update(endpoint.schema_dependencies)
-            stats["security_dependencies"].update(
-                endpoint.security_dependencies
-            )
+            stats["security_dependencies"].update(endpoint.security_dependencies)
 
         # Convert defaultdicts to regular dicts
         stats["methods"] = dict(stats["methods"])
@@ -654,9 +634,7 @@ class EndpointNormalizer:
 
         # Convert sets to counts
         stats["unique_schema_dependencies"] = len(stats["schema_dependencies"])
-        stats["unique_security_dependencies"] = len(
-            stats["security_dependencies"]
-        )
+        stats["unique_security_dependencies"] = len(stats["security_dependencies"])
 
         # Calculate averages
         if stats["parameters_per_endpoint"]:

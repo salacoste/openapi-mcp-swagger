@@ -63,8 +63,7 @@ class CircuitBreaker:
             # Check if recovery timeout has passed
             if (
                 self.last_failure_time
-                and time.time() - self.last_failure_time
-                >= self.recovery_timeout
+                and time.time() - self.last_failure_time >= self.recovery_timeout
             ):
                 self.state = CircuitBreakerState.HALF_OPEN
                 self.success_count = 0
@@ -139,9 +138,7 @@ def retry_on_failure(
                 try:
                     result = await func(*args, **kwargs)
                     if attempt > 0:
-                        logger.info(
-                            f"Operation succeeded after {attempt} retries"
-                        )
+                        logger.info(f"Operation succeeded after {attempt} retries")
                     return result
 
                 except retry_exceptions as e:
@@ -316,9 +313,7 @@ class HealthChecker:
 
         # Use cached result if recent
         if current_time - last_check < cache_duration:
-            return self.component_status.get(
-                component_name, {"status": "unknown"}
-            )
+            return self.component_status.get(component_name, {"status": "unknown"})
 
         try:
             health_result = await health_check_func()
@@ -350,9 +345,7 @@ class HealthChecker:
         )
         total_count = len(self.component_status)
 
-        overall_status = (
-            "healthy" if healthy_count == total_count else "degraded"
-        )
+        overall_status = "healthy" if healthy_count == total_count else "degraded"
         if healthy_count == 0:
             overall_status = "unhealthy"
 
@@ -365,8 +358,6 @@ class HealthChecker:
 
 
 # Global instances for server-wide use
-database_circuit_breaker = CircuitBreaker(
-    failure_threshold=5, recovery_timeout=30.0
-)
+database_circuit_breaker = CircuitBreaker(failure_threshold=5, recovery_timeout=30.0)
 connection_pool = ResourcePool(max_size=20, name="database_connections")
 health_checker = HealthChecker()

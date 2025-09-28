@@ -95,21 +95,15 @@ class SchemaRelationshipDiscovery:
             edges = []
 
             # Find inheritance relationships
-            inheritance_edges = await self._discover_inheritance_relationships(
-                schemas
-            )
+            inheritance_edges = await self._discover_inheritance_relationships(schemas)
             edges.extend(inheritance_edges)
 
             # Find composition relationships
-            composition_edges = await self._discover_composition_relationships(
-                schemas
-            )
+            composition_edges = await self._discover_composition_relationships(schemas)
             edges.extend(composition_edges)
 
             # Find reference relationships
-            reference_edges = await self._discover_reference_relationships(
-                schemas
-            )
+            reference_edges = await self._discover_reference_relationships(schemas)
             edges.extend(reference_edges)
 
             # Analyze dependency chains
@@ -119,9 +113,7 @@ class SchemaRelationshipDiscovery:
             circular_dependencies = self._detect_circular_dependencies(edges)
 
             # Build inheritance trees
-            inheritance_trees = self._build_inheritance_trees(
-                inheritance_edges
-            )
+            inheritance_trees = self._build_inheritance_trees(inheritance_edges)
 
             return SchemaGraph(
                 nodes=nodes,
@@ -132,9 +124,7 @@ class SchemaRelationshipDiscovery:
             )
 
         except Exception as e:
-            raise RuntimeError(
-                f"Failed to discover schema relationships: {e}"
-            ) from e
+            raise RuntimeError(f"Failed to discover schema relationships: {e}") from e
 
     async def _discover_inheritance_relationships(
         self, schemas: List[Dict[str, Any]]
@@ -154,11 +144,7 @@ class SchemaRelationshipDiscovery:
 
             # Check for allOf inheritance pattern
             all_of = schema.get("allOf", [])
-            if (
-                len(all_of) == 1
-                and "$ref" in all_of[0]
-                and "properties" in schema
-            ):
+            if len(all_of) == 1 and "$ref" in all_of[0] and "properties" in schema:
                 # Single allOf with additional properties = inheritance
                 parent_ref = all_of[0]["$ref"]
                 parent_id = parent_ref.split("/")[-1]
@@ -193,9 +179,7 @@ class SchemaRelationshipDiscovery:
                         relationship_type=RelationshipType.INHERITANCE,
                         context="discriminator_inheritance",
                         details={
-                            "discriminator_property": discriminator.get(
-                                "propertyName"
-                            ),
+                            "discriminator_property": discriminator.get("propertyName"),
                             "discriminator_value": discriminator_value,
                             "inheritance_pattern": "discriminator_mapping",
                         },
@@ -321,12 +305,9 @@ class SchemaRelationshipDiscovery:
                         context=f"property_{prop_name}",
                         details={
                             "property_name": prop_name,
-                            "property_description": prop_def.get(
-                                "description", ""
-                            ),
+                            "property_description": prop_def.get("description", ""),
                             "ref": prop_def["$ref"],
-                            "is_required": prop_name
-                            in schema.get("required", []),
+                            "is_required": prop_name in schema.get("required", []),
                         },
                         strength=0.8
                         if prop_name in schema.get("required", [])
@@ -336,9 +317,9 @@ class SchemaRelationshipDiscovery:
                     relationships.append(relationship)
 
                 # Array items reference
-                elif prop_def.get(
-                    "type"
-                ) == "array" and "$ref" in prop_def.get("items", {}):
+                elif prop_def.get("type") == "array" and "$ref" in prop_def.get(
+                    "items", {}
+                ):
                     target_id = prop_def["items"]["$ref"].split("/")[-1]
 
                     relationship = SchemaRelationship(
@@ -348,12 +329,9 @@ class SchemaRelationshipDiscovery:
                         context=f"array_property_{prop_name}",
                         details={
                             "property_name": prop_name,
-                            "array_description": prop_def.get(
-                                "description", ""
-                            ),
+                            "array_description": prop_def.get("description", ""),
                             "items_ref": prop_def["items"]["$ref"],
-                            "is_required": prop_name
-                            in schema.get("required", []),
+                            "is_required": prop_name in schema.get("required", []),
                         },
                         strength=0.7,
                         is_bidirectional=False,
@@ -361,10 +339,7 @@ class SchemaRelationshipDiscovery:
                     relationships.append(relationship)
 
                 # Nested object with properties containing references
-                elif (
-                    prop_def.get("type") == "object"
-                    and "properties" in prop_def
-                ):
+                elif prop_def.get("type") == "object" and "properties" in prop_def:
                     nested_props = prop_def["properties"]
                     for (
                         nested_prop_name,
@@ -391,10 +366,7 @@ class SchemaRelationshipDiscovery:
 
             # Check additional properties
             additional_props = schema.get("additionalProperties")
-            if (
-                isinstance(additional_props, dict)
-                and "$ref" in additional_props
-            ):
+            if isinstance(additional_props, dict) and "$ref" in additional_props:
                 target_id = additional_props["$ref"].split("/")[-1]
 
                 relationship = SchemaRelationship(
@@ -435,9 +407,7 @@ class SchemaRelationshipDiscovery:
         chains = []
         visited_global = set()
 
-        def dfs_chains(
-            node: str, current_chain: List[str], visited_local: Set[str]
-        ):
+        def dfs_chains(node: str, current_chain: List[str], visited_local: Set[str]):
             if node in visited_local:  # Cycle detected
                 return
 
@@ -447,9 +417,7 @@ class SchemaRelationshipDiscovery:
             # If node has dependencies, continue the chain
             if node in graph and graph[node]:
                 for neighbor in graph[node]:
-                    dfs_chains(
-                        neighbor, current_chain.copy(), visited_local.copy()
-                    )
+                    dfs_chains(neighbor, current_chain.copy(), visited_local.copy())
             else:
                 # End of chain, add if meaningful length
                 if len(current_chain) > 1:

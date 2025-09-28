@@ -108,9 +108,7 @@ class ProcessMonitor:
 
     async def __aenter__(self):
         """Async context manager entry."""
-        self.session = aiohttp.ClientSession(
-            timeout=aiohttp.ClientTimeout(total=10)
-        )
+        self.session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10))
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
@@ -129,9 +127,7 @@ class ProcessMonitor:
         """
         try:
             if psutil is None:
-                logger.warning(
-                    "psutil not available, cannot get process metrics"
-                )
+                logger.warning("psutil not available, cannot get process metrics")
                 return None
 
             process = psutil.Process(pid)
@@ -160,9 +156,7 @@ class ProcessMonitor:
             )
 
         except Exception as e:
-            logger.warning(
-                "Failed to get process metrics", pid=pid, error=str(e)
-            )
+            logger.warning("Failed to get process metrics", pid=pid, error=str(e))
             return None
 
     async def check_server_health(
@@ -241,9 +235,7 @@ class ProcessMonitor:
             last_request_time=mcp_metrics.get("last_request_time"),
         )
 
-    async def _check_network_connectivity(
-        self, host: str, port: int
-    ) -> HealthCheck:
+    async def _check_network_connectivity(self, host: str, port: int) -> HealthCheck:
         """Check basic network connectivity."""
         start_time = time.time()
 
@@ -411,9 +403,7 @@ class ProcessMonitor:
             "error_rate": 0.0,
         }
 
-    def _determine_overall_health(
-        self, checks: List[HealthCheck]
-    ) -> HealthLevel:
+    def _determine_overall_health(self, checks: List[HealthCheck]) -> HealthLevel:
         """Determine overall health level from individual checks."""
         if not checks:
             return HealthLevel.UNKNOWN

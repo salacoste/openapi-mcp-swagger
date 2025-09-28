@@ -65,9 +65,7 @@ class ConsistencyValidator:
         warnings.extend(ref_warnings)
 
         # Path parameter consistency
-        path_errors, path_warnings = self.validate_path_parameter_consistency(
-            endpoints
-        )
+        path_errors, path_warnings = self.validate_path_parameter_consistency(endpoints)
         errors.extend(path_errors)
         warnings.extend(path_warnings)
 
@@ -204,10 +202,7 @@ class ConsistencyValidator:
 
                 # Validate that path parameters are required
                 for param in endpoint.parameters:
-                    if (
-                        param.location == ParameterLocation.PATH
-                        and not param.required
-                    ):
+                    if param.location == ParameterLocation.PATH and not param.required:
                         errors.append(
                             f"Path parameter {param.name} in {self._get_method_str(endpoint)} {path} "
                             "must be required"
@@ -237,9 +232,7 @@ class ConsistencyValidator:
                 if param.location == ParameterLocation.PATH:
                     if param.name not in param_definitions:
                         param_definitions[param.name] = []
-                    param_definitions[param.name].append(
-                        (endpoint.method, param)
-                    )
+                    param_definitions[param.name].append((endpoint.method, param))
 
         # Check for inconsistent parameter definitions
         for param_name, param_list in param_definitions.items():
@@ -377,9 +370,7 @@ class ConsistencyValidator:
         warnings = []
 
         # Check operation ID naming patterns
-        operation_ids = [
-            ep.operation_id for ep in endpoints if ep.operation_id
-        ]
+        operation_ids = [ep.operation_id for ep in endpoints if ep.operation_id]
         if operation_ids:
             patterns = self._analyze_naming_patterns(operation_ids)
             if len(patterns) > 2:
@@ -404,9 +395,7 @@ class ConsistencyValidator:
         if all_params:
             patterns = self._analyze_naming_patterns(all_params)
             if len(patterns) > 3:  # Allow more variation for parameters
-                warnings.append(
-                    "Inconsistent parameter naming patterns detected"
-                )
+                warnings.append("Inconsistent parameter naming patterns detected")
 
         return warnings
 
@@ -455,9 +444,7 @@ class ConsistencyValidator:
             if HttpMethod.POST in methods and HttpMethod.GET not in methods:
                 # Check if it looks like a collection endpoint
                 if not re.search(r"\{[^}]+\}$", path):
-                    warnings.append(
-                        f"Collection path {path} has POST but no GET"
-                    )
+                    warnings.append(f"Collection path {path} has POST but no GET")
 
             # Check for DELETE without GET
             if HttpMethod.DELETE in methods and HttpMethod.GET not in methods:
@@ -477,19 +464,13 @@ class ConsistencyValidator:
             # Check for missing common success responses
             if endpoint.method == HttpMethod.GET:
                 if "200" not in status_codes:
-                    warnings.append(
-                        f"GET {endpoint.path} missing 200 response"
-                    )
+                    warnings.append(f"GET {endpoint.path} missing 200 response")
             elif endpoint.method == HttpMethod.POST:
                 if "201" not in status_codes and "200" not in status_codes:
-                    warnings.append(
-                        f"POST {endpoint.path} missing 201 or 200 response"
-                    )
+                    warnings.append(f"POST {endpoint.path} missing 201 or 200 response")
             elif endpoint.method == HttpMethod.PUT:
                 if "200" not in status_codes and "204" not in status_codes:
-                    warnings.append(
-                        f"PUT {endpoint.path} missing 200 or 204 response"
-                    )
+                    warnings.append(f"PUT {endpoint.path} missing 200 or 204 response")
             elif endpoint.method == HttpMethod.DELETE:
                 if "204" not in status_codes and "200" not in status_codes:
                     warnings.append(
@@ -497,12 +478,8 @@ class ConsistencyValidator:
                     )
 
             # Check for missing error responses
-            has_client_error = any(
-                code.startswith("4") for code in status_codes
-            )
-            has_server_error = any(
-                code.startswith("5") for code in status_codes
-            )
+            has_client_error = any(code.startswith("4") for code in status_codes)
+            has_server_error = any(code.startswith("5") for code in status_codes)
 
             if not has_client_error:
                 warnings.append(
@@ -553,9 +530,7 @@ class ConsistencyValidator:
                     errors, warnings, endpoints, schemas
                 ),
             },
-            "recommendations": self._generate_recommendations(
-                errors, warnings
-            ),
+            "recommendations": self._generate_recommendations(errors, warnings),
         }
 
         return report

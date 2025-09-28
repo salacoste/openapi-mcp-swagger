@@ -35,9 +35,7 @@ class SearchIndex:
 
     documents: List[SearchableDocument]
     term_frequencies: Dict[str, Dict[str, int]]  # term -> doc_id -> frequency
-    document_frequencies: Dict[
-        str, int
-    ]  # term -> number of docs containing term
+    document_frequencies: Dict[str, int]  # term -> number of docs containing term
     document_lengths: Dict[str, int]  # doc_id -> total terms
     total_documents: int
     vocabulary: Set[str]
@@ -324,9 +322,7 @@ class SearchOptimizer:
             tags.append(schema.type)
 
         # Add property names as tags
-        tags.extend(
-            list(schema.properties.keys())[:10]
-        )  # Limit to avoid too many tags
+        tags.extend(list(schema.properties.keys())[:10])  # Limit to avoid too many tags
 
         # Calculate boost
         boost = 1.0
@@ -395,9 +391,7 @@ class SearchOptimizer:
         tags = [scheme_name, "security", scheme.type.value]
 
         if scheme.oauth2_flows:
-            tags.extend(
-                flow.type.value for flow in scheme.oauth2_flows.values()
-            )
+            tags.extend(flow.type.value for flow in scheme.oauth2_flows.values())
 
         return SearchableDocument(
             id=f"security_{scheme_name}",
@@ -418,9 +412,7 @@ class SearchOptimizer:
             boost=1.0,
         )
 
-    def _build_search_index(
-        self, documents: List[SearchableDocument]
-    ) -> SearchIndex:
+    def _build_search_index(self, documents: List[SearchableDocument]) -> SearchIndex:
         """Build optimized search index from documents."""
         term_frequencies = {}
         document_frequencies = Counter()
@@ -495,9 +487,7 @@ class SearchOptimizer:
 
         return processed_words
 
-    def get_search_statistics(
-        self, search_index: SearchIndex
-    ) -> Dict[str, Any]:
+    def get_search_statistics(self, search_index: SearchIndex) -> Dict[str, Any]:
         """Generate statistics about the search index.
 
         Args:
@@ -552,9 +542,7 @@ class SearchOptimizer:
         for length in search_index.document_lengths.values():
             for start, end in length_ranges:
                 if start <= length <= end:
-                    range_key = (
-                        f"{start}-{end if end != float('inf') else '500+'}"
-                    )
+                    range_key = f"{start}-{end if end != float('inf') else '500+'}"
                     length_dist[range_key] += 1
                     break
 
@@ -564,9 +552,7 @@ class SearchOptimizer:
         endpoint_docs = [
             doc for doc in search_index.documents if doc.type == "endpoint"
         ]
-        schema_docs = [
-            doc for doc in search_index.documents if doc.type == "schema"
-        ]
+        schema_docs = [doc for doc in search_index.documents if doc.type == "schema"]
         security_docs = [
             doc for doc in search_index.documents if doc.type == "security"
         ]
@@ -593,9 +579,7 @@ class SearchOptimizer:
 
         return stats
 
-    def optimize_search_performance(
-        self, search_index: SearchIndex
-    ) -> SearchIndex:
+    def optimize_search_performance(self, search_index: SearchIndex) -> SearchIndex:
         """Apply performance optimizations to search index.
 
         Args:
@@ -612,9 +596,7 @@ class SearchOptimizer:
                 rare_terms.add(term)
 
         if rare_terms:
-            self.logger.info(
-                f"Removing {len(rare_terms)} rare terms from index"
-            )
+            self.logger.info(f"Removing {len(rare_terms)} rare terms from index")
 
             # Filter rare terms from vocabulary
             search_index.vocabulary -= rare_terms
@@ -638,9 +620,7 @@ class SearchOptimizer:
                 reverse=True,
             )
 
-            kept_terms = set(
-                term for term, _ in sorted_terms[:max_vocabulary_size]
-            )
+            kept_terms = set(term for term, _ in sorted_terms[:max_vocabulary_size])
             # Always keep important terms
             kept_terms.update(self.important_terms & search_index.vocabulary)
 

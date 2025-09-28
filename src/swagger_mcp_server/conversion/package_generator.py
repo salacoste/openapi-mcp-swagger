@@ -21,14 +21,10 @@ class DeploymentPackageGenerator:
         """Initialize package generator with output directory."""
         self.output_dir = output_dir
 
-    async def create_deployment_package(
-        self, server_config: Dict[str, Any]
-    ) -> str:
+    async def create_deployment_package(self, server_config: Dict[str, Any]) -> str:
         """Create complete deployment package with all necessary files."""
         try:
-            logger.info(
-                "Creating deployment package", output_dir=self.output_dir
-            )
+            logger.info("Creating deployment package", output_dir=self.output_dir)
 
             # Generate main server files
             await self._generate_server_main(server_config)
@@ -306,9 +302,7 @@ if __name__ == "__main__":
                 "description": config.get("api_description", ""),
             },
             "database": {
-                "path": os.path.relpath(
-                    config["database_path"], self.output_dir
-                ),
+                "path": os.path.relpath(config["database_path"], self.output_dir),
                 "backup_enabled": True,
                 "backup_interval": 3600,  # 1 hour
             },

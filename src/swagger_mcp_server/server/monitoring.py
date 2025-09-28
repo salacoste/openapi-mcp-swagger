@@ -93,9 +93,7 @@ class MethodMetrics:
         )
         return recent_requests
 
-    def record_request(
-        self, response_time: float, error: Optional[str] = None
-    ):
+    def record_request(self, response_time: float, error: Optional[str] = None):
         """Record a request with its performance metrics."""
         self.total_requests += 1
         self.total_response_time += response_time
@@ -150,9 +148,7 @@ class SystemMetrics:
         self.update_system_metrics()
         return {
             "concurrent_connections": self.concurrent_connections,
-            "database_pool_utilization": round(
-                self.database_pool_utilization, 3
-            ),
+            "database_pool_utilization": round(self.database_pool_utilization, 3),
             "memory_usage_mb": round(self.memory_usage_mb, 2),
             "cpu_utilization": round(self.cpu_utilization, 3),
             "uptime_seconds": round(self.uptime_seconds, 1),
@@ -256,9 +252,7 @@ class PerformanceMonitor:
                     },
                 )
 
-    def _create_alert(
-        self, alert_type: str, message: str, context: Dict[str, Any]
-    ):
+    def _create_alert(self, alert_type: str, message: str, context: Dict[str, Any]):
         """Create a performance alert."""
         alert = {
             "timestamp": time.time(),
@@ -308,14 +302,11 @@ class PerformanceMonitor:
             critical_alerts = [
                 a
                 for a in recent_alerts
-                if a["type"]
-                in ["error_rate_exceeded", "response_time_exceeded"]
+                if a["type"] in ["error_rate_exceeded", "response_time_exceeded"]
             ]
 
             if critical_alerts:
-                status = (
-                    "degraded" if len(critical_alerts) < 3 else "unhealthy"
-                )
+                status = "degraded" if len(critical_alerts) < 3 else "unhealthy"
             else:
                 status = "healthy"
 
@@ -347,9 +338,7 @@ class PerformanceMonitor:
     def set_monitoring_enabled(self, enabled: bool):
         """Enable or disable monitoring."""
         self.monitoring_enabled = enabled
-        logger.info(
-            f"Performance monitoring {'enabled' if enabled else 'disabled'}"
-        )
+        logger.info(f"Performance monitoring {'enabled' if enabled else 'disabled'}")
 
 
 def monitor_performance(method_name: str, monitor: PerformanceMonitor):
@@ -404,11 +393,7 @@ def monitor_performance(method_name: str, monitor: PerformanceMonitor):
                 )
 
         # Return appropriate wrapper based on function type
-        return (
-            async_wrapper
-            if asyncio.iscoroutinefunction(func)
-            else sync_wrapper
-        )
+        return async_wrapper if asyncio.iscoroutinefunction(func) else sync_wrapper
 
     return decorator
 
@@ -416,9 +401,7 @@ def monitor_performance(method_name: str, monitor: PerformanceMonitor):
 class MetricsCollector:
     """Periodic metrics collection for system monitoring."""
 
-    def __init__(
-        self, monitor: PerformanceMonitor, collection_interval: float = 30.0
-    ):
+    def __init__(self, monitor: PerformanceMonitor, collection_interval: float = 30.0):
         """Initialize metrics collector.
 
         Args:

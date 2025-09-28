@@ -156,9 +156,7 @@ class ExtensionHandler:
         for ext_key, ext_value in extensions.items():
             # Check extension naming
             if not ext_key.startswith("x-"):
-                warnings.append(
-                    f"Extension property should start with 'x-': {ext_key}"
-                )
+                warnings.append(f"Extension property should start with 'x-': {ext_key}")
                 continue
 
             # Check for invalid characters in extension names
@@ -169,9 +167,7 @@ class ExtensionHandler:
 
             # Check for excessively long extension names
             if len(ext_key) > 64:
-                warnings.append(
-                    f"Extension name is too long (>64 chars): {ext_key}"
-                )
+                warnings.append(f"Extension name is too long (>64 chars): {ext_key}")
 
             # Check for null values
             if ext_value is None:
@@ -179,9 +175,7 @@ class ExtensionHandler:
 
             # Check for very large extension values
             if isinstance(ext_value, str) and len(ext_value) > 10000:
-                warnings.append(
-                    f"Extension value is very large (>10KB): {ext_key}"
-                )
+                warnings.append(f"Extension value is very large (>10KB): {ext_key}")
 
         return warnings
 
@@ -202,23 +196,17 @@ class ExtensionHandler:
         for ext_key, ext_value in extensions.items():
             # Normalize AWS API Gateway extensions
             if ext_key.startswith("x-amazon-apigateway-"):
-                normalized_value = self._normalize_aws_extension(
-                    ext_key, ext_value
-                )
+                normalized_value = self._normalize_aws_extension(ext_key, ext_value)
                 normalized[ext_key] = normalized_value
 
             # Normalize Azure extensions
             elif ext_key.startswith("x-azure-"):
-                normalized_value = self._normalize_azure_extension(
-                    ext_key, ext_value
-                )
+                normalized_value = self._normalize_azure_extension(ext_key, ext_value)
                 normalized[ext_key] = normalized_value
 
             # Normalize Google Cloud extensions
             elif ext_key.startswith("x-google-"):
-                normalized_value = self._normalize_google_extension(
-                    ext_key, ext_value
-                )
+                normalized_value = self._normalize_google_extension(ext_key, ext_value)
                 normalized[ext_key] = normalized_value
 
             # Normalize documentation extensions
@@ -301,9 +289,7 @@ class ExtensionHandler:
                         normalized_sample = {
                             "lang": sample.get("lang", "shell"),
                             "source": sample.get("source", ""),
-                            "label": sample.get(
-                                "label", sample.get("lang", "Example")
-                            ),
+                            "label": sample.get("label", sample.get("lang", "Example")),
                         }
                         normalized_samples.append(normalized_sample)
                 return normalized_samples
@@ -315,9 +301,7 @@ class ExtensionHandler:
                 for example_name, example_data in value.items():
                     if isinstance(example_data, dict):
                         normalized_examples[example_name] = {
-                            "summary": example_data.get(
-                                "summary", example_name
-                            ),
+                            "summary": example_data.get("summary", example_name),
                             "value": example_data.get("value"),
                             "description": example_data.get("description", ""),
                         }
@@ -373,13 +357,9 @@ class ExtensionHandler:
             merged = base_extensions.copy()
             for key, value in override_extensions.items():
                 if key in merged:
-                    if isinstance(merged[key], list) and isinstance(
-                        value, list
-                    ):
+                    if isinstance(merged[key], list) and isinstance(value, list):
                         merged[key] = merged[key] + value
-                    elif isinstance(merged[key], dict) and isinstance(
-                        value, dict
-                    ):
+                    elif isinstance(merged[key], dict) and isinstance(value, dict):
                         merged[key] = self._deep_merge_dict(merged[key], value)
                     else:
                         merged[key] = value
@@ -406,9 +386,7 @@ class ExtensionHandler:
                 merged[key] = value
         return merged
 
-    def extract_searchable_content(
-        self, extensions: Dict[str, Any]
-    ) -> List[str]:
+    def extract_searchable_content(self, extensions: Dict[str, Any]) -> List[str]:
         """Extract searchable text content from extensions.
 
         Args:
@@ -454,11 +432,7 @@ class ExtensionHandler:
                 # Include string extension values in search
                 searchable_content.append(ext_value)
 
-        return [
-            content.strip()
-            for content in searchable_content
-            if content.strip()
-        ]
+        return [content.strip() for content in searchable_content if content.strip()]
 
     def get_extension_statistics(
         self, all_extensions: List[Dict[str, Any]]

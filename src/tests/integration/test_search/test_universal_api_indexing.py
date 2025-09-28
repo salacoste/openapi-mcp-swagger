@@ -385,9 +385,7 @@ class TestUniversalAPIIndexing:
         """Test indexing mixed API types in single index."""
         # Combine all sample data types
         all_endpoints = (
-            sample_rest_api_data
-            + sample_enterprise_api_data
-            + sample_social_api_data
+            sample_rest_api_data + sample_enterprise_api_data + sample_social_api_data
         )
 
         endpoint_repo = AsyncMock(spec=EndpointRepository)
@@ -490,9 +488,7 @@ class TestUniversalAPISearch:
     ):
         """Test searching across different API types."""
         all_endpoints = (
-            sample_rest_api_data
-            + sample_enterprise_api_data
-            + sample_social_api_data
+            sample_rest_api_data + sample_enterprise_api_data + sample_social_api_data
         )
 
         search_engine = await self.setup_search_engine_with_data(
@@ -519,9 +515,7 @@ class TestUniversalAPISearch:
         response = await search_engine.search("timeline")
         assert response.total_results > 0
         timeline_results = [
-            r
-            for r in response.results
-            if "timeline" in r.endpoint_path.lower()
+            r for r in response.results if "timeline" in r.endpoint_path.lower()
         ]
         assert len(timeline_results) > 0
 
@@ -535,16 +529,12 @@ class TestUniversalAPISearch:
         )
 
         # Search for GET endpoints
-        get_results = await search_engine.search_by_path(
-            "", http_methods=["GET"]
-        )
+        get_results = await search_engine.search_by_path("", http_methods=["GET"])
         assert len(get_results) > 0
         assert all(r.http_method == "GET" for r in get_results)
 
         # Search for POST endpoints
-        post_results = await search_engine.search_by_path(
-            "", http_methods=["POST"]
-        )
+        post_results = await search_engine.search_by_path("", http_methods=["POST"])
         assert len(post_results) > 0
         assert all(r.http_method == "POST" for r in post_results)
 
@@ -566,9 +556,7 @@ class TestUniversalAPISearch:
         assert len(analytics_results) > 0
 
         # Search by multiple tags
-        workflow_results = await search_engine.search_by_tag(
-            ["workflow", "automation"]
-        )
+        workflow_results = await search_engine.search_by_tag(["workflow", "automation"])
         assert len(workflow_results) > 0
 
     @pytest.mark.asyncio
@@ -581,22 +569,16 @@ class TestUniversalAPISearch:
         )
 
         # Search with method filter
-        response = await search_engine.search(
-            "posts", filters={"http_method": "GET"}
-        )
+        response = await search_engine.search("posts", filters={"http_method": "GET"})
 
         get_results = [r for r in response.results if r.http_method == "GET"]
         assert len(get_results) > 0
 
         # Search with deprecation filter
-        response = await search_engine.search(
-            "posts", filters={"deprecated": False}
-        )
+        response = await search_engine.search("posts", filters={"deprecated": False})
 
         non_deprecated = [
-            r
-            for r in response.results
-            if not r.metadata.get("deprecated", False)
+            r for r in response.results if not r.metadata.get("deprecated", False)
         ]
         assert len(non_deprecated) > 0
 

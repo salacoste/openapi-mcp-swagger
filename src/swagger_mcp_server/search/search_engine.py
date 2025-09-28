@@ -119,10 +119,7 @@ class SearchEngine:
         if page < 1:
             raise ValueError("Page number must be >= 1")
 
-        if (
-            per_page < 1
-            or per_page > self.config.performance.max_search_results
-        ):
+        if per_page < 1 or per_page > self.config.performance.max_search_results:
             raise ValueError(
                 f"per_page must be between 1 and {self.config.performance.max_search_results}"
             )
@@ -156,10 +153,8 @@ class SearchEngine:
             suggestions = []
             if results["total"] < 10:  # Low result count
                 available_terms = self._get_available_terms()
-                suggestions = (
-                    await self.query_processor.generate_query_suggestions(
-                        query, results["total"], available_terms
-                    )
+                suggestions = await self.query_processor.generate_query_suggestions(
+                    query, results["total"], available_terms
                 )
 
             search_response = SearchResponse(
@@ -224,10 +219,7 @@ class SearchEngine:
         if page < 1:
             raise ValueError("Page number must be >= 1")
 
-        if (
-            per_page < 1
-            or per_page > self.config.performance.max_search_results
-        ):
+        if per_page < 1 or per_page > self.config.performance.max_search_results:
             raise ValueError(
                 f"per_page must be between 1 and {self.config.performance.max_search_results}"
             )
@@ -279,13 +271,11 @@ class SearchEngine:
                 raw_results_list.append(raw_result)
 
             # Process results with advanced result processor
-            processed_results = (
-                await self.result_processor.process_search_results(
-                    raw_results_list,
-                    query,
-                    filters=filters,
-                    pagination={"page": page, "per_page": per_page},
-                )
+            processed_results = await self.result_processor.process_search_results(
+                raw_results_list,
+                query,
+                filters=filters,
+                pagination={"page": page, "per_page": per_page},
             )
 
             # Add query processing metadata
@@ -300,17 +290,12 @@ class SearchEngine:
             }
 
             # Add query suggestions if needed
-            if (
-                processed_results.get("summary", {}).get("filtered_results", 0)
-                < 10
-            ):
+            if processed_results.get("summary", {}).get("filtered_results", 0) < 10:
                 available_terms = self._get_available_terms()
-                suggestions = (
-                    await self.query_processor.generate_query_suggestions(
-                        query,
-                        processed_results["summary"]["filtered_results"],
-                        available_terms,
-                    )
+                suggestions = await self.query_processor.generate_query_suggestions(
+                    query,
+                    processed_results["summary"]["filtered_results"],
+                    available_terms,
                 )
                 processed_results["suggestions"] = [
                     {
@@ -351,8 +336,7 @@ class SearchEngine:
             # Add HTTP method filter if specified
             if http_methods:
                 method_queries = [
-                    Term("http_method", method.upper())
-                    for method in http_methods
+                    Term("http_method", method.upper()) for method in http_methods
                 ]
                 method_filter = Or(method_queries)
                 query = And([query, method_filter])
@@ -385,9 +369,7 @@ class SearchEngine:
 
             # Create tag queries
             tag_queries = [Term("tags", tag) for tag in tags]
-            tag_query = (
-                Or(tag_queries) if len(tag_queries) > 1 else tag_queries[0]
-            )
+            tag_query = Or(tag_queries) if len(tag_queries) > 1 else tag_queries[0]
 
             # Combine with additional query if provided
             if additional_query:
@@ -404,9 +386,7 @@ class SearchEngine:
         except Exception as e:
             raise RuntimeError(f"Tag search failed: {e}") from e
 
-    async def suggest_queries(
-        self, partial_query: str, limit: int = 10
-    ) -> List[str]:
+    async def suggest_queries(self, partial_query: str, limit: int = 10) -> List[str]:
         """Get query suggestions based on partial input.
 
         Args:
@@ -466,9 +446,7 @@ class SearchEngine:
             # Fallback to simple term search if parsing fails
             return Term("description", query.lower())
 
-    def _apply_filters(
-        self, base_query: Query, filters: Dict[str, Any]
-    ) -> Query:
+    def _apply_filters(self, base_query: Query, filters: Dict[str, Any]) -> Query:
         """Apply filters to the base search query.
 
         Args:
@@ -514,9 +492,7 @@ class SearchEngine:
         Returns:
             Dict containing hits, total count, and metadata
         """
-        with self.index_manager.index.searcher(
-            weighting=scoring.BM25F()
-        ) as searcher:
+        with self.index_manager.index.searcher(weighting=scoring.BM25F()) as searcher:
             # Calculate offset for pagination
             offset = (page - 1) * per_page
 
@@ -545,9 +521,7 @@ class SearchEngine:
 
                 # Add highlights if requested
                 if include_highlights:
-                    search_result.highlights = self._extract_highlights(
-                        hit, query
-                    )
+                    search_result.highlights = self._extract_highlights(hit, query)
 
                 hits.append(search_result)
 

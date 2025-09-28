@@ -174,9 +174,7 @@ class TestMigrationManager:
         migration_manager = MigrationManager(temp_db)
         migrations = migration_manager.get_builtin_migrations()
 
-        assert (
-            len(migrations) >= 3
-        )  # At least initial schema, FTS5, performance
+        assert len(migrations) >= 3  # At least initial schema, FTS5, performance
         versions = [m.version for m in migrations]
         assert "001" in versions  # initial_schema
         assert "002" in versions  # add_fts5_indexes
@@ -267,9 +265,7 @@ class TestMigrationManager:
         assert len(result) == 1
 
         # Rollback migration
-        success = await migration_manager.rollback_migration(
-            sample_migration.version
-        )
+        success = await migration_manager.rollback_migration(sample_migration.version)
         assert success
 
         # Check that table was dropped
@@ -336,9 +332,7 @@ class TestMigrationManager:
         migration_manager = MigrationManager(temp_db)
 
         # Apply all migrations in dry run
-        applied_versions = await migration_manager.migrate_to_latest(
-            dry_run=True
-        )
+        applied_versions = await migration_manager.migrate_to_latest(dry_run=True)
 
         # Check that migrations would be applied
         assert len(applied_versions) >= 3
@@ -410,9 +404,7 @@ class TestMigrationManager:
         assert len(applied) == 1
 
         # Reset database (requires confirmation)
-        with pytest.raises(
-            MigrationError, match="requires explicit confirmation"
-        ):
+        with pytest.raises(MigrationError, match="requires explicit confirmation"):
             await migration_manager.reset_database(confirm=False)
 
         # Reset with confirmation

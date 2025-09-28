@@ -80,15 +80,11 @@ class TestEndpointDocumentProcessor:
         assert segments == ["users"]
 
         # Test path with parameters
-        segments = self.processor.extract_path_segments(
-            "/api/v1/users/{id}/posts"
-        )
+        segments = self.processor.extract_path_segments("/api/v1/users/{id}/posts")
         assert segments == ["users", "posts"]
 
         # Test path with colon parameters
-        segments = self.processor.extract_path_segments(
-            "/api/v1/users/:id/posts"
-        )
+        segments = self.processor.extract_path_segments("/api/v1/users/:id/posts")
         assert segments == ["users", "posts"]
 
         # Test path with multiple parameters
@@ -100,21 +96,15 @@ class TestEndpointDocumentProcessor:
     def test_extract_path_parameters(self):
         """Test path parameter extraction."""
         # Test curly brace parameters
-        params = self.processor.extract_path_parameters(
-            "/users/{id}/posts/{postId}"
-        )
+        params = self.processor.extract_path_parameters("/users/{id}/posts/{postId}")
         assert params == ["id", "postId"]
 
         # Test colon parameters
-        params = self.processor.extract_path_parameters(
-            "/users/:id/posts/:postId"
-        )
+        params = self.processor.extract_path_parameters("/users/:id/posts/:postId")
         assert params == ["id", "postId"]
 
         # Test mixed parameters
-        params = self.processor.extract_path_parameters(
-            "/users/{id}/posts/:postId"
-        )
+        params = self.processor.extract_path_parameters("/users/{id}/posts/:postId")
         assert params == ["id", "postId"]
 
         # Test no parameters
@@ -219,9 +209,7 @@ class TestEndpointDocumentProcessor:
         assert resource == "users"
 
         # Test nested resource
-        resource = self.processor.extract_resource_name(
-            "/api/v1/users/{id}/posts"
-        )
+        resource = self.processor.extract_resource_name("/api/v1/users/{id}/posts")
         assert resource == "users"
 
         # Test multiple segments
@@ -234,20 +222,12 @@ class TestEndpointDocumentProcessor:
         """Test operation type classification."""
         # Test based on method and path patterns
         assert (
-            self.processor.classify_operation_type("GET", "/users/{id}", "")
-            == "read"
+            self.processor.classify_operation_type("GET", "/users/{id}", "") == "read"
         )
+        assert self.processor.classify_operation_type("GET", "/users", "") == "list"
+        assert self.processor.classify_operation_type("POST", "/users", "") == "create"
         assert (
-            self.processor.classify_operation_type("GET", "/users", "")
-            == "list"
-        )
-        assert (
-            self.processor.classify_operation_type("POST", "/users", "")
-            == "create"
-        )
-        assert (
-            self.processor.classify_operation_type("PUT", "/users/{id}", "")
-            == "update"
+            self.processor.classify_operation_type("PUT", "/users/{id}", "") == "update"
         )
         assert (
             self.processor.classify_operation_type("DELETE", "/users/{id}", "")
@@ -256,9 +236,7 @@ class TestEndpointDocumentProcessor:
 
         # Test based on summary content
         assert (
-            self.processor.classify_operation_type(
-                "POST", "/users", "Create new user"
-            )
+            self.processor.classify_operation_type("POST", "/users", "Create new user")
             == "create"
         )
         assert (
@@ -316,9 +294,7 @@ class TestEndpointDocumentProcessor:
             "path": "/users/{id}",
         }
 
-        keywords = self.processor.extract_keywords(
-            searchable_text, endpoint_data
-        )
+        keywords = self.processor.extract_keywords(searchable_text, endpoint_data)
 
         assert "get" in keywords
         assert "user" in keywords
@@ -334,21 +310,15 @@ class TestEndpointDocumentProcessor:
         endpoint_with_param_examples = {
             "parameters": [{"name": "id", "example": "123"}]
         }
-        assert (
-            self.processor.has_examples(endpoint_with_param_examples) is True
-        )
+        assert self.processor.has_examples(endpoint_with_param_examples) is True
 
         # Test with request body examples
         endpoint_with_request_examples = {
             "requestBody": {
-                "content": {
-                    "application/json": {"example": {"name": "John Doe"}}
-                }
+                "content": {"application/json": {"example": {"name": "John Doe"}}}
             }
         }
-        assert (
-            self.processor.has_examples(endpoint_with_request_examples) is True
-        )
+        assert self.processor.has_examples(endpoint_with_request_examples) is True
 
         # Test with response examples
         endpoint_with_response_examples = {
@@ -356,18 +326,13 @@ class TestEndpointDocumentProcessor:
                 "200": {
                     "content": {
                         "application/json": {
-                            "examples": {
-                                "user": {"value": {"id": 1, "name": "John"}}
-                            }
+                            "examples": {"user": {"value": {"id": 1, "name": "John"}}}
                         }
                     }
                 }
             }
         }
-        assert (
-            self.processor.has_examples(endpoint_with_response_examples)
-            is True
-        )
+        assert self.processor.has_examples(endpoint_with_response_examples) is True
 
         # Test without examples
         endpoint_without_examples = {
@@ -465,17 +430,13 @@ class TestEndpointDocumentProcessor:
         # Missing 'id' field
         invalid_data = {"path": "/users", "method": "GET"}
 
-        with pytest.raises(
-            ValueError, match="must include 'id' and 'path' fields"
-        ):
+        with pytest.raises(ValueError, match="must include 'id' and 'path' fields"):
             await self.processor.create_endpoint_document(invalid_data)
 
         # Missing 'path' field
         invalid_data = {"id": "test", "method": "GET"}
 
-        with pytest.raises(
-            ValueError, match="must include 'id' and 'path' fields"
-        ):
+        with pytest.raises(ValueError, match="must include 'id' and 'path' fields"):
             await self.processor.create_endpoint_document(invalid_data)
 
 
@@ -568,9 +529,7 @@ class TestEndpointIndexingEdgeCases:
         """Test response extraction with invalid data."""
         responses = {
             "invalid": "not a dict",
-            "200": {
-                "content": {"application/json": {"schema": "invalid schema"}}
-            },
+            "200": {"content": {"application/json": {"schema": "invalid schema"}}},
         }
 
         result = await self.processor.extract_response_info(responses)
@@ -608,17 +567,13 @@ class TestEndpointIndexingEdgeCases:
         assert segments == []
 
         # Path with special characters
-        segments = self.processor.extract_path_segments(
-            "/api/v1/user-profiles"
-        )
+        segments = self.processor.extract_path_segments("/api/v1/user-profiles")
         assert segments == ["user-profiles"]
 
     def test_keyword_extraction_edge_cases(self):
         """Test keyword extraction edge cases."""
         # Empty text
-        keywords = self.processor.extract_keywords(
-            "", {"method": "GET", "tags": []}
-        )
+        keywords = self.processor.extract_keywords("", {"method": "GET", "tags": []})
         assert "get" in keywords
 
         # Text with only stop words
@@ -633,9 +588,7 @@ class TestEndpointIndexingEdgeCases:
             "user-profile & data", {"method": "GET", "tags": []}
         )
         # Should extract meaningful words, special characters filtered out
-        assert any(
-            word in keywords for word in ["user", "profile", "data", "get"]
-        )
+        assert any(word in keywords for word in ["user", "profile", "data", "get"])
 
     @pytest.mark.asyncio
     async def test_minimal_endpoint_data(self):

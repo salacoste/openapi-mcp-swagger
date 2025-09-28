@@ -64,9 +64,7 @@ class TestIndexSchema:
         ]
 
         for field in required_fields:
-            assert (
-                field in field_names
-            ), f"Required field '{field}' missing from schema"
+            assert field in field_names, f"Required field '{field}' missing from schema"
 
     def test_field_properties_are_correctly_configured(self):
         """Test that fields have correct properties (stored, analyzers, etc.)."""

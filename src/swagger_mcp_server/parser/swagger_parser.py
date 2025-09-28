@@ -135,9 +135,7 @@ class SwaggerParser(BaseParser):
             )
 
             # Phase 4: Completion and Metrics
-            await self.progress_reporter.complete(
-                "Parsing completed successfully"
-            )
+            await self.progress_reporter.complete("Parsing completed successfully")
 
             # Update final result
             final_result = ParseResult(
@@ -159,9 +157,7 @@ class SwaggerParser(BaseParser):
             # Update final metrics
             end_time = time.time()
             total_duration = (end_time - start_time) * 1000
-            metrics.parse_duration_ms = (
-                total_duration - metrics.validation_duration_ms
-            )
+            metrics.parse_duration_ms = total_duration - metrics.validation_duration_ms
 
             # Collect all errors and warnings
             metrics.errors.extend(self.error_handler.errors)
@@ -221,9 +217,7 @@ class SwaggerParser(BaseParser):
         def progress_callback(bytes_processed: int, total_bytes: int):
             # Report to progress reporter
             asyncio.create_task(
-                self.progress_reporter.update_progress(
-                    bytes_processed, total_bytes
-                )
+                self.progress_reporter.update_progress(bytes_processed, total_bytes)
             )
 
             # Call original callback if exists
@@ -249,9 +243,7 @@ class SwaggerParser(BaseParser):
 
         try:
             result = await self.stream_parser.parse(path)
-            await self.progress_reporter.complete_phase(
-                "JSON parsing completed"
-            )
+            await self.progress_reporter.complete_phase("JSON parsing completed")
             return result
         finally:
             # Restore original callback
@@ -277,10 +269,8 @@ class SwaggerParser(BaseParser):
                 0, 100, "Starting structure validation"
             )
 
-            validated_data = (
-                self.structure_validator.validate_and_preserve_structure(
-                    data, file_path
-                )
+            validated_data = self.structure_validator.validate_and_preserve_structure(
+                data, file_path
             )
 
             await self.progress_reporter.update_progress(
@@ -293,9 +283,7 @@ class SwaggerParser(BaseParser):
             return validated_data
 
         except Exception as e:
-            await self.progress_reporter.fail(
-                f"Structure validation failed: {str(e)}"
-            )
+            await self.progress_reporter.fail(f"Structure validation failed: {str(e)}")
             raise
 
     async def _validate_openapi_with_progress(
@@ -312,9 +300,7 @@ class SwaggerParser(BaseParser):
             Validation result if validation is enabled
         """
         if not self.config.validate_openapi:
-            await self.progress_reporter.complete_phase(
-                "OpenAPI validation skipped"
-            )
+            await self.progress_reporter.complete_phase("OpenAPI validation skipped")
             return None
 
         try:
@@ -322,10 +308,8 @@ class SwaggerParser(BaseParser):
                 0, 100, "Starting OpenAPI validation"
             )
 
-            validation_result = (
-                await self.openapi_validator.validate_specification(
-                    data, file_path
-                )
+            validation_result = await self.openapi_validator.validate_specification(
+                data, file_path
             )
 
             await self.progress_reporter.update_progress(
@@ -338,9 +322,7 @@ class SwaggerParser(BaseParser):
             return validation_result
 
         except Exception as e:
-            await self.progress_reporter.fail(
-                f"OpenAPI validation failed: {str(e)}"
-            )
+            await self.progress_reporter.fail(f"OpenAPI validation failed: {str(e)}")
             raise
 
     def get_parsing_metrics(self) -> Dict[str, Any]:
@@ -351,9 +333,7 @@ class SwaggerParser(BaseParser):
         """
         return {
             "stream_parser_metrics": {
-                "memory_peak_mb": getattr(
-                    self.stream_parser, "_last_memory_peak", 0
-                ),
+                "memory_peak_mb": getattr(self.stream_parser, "_last_memory_peak", 0),
                 "extensions_found": 0,  # Will be updated during parsing
             },
             "error_handler_metrics": self.error_handler.get_error_summary(),

@@ -252,9 +252,7 @@ class ConfigurationManager:
             click.echo(f"Error resetting configuration: {e}", err=True)
             return False
 
-    def _save_config_file(
-        self, file_path: Path, config: Dict[str, Any]
-    ) -> bool:
+    def _save_config_file(self, file_path: Path, config: Dict[str, Any]) -> bool:
         """Save configuration to YAML file."""
         try:
             import yaml
@@ -308,9 +306,7 @@ class ConfigurationManager:
         # Validate performance configuration
         timeout = self.get("performance.timeout")
         if not isinstance(timeout, int) or timeout <= 0:
-            errors.append(
-                f"Invalid timeout: {timeout} (must be positive integer)"
-            )
+            errors.append(f"Invalid timeout: {timeout} (must be positive integer)")
 
         max_connections = self.get("performance.max_connections")
         if not isinstance(max_connections, int) or max_connections <= 0:
@@ -368,9 +364,7 @@ class ConfigurationManager:
             try:
                 import yaml
 
-                return yaml.dump(
-                    self.config, default_flow_style=False, indent=2
-                )
+                return yaml.dump(self.config, default_flow_style=False, indent=2)
             except ImportError:
                 return json.dumps(self.config, indent=2)
         else:

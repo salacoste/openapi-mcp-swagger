@@ -69,9 +69,7 @@ class HealthChecker:
                     message="Database connection healthy",
                     details={
                         "database_path": health_result.get("database_path"),
-                        "file_size_bytes": health_result.get(
-                            "file_size_bytes"
-                        ),
+                        "file_size_bytes": health_result.get("file_size_bytes"),
                         "table_counts": health_result.get("table_counts", {}),
                     },
                     check_duration_ms=check_duration,
@@ -115,14 +113,14 @@ class HealthChecker:
 
             if test_result["success"]:
                 # Check if response time is within reasonable bounds
-                if (
-                    test_result["response_time_ms"] < 1000
-                ):  # 1 second threshold
+                if test_result["response_time_ms"] < 1000:  # 1 second threshold
                     status = HealthStatus.HEALTHY
                     message = "MCP server responsive"
                 else:
                     status = HealthStatus.DEGRADED
-                    message = f"MCP server slow ({test_result['response_time_ms']:.0f}ms)"
+                    message = (
+                        f"MCP server slow ({test_result['response_time_ms']:.0f}ms)"
+                    )
 
                 return ComponentHealth(
                     status=status,
@@ -217,9 +215,7 @@ class HealthChecker:
                             f"{method_name}: {avg_time:.0f}ms > {thresholds[method_name]}ms"
                         )
 
-                    if (
-                        avg_time > thresholds[method_name] * 0.8
-                    ):  # 80% of threshold
+                    if avg_time > thresholds[method_name] * 0.8:  # 80% of threshold
                         degraded_methods.append(method_name)
 
                 # Check error rate
@@ -271,20 +267,14 @@ class HealthChecker:
         check_start = time.time()
 
         # Run health checks in parallel for better performance
-        db_health_task = asyncio.create_task(
-            self.check_database_health(db_manager)
-        )
-        mcp_health_task = asyncio.create_task(
-            self.check_mcp_responsiveness(server)
-        )
+        db_health_task = asyncio.create_task(self.check_database_health(db_manager))
+        mcp_health_task = asyncio.create_task(self.check_mcp_responsiveness(server))
         perf_health_task = asyncio.create_task(self.check_performance_health())
 
         try:
             # Wait for all health checks with timeout
             db_health, mcp_health, perf_health = await asyncio.wait_for(
-                asyncio.gather(
-                    db_health_task, mcp_health_task, perf_health_task
-                ),
+                asyncio.gather(db_health_task, mcp_health_task, perf_health_task),
                 timeout=10.0,  # 10 second timeout for all checks
             )
         except asyncio.TimeoutError:
@@ -322,13 +312,9 @@ class HealthChecker:
             perf_health.status,
         ]
 
-        if all(
-            status == HealthStatus.HEALTHY for status in component_statuses
-        ):
+        if all(status == HealthStatus.HEALTHY for status in component_statuses):
             overall_status = "healthy"
-        elif any(
-            status == HealthStatus.UNHEALTHY for status in component_statuses
-        ):
+        elif any(status == HealthStatus.UNHEALTHY for status in component_statuses):
             overall_status = "unhealthy"
         else:
             overall_status = "degraded"

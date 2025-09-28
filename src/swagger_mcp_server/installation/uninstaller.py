@@ -97,12 +97,8 @@ class UninstallationManager:
                 for server_status in all_servers:
                     server_id = server_status["server"]["id"]
                     try:
-                        await manager.stop_server(
-                            server_id, force=True, timeout=10
-                        )
-                        results["removed_items"].append(
-                            f"stopped server: {server_id}"
-                        )
+                        await manager.stop_server(server_id, force=True, timeout=10)
+                        results["removed_items"].append(f"stopped server: {server_id}")
                     except Exception as e:
                         results["warnings"].append(
                             f"Could not stop server {server_id}: {e}"
@@ -141,22 +137,16 @@ class UninstallationManager:
                         f"{description}: backed up to {backup_path}"
                     )
                 except Exception as e:
-                    results["warnings"].append(
-                        f"Could not backup {description}: {e}"
-                    )
+                    results["warnings"].append(f"Could not backup {description}: {e}")
 
     async def _remove_all_data(self, results: Dict[str, Any]) -> None:
         """Remove all data directories."""
         if self.data_dir.exists():
             try:
                 shutil.rmtree(self.data_dir)
-                results["removed_items"].append(
-                    f"data directory: {self.data_dir}"
-                )
+                results["removed_items"].append(f"data directory: {self.data_dir}")
             except Exception as e:
-                results["warnings"].append(
-                    f"Could not remove data directory: {e}"
-                )
+                results["warnings"].append(f"Could not remove data directory: {e}")
 
     async def _selective_cleanup(self, results: Dict[str, Any]) -> None:
         """Selective cleanup preserving user configuration."""
@@ -199,9 +189,7 @@ class UninstallationManager:
                 shutil.rmtree(self.backup_dir)
                 results["removed_items"].append("backup directory")
             except Exception as e:
-                results["warnings"].append(
-                    f"Could not remove backup directory: {e}"
-                )
+                results["warnings"].append(f"Could not remove backup directory: {e}")
 
         # Preserve configuration files
         config_files = ["config.yaml", "servers.json"]
@@ -234,9 +222,7 @@ class UninstallationManager:
                     if subdir.exists():
                         try:
                             shutil.rmtree(subdir)
-                            results["removed_items"].append(
-                                f"directory: {subdir.name}"
-                            )
+                            results["removed_items"].append(f"directory: {subdir.name}")
                         except Exception as sub_e:
                             results["warnings"].append(
                                 f"Could not remove {subdir.name}: {sub_e}"
@@ -303,9 +289,7 @@ class UninstallationManager:
         # Common temporary locations
         temp_locations = [
             Path.home() / ".swagger_mcp_temp",
-            Path("/tmp") / "swagger_mcp_server"
-            if self.platform != "windows"
-            else None,
+            Path("/tmp") / "swagger_mcp_server" if self.platform != "windows" else None,
             Path(os.getenv("TEMP", "")) / "swagger_mcp_server"
             if self.platform == "windows"
             else None,

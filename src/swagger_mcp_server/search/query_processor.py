@@ -80,9 +80,7 @@ class QueryProcessor:
                 self.stemmer = PorterStemmer()
                 self.stop_words = set(stopwords.words("english"))
             except Exception as e:
-                self.logger.warning(
-                    f"Failed to initialize NLTK components: {e}"
-                )
+                self.logger.warning(f"Failed to initialize NLTK components: {e}")
                 self.stemmer = None
                 self.stop_words = set()
         else:
@@ -234,8 +232,7 @@ class QueryProcessor:
                         [
                             Term(field, term)
                             for field in schema_fields
-                            if field
-                            in ["endpoint_path", "summary", "description"]
+                            if field in ["endpoint_path", "summary", "description"]
                         ]
                     )
                     if exclusion:
@@ -248,9 +245,7 @@ class QueryProcessor:
                 return And(queries)
             else:
                 # Fallback to simple term search
-                return Term(
-                    "description", processed_query.original_query.lower()
-                )
+                return Term("description", processed_query.original_query.lower())
 
         except Exception as e:
             self.logger.error(f"Whoosh query generation failed: {e}")
@@ -278,13 +273,9 @@ class QueryProcessor:
         try:
             if result_count == 0:
                 # No results - suggest alternatives
-                suggestions.extend(
-                    self._suggest_typo_fixes(query, available_terms)
-                )
+                suggestions.extend(self._suggest_typo_fixes(query, available_terms))
                 suggestions.extend(self._suggest_broader_queries(query))
-                suggestions.extend(
-                    self._suggest_similar_terms(query, available_terms)
-                )
+                suggestions.extend(self._suggest_similar_terms(query, available_terms))
 
             elif result_count < 5:
                 # Few results - suggest refinements
@@ -348,9 +339,7 @@ class QueryProcessor:
             clean_query = re.sub(pattern, "", clean_query, flags=re.IGNORECASE)
 
         # Remove boolean operators
-        clean_query = re.sub(
-            r"\b(AND|OR|NOT)\b", " ", clean_query, flags=re.IGNORECASE
-        )
+        clean_query = re.sub(r"\b(AND|OR|NOT)\b", " ", clean_query, flags=re.IGNORECASE)
 
         # Clean up whitespace
         clean_query = re.sub(r"\s+", " ", clean_query).strip()
@@ -548,11 +537,7 @@ class QueryProcessor:
             if or_queries:
                 queries.append(Or(or_queries))
 
-        return (
-            And(queries)
-            if len(queries) > 1
-            else (queries[0] if queries else None)
-        )
+        return And(queries) if len(queries) > 1 else (queries[0] if queries else None)
 
     def _build_main_query(
         self, terms: List[str], schema_fields: List[str]
@@ -641,9 +626,7 @@ class QueryProcessor:
         for term in query_terms:
             if len(term) > 3:  # Only check longer terms
                 for available_term in available_terms:
-                    similarity = SequenceMatcher(
-                        None, term, available_term
-                    ).ratio()
+                    similarity = SequenceMatcher(None, term, available_term).ratio()
                     if 0.7 <= similarity < 1.0:  # Potential typo fix
                         fixed_query = query.replace(term, available_term)
                         suggestions.append(
@@ -727,9 +710,7 @@ class QueryProcessor:
 
         return suggestions[:2]
 
-    def _suggest_field_specific_queries(
-        self, query: str
-    ) -> List[QuerySuggestion]:
+    def _suggest_field_specific_queries(self, query: str) -> List[QuerySuggestion]:
         """Suggest field-specific query alternatives."""
         suggestions = []
 
@@ -797,9 +778,7 @@ class QueryProcessor:
         query_lower = query.lower()
         for keyword, pattern_list in patterns.items():
             if keyword in query_lower:
-                for pattern in pattern_list[
-                    :1
-                ]:  # Only suggest one pattern per keyword
+                for pattern in pattern_list[:1]:  # Only suggest one pattern per keyword
                     suggestions.append(
                         QuerySuggestion(
                             query=f"{query} {pattern}",

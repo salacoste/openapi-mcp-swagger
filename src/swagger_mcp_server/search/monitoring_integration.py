@@ -90,29 +90,21 @@ class SearchMonitoringIntegration:
 
             # Register alert callbacks
             if self.config.alert_notification_enabled:
-                self.search_monitor.add_alert_callback(
-                    self._handle_search_alert
-                )
+                self.search_monitor.add_alert_callback(self._handle_search_alert)
 
             # Start metric export task
             if self.config.metrics_export_interval_seconds > 0:
-                self.export_task = asyncio.create_task(
-                    self._metric_export_loop()
-                )
+                self.export_task = asyncio.create_task(self._metric_export_loop())
 
             # Sync performance thresholds
             if self.config.performance_threshold_sync and self.mcp_monitor:
                 await self._sync_performance_thresholds()
 
             self.integration_active = True
-            self.logger.info(
-                "Search monitoring integration initialized successfully"
-            )
+            self.logger.info("Search monitoring integration initialized successfully")
 
         except Exception as e:
-            self.logger.error(
-                f"Failed to initialize monitoring integration: {e}"
-            )
+            self.logger.error(f"Failed to initialize monitoring integration: {e}")
             raise
 
     async def shutdown_integration(self) -> None:
@@ -129,17 +121,13 @@ class SearchMonitoringIntegration:
                     pass
 
             # Remove alert callbacks
-            self.search_monitor.remove_alert_callback(
-                self._handle_search_alert
-            )
+            self.search_monitor.remove_alert_callback(self._handle_search_alert)
 
             self.integration_active = False
             self.logger.info("Search monitoring integration shutdown complete")
 
         except Exception as e:
-            self.logger.error(
-                f"Error during monitoring integration shutdown: {e}"
-            )
+            self.logger.error(f"Error during monitoring integration shutdown: {e}")
 
     async def export_search_metrics(self) -> List[SearchMetricExport]:
         """Export search metrics in standardized format.
@@ -152,14 +140,12 @@ class SearchMonitoringIntegration:
             current_time = datetime.now()
 
             # Get performance summary
-            performance_summary = (
-                await self.search_monitor.get_performance_summary("1h")
+            performance_summary = await self.search_monitor.get_performance_summary(
+                "1h"
             )
 
             # Export response time metrics
-            response_times = performance_summary.get(
-                "response_time_metrics", {}
-            )
+            response_times = performance_summary.get("response_time_metrics", {})
             for percentile, value in response_times.items():
                 if isinstance(value, (int, float)):
                     metrics.append(
@@ -176,18 +162,14 @@ class SearchMonitoringIntegration:
                     )
 
             # Export volume metrics
-            volume_metrics = performance_summary.get(
-                "query_volume_metrics", {}
-            )
+            volume_metrics = performance_summary.get("query_volume_metrics", {})
             for metric_name, value in volume_metrics.items():
                 if isinstance(value, (int, float)):
                     metrics.append(
                         SearchMetricExport(
                             metric_name=f"search_{metric_name}",
                             metric_value=value,
-                            metric_type="gauge"
-                            if "rate" in metric_name
-                            else "counter",
+                            metric_type="gauge" if "rate" in metric_name else "counter",
                             timestamp=current_time,
                             tags={
                                 "component": "search",
@@ -214,9 +196,7 @@ class SearchMonitoringIntegration:
                     )
 
             # Export cache performance
-            cache_performance = performance_summary.get(
-                "cache_performance", {}
-            )
+            cache_performance = performance_summary.get("cache_performance", {})
             for metric_name, value in cache_performance.items():
                 if isinstance(value, (int, float)):
                     metrics.append(
@@ -270,9 +250,7 @@ class SearchMonitoringIntegration:
                 "event_type": "search_analytics",
                 "timestamp": analytics.timestamp.isoformat(),
                 "correlation_id": analytics.correlation_id,
-                "query_text": analytics.query_text[
-                    :100
-                ],  # Truncate for logging
+                "query_text": analytics.query_text[:100],  # Truncate for logging
                 "search_type": analytics.search_type,
                 "total_response_time_ms": analytics.total_response_time,
                 "result_count": analytics.result_count,
@@ -290,9 +268,7 @@ class SearchMonitoringIntegration:
                     "Search performance threshold exceeded", extra=log_data
                 )
             elif analytics.performance_grade == "poor":
-                self.logger.warning(
-                    "Poor search performance detected", extra=log_data
-                )
+                self.logger.warning("Poor search performance detected", extra=log_data)
             else:
                 self.logger.info("Search analytics", extra=log_data)
 
@@ -321,9 +297,7 @@ class SearchMonitoringIntegration:
             if alert.level.value == "critical":
                 self.logger.critical("Critical search alert", extra=alert_data)
             elif alert.level.value == "warning":
-                self.logger.warning(
-                    "Search performance warning", extra=alert_data
-                )
+                self.logger.warning("Search performance warning", extra=alert_data)
             else:
                 self.logger.info("Search alert", extra=alert_data)
 
@@ -358,17 +332,13 @@ class SearchMonitoringIntegration:
                     await self._send_metrics_to_mcp(exported_metrics)
 
                 # Log export activity
-                self.logger.debug(
-                    f"Exported {len(exported_metrics)} search metrics"
-                )
+                self.logger.debug(f"Exported {len(exported_metrics)} search metrics")
 
                 # Update last export time
                 self.last_export = datetime.now()
 
                 # Wait for next export cycle
-                await asyncio.sleep(
-                    self.config.metrics_export_interval_seconds
-                )
+                await asyncio.sleep(self.config.metrics_export_interval_seconds)
 
             except asyncio.CancelledError:
                 break
@@ -376,9 +346,7 @@ class SearchMonitoringIntegration:
                 self.logger.error(f"Error in metric export loop: {e}")
                 await asyncio.sleep(60)  # Wait before retrying
 
-    async def _send_metrics_to_mcp(
-        self, metrics: List[SearchMetricExport]
-    ) -> None:
+    async def _send_metrics_to_mcp(self, metrics: List[SearchMetricExport]) -> None:
         """Send metrics to MCP monitoring system.
 
         Args:
@@ -416,9 +384,7 @@ class SearchMonitoringIntegration:
 
             # Get MCP performance thresholds
             if hasattr(self.mcp_monitor, "get_performance_thresholds"):
-                mcp_thresholds = (
-                    await self.mcp_monitor.get_performance_thresholds()
-                )
+                mcp_thresholds = await self.mcp_monitor.get_performance_thresholds()
 
                 # Update search monitor thresholds
                 if "response_time_warning" in mcp_thresholds:
@@ -505,9 +471,7 @@ class SearchMonitoringIntegration:
         """
         try:
             # Get dashboard data
-            dashboard_data = await self.dashboard.get_dashboard_data(
-                time_period
-            )
+            dashboard_data = await self.dashboard.get_dashboard_data(time_period)
 
             # Get integration status
             integration_status = await self.get_integration_status()
@@ -527,12 +491,10 @@ class SearchMonitoringIntegration:
                     "overview": dashboard_data.get("performance", {}).get(
                         "overview", {}
                     ),
-                    "nfr1_compliance": dashboard_data.get(
-                        "performance", {}
-                    ).get("nfr1_compliance", {}),
-                    "trends": dashboard_data.get("performance", {}).get(
-                        "trends", {}
+                    "nfr1_compliance": dashboard_data.get("performance", {}).get(
+                        "nfr1_compliance", {}
                     ),
+                    "trends": dashboard_data.get("performance", {}).get("trends", {}),
                 },
                 "analytics_summary": {
                     "effectiveness": dashboard_data.get("analytics", {}).get(
@@ -552,19 +514,15 @@ class SearchMonitoringIntegration:
                     "system_status": dashboard_data.get("status", {}).get(
                         "system_status", "unknown"
                     ),
-                    "index_health": dashboard_data.get("index", {}).get(
-                        "health", {}
-                    ),
+                    "index_health": dashboard_data.get("index", {}).get("health", {}),
                     "active_alerts": len(
-                        dashboard_data.get("alerts", {}).get(
-                            "active_alerts", []
-                        )
+                        dashboard_data.get("alerts", {}).get("active_alerts", [])
                     ),
                 },
                 "recommendations": {
-                    "priority_actions": dashboard_data.get(
-                        "recommendations", {}
-                    ).get("priority_actions", []),
+                    "priority_actions": dashboard_data.get("recommendations", {}).get(
+                        "priority_actions", []
+                    ),
                     "performance_recommendations": dashboard_data.get(
                         "recommendations", {}
                     ).get("performance", [])[:3],
@@ -620,13 +578,8 @@ class SearchMonitoringIntegration:
                 )
 
             # Check metric export
-            time_since_export = (
-                datetime.now() - self.last_export
-            ).total_seconds()
-            if (
-                time_since_export
-                < self.config.metrics_export_interval_seconds * 2
-            ):
+            time_since_export = (datetime.now() - self.last_export).total_seconds()
+            if time_since_export < self.config.metrics_export_interval_seconds * 2:
                 health_checks.append(
                     {
                         "check": "metric_export",
@@ -683,9 +636,7 @@ class SearchMonitoringIntegration:
 
             # Overall health assessment
             failed_checks = [c for c in health_checks if c["status"] == "fail"]
-            warning_checks = [
-                c for c in health_checks if c["status"] == "warning"
-            ]
+            warning_checks = [c for c in health_checks if c["status"] == "warning"]
 
             if failed_checks:
                 overall_status = "unhealthy"

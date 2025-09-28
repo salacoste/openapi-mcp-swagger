@@ -87,9 +87,7 @@ class TestEndpointIndexingIntegration:
                     "description": "Product details retrieved successfully",
                     "content": {
                         "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/ProductDetail"
-                            },
+                            "schema": {"$ref": "#/components/schemas/ProductDetail"},
                             "example": {
                                 "id": 123456,
                                 "name": "Premium Wireless Headphones",
@@ -116,15 +114,11 @@ class TestEndpointIndexingIntegration:
                 {"apiKey": ["products:read"]},
             ],
             "requestBody": None,
-            "externalDocs": {
-                "url": "https://docs.example.com/products/get-details"
-            },
+            "externalDocs": {"url": "https://docs.example.com/products/get-details"},
         }
 
         # Process the endpoint
-        document = await self.processor.create_endpoint_document(
-            complex_endpoint
-        )
+        document = await self.processor.create_endpoint_document(complex_endpoint)
 
         # Verify core information
         assert document.endpoint_id == "get-product-by-id"
@@ -180,10 +174,7 @@ class TestEndpointIndexingIntegration:
         assert document.deprecated is False
         assert document.has_examples is True
         assert document.has_request_body is False
-        assert (
-            "https://docs.example.com/products/get-details"
-            in document.external_docs
-        )
+        assert "https://docs.example.com/products/get-details" in document.external_docs
 
         # Verify composite fields
         assert len(document.searchable_text) > 100  # Should be substantial
@@ -205,8 +196,7 @@ class TestEndpointIndexingIntegration:
         assert isinstance(index_fields["has_request_body"], bool)
         assert isinstance(index_fields["has_examples"], bool)
         assert (
-            "productId include locale authorization"
-            == index_fields["parameter_names"]
+            "productId include locale authorization" == index_fields["parameter_names"]
         )
 
     @pytest.mark.asyncio
@@ -218,9 +208,7 @@ class TestEndpointIndexingIntegration:
             "method": "GET",
         }
 
-        document = await self.processor.create_endpoint_document(
-            minimal_endpoint
-        )
+        document = await self.processor.create_endpoint_document(minimal_endpoint)
 
         # Verify basic information
         assert document.endpoint_id == "basic-health-check"
@@ -274,9 +262,7 @@ class TestEndpointIndexingIntegration:
                 "required": True,
                 "content": {
                     "application/json": {
-                        "schema": {
-                            "$ref": "#/components/schemas/UserCreateRequest"
-                        },
+                        "schema": {"$ref": "#/components/schemas/UserCreateRequest"},
                         "example": {
                             "username": "john_doe",
                             "email": "john@example.com",
@@ -349,9 +335,7 @@ class TestEndpointIndexingIntegration:
                         "description": "Success response",
                         "content": {
                             "application/json": {
-                                "schema": {
-                                    "$ref": f"#/components/schemas/Resource{i}"
-                                }
+                                "schema": {"$ref": f"#/components/schemas/Resource{i}"}
                             }
                         },
                     }
@@ -374,9 +358,7 @@ class TestEndpointIndexingIntegration:
 
         # Basic performance validation
         assert len(documents) == 50
-        assert (
-            processing_time < 5.0
-        )  # Should process 50 endpoints in under 5 seconds
+        assert processing_time < 5.0  # Should process 50 endpoints in under 5 seconds
 
         # Verify all documents are valid
         for i, doc in enumerate(documents):
@@ -386,13 +368,9 @@ class TestEndpointIndexingIntegration:
             assert doc.resource_name == "resource"
 
         # Verify operation type classification
-        get_operations = [
-            doc for doc in documents if doc.operation_type == "read"
-        ]
+        get_operations = [doc for doc in documents if doc.operation_type == "read"]
         post_operations = [
-            doc
-            for doc in documents
-            if doc.operation_type in ["create", "update"]
+            doc for doc in documents if doc.operation_type in ["create", "update"]
         ]
         assert len(get_operations) > 0
         assert len(post_operations) > 0
@@ -432,9 +410,7 @@ class TestEndpointIndexingIntegration:
         }
 
         # Should not raise exceptions with malformed data
-        document = await self.processor.create_endpoint_document(
-            edge_case_endpoint
-        )
+        document = await self.processor.create_endpoint_document(edge_case_endpoint)
 
         # Verify basic processing still works
         assert document.endpoint_id == "edge-case-test"

@@ -19,9 +19,7 @@ class ConversionValidator:
     def __init__(self):
         self.validation_timeout = 30  # seconds
 
-    async def validate_generated_server(
-        self, package_dir: str
-    ) -> Dict[str, Any]:
+    async def validate_generated_server(self, package_dir: str) -> Dict[str, Any]:
         """Comprehensive validation of generated MCP server."""
         logger.info("Starting MCP server validation", package_dir=package_dir)
 
@@ -38,8 +36,7 @@ class ConversionValidator:
 
         # Determine overall status
         all_passed = all(
-            result.get("passed", False)
-            for result in validation_results.values()
+            result.get("passed", False) for result in validation_results.values()
         )
 
         overall_result = {
@@ -108,11 +105,9 @@ class ConversionValidator:
             "missing_optional": missing_optional,
             "invalid_files": invalid_files,
             "details": {
-                "required_files_found": len(required_files)
-                - len(missing_required),
+                "required_files_found": len(required_files) - len(missing_required),
                 "total_required_files": len(required_files),
-                "optional_files_found": len(optional_files)
-                - len(missing_optional),
+                "optional_files_found": len(optional_files) - len(missing_optional),
                 "total_optional_files": len(optional_files),
             },
         }
@@ -129,14 +124,10 @@ class ConversionValidator:
             logger.warning("Python syntax error", file=file_path, error=str(e))
             return False
         except Exception as e:
-            logger.warning(
-                "Error validating Python file", file=file_path, error=str(e)
-            )
+            logger.warning("Error validating Python file", file=file_path, error=str(e))
             return False
 
-    async def _validate_configuration(
-        self, package_dir: str
-    ) -> Dict[str, Any]:
+    async def _validate_configuration(self, package_dir: str) -> Dict[str, Any]:
         """Validate configuration files."""
         config_issues = []
         config_warnings = []
@@ -162,17 +153,11 @@ class ConversionValidator:
                 server_config = config_data.get("server", {})
                 if "port" in server_config:
                     port = server_config["port"]
-                    if (
-                        not isinstance(port, int)
-                        or port < 1024
-                        or port > 65535
-                    ):
+                    if not isinstance(port, int) or port < 1024 or port > 65535:
                         config_issues.append(f"Invalid port number: {port}")
 
             except ImportError:
-                config_warnings.append(
-                    "PyYAML not available to validate YAML syntax"
-                )
+                config_warnings.append("PyYAML not available to validate YAML syntax")
             except Exception as e:
                 config_issues.append(f"Error parsing server.yaml: {str(e)}")
         else:
@@ -191,9 +176,7 @@ class ConversionValidator:
                     )
 
             except Exception as e:
-                config_issues.append(
-                    f"Error reading requirements.txt: {str(e)}"
-                )
+                config_issues.append(f"Error reading requirements.txt: {str(e)}")
         else:
             config_issues.append("requirements.txt file not found")
 
@@ -338,15 +321,11 @@ class ConversionValidator:
             cursor = conn.cursor()
 
             # Check if basic tables exist
-            cursor.execute(
-                "SELECT name FROM sqlite_master WHERE type='table';"
-            )
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
             tables = [row[0] for row in cursor.fetchall()]
 
             expected_tables = ["endpoints", "schemas", "metadata"]
-            missing_tables = [
-                table for table in expected_tables if table not in tables
-            ]
+            missing_tables = [table for table in expected_tables if table not in tables]
 
             # Get database size
             db_size = os.path.getsize(database_file)
@@ -417,9 +396,7 @@ class ConversionValidator:
                 "details": {},
             }
 
-    async def _validate_deployment_readiness(
-        self, package_dir: str
-    ) -> Dict[str, Any]:
+    async def _validate_deployment_readiness(self, package_dir: str) -> Dict[str, Any]:
         """Validate that the package is ready for deployment."""
         readiness_issues = []
         readiness_warnings = []
@@ -449,9 +426,7 @@ class ConversionValidator:
         for dir_name in required_dirs:
             dir_path = os.path.join(package_dir, dir_name)
             if not os.path.exists(dir_path):
-                readiness_issues.append(
-                    f"Required directory {dir_name} not found"
-                )
+                readiness_issues.append(f"Required directory {dir_name} not found")
 
         # Check for README
         readme_file = os.path.join(package_dir, "README.md")
@@ -461,9 +436,7 @@ class ConversionValidator:
             # Check README size (should have content)
             readme_size = os.path.getsize(readme_file)
             if readme_size < 100:  # Less than 100 bytes
-                readiness_warnings.append(
-                    "README.md appears to be empty or very small"
-                )
+                readiness_warnings.append("README.md appears to be empty or very small")
 
         passed = len(readiness_issues) == 0
 
@@ -472,9 +445,7 @@ class ConversionValidator:
             "issues": readiness_issues,
             "warnings": readiness_warnings,
             "details": {
-                "checks_performed": len(startup_scripts)
-                + len(required_dirs)
-                + 2,
+                "checks_performed": len(startup_scripts) + len(required_dirs) + 2,
                 "issues_found": len(readiness_issues),
                 "warnings_found": len(readiness_warnings),
             },
@@ -500,9 +471,7 @@ class ConversionValidator:
 
                 elif category == "configuration":
                     if result.get("issues"):
-                        recommendations.append(
-                            "Review and fix configuration issues"
-                        )
+                        recommendations.append("Review and fix configuration issues")
                         recommendations.extend(
                             f"  - {issue}" for issue in result["issues"][:3]
                         )
@@ -515,9 +484,7 @@ class ConversionValidator:
                         recommendations.append(f"  - {result['error']}")
 
                 elif category == "database":
-                    recommendations.append(
-                        "Verify database creation and structure"
-                    )
+                    recommendations.append("Verify database creation and structure")
                     if result.get("missing_tables"):
                         recommendations.append(
                             f"  - Missing tables: {', '.join(result['missing_tables'])}"
@@ -530,9 +497,7 @@ class ConversionValidator:
 
                 elif category == "deployment_readiness":
                     if result.get("issues"):
-                        recommendations.append(
-                            "Fix deployment readiness issues"
-                        )
+                        recommendations.append("Fix deployment readiness issues")
                         recommendations.extend(
                             f"  - {issue}" for issue in result["issues"][:3]
                         )
@@ -550,9 +515,7 @@ class ConversionValidator:
         """Generate a summary of validation results."""
         total_checks = len(validation_results)
         passed_checks = sum(
-            1
-            for result in validation_results.values()
-            if result.get("passed", False)
+            1 for result in validation_results.values() if result.get("passed", False)
         )
 
         issues_count = 0

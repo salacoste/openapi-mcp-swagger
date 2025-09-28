@@ -293,9 +293,7 @@ class TestRetryLogic:
             await asyncio.sleep(0.2)
             return "too slow"
 
-        with pytest.raises(
-            Exception
-        ):  # Should raise timeout-related exception
+        with pytest.raises(Exception):  # Should raise timeout-related exception
             await slow_operation()
 
 
@@ -387,9 +385,7 @@ class TestHealthChecker:
         async def failing():
             raise Exception("Failed")
 
-        await checker.check_component_health(
-            "unhealthy", failing, cache_duration=0.1
-        )
+        await checker.check_component_health("unhealthy", failing, cache_duration=0.1)
 
         overall = checker.get_overall_health()
         assert overall["status"] == "degraded"

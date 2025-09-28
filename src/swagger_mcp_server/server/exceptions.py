@@ -11,9 +11,7 @@ from typing import Any, Dict, List, Optional
 class MCPServerError(Exception):
     """Base exception for MCP server errors with JSON-RPC 2.0 compliance."""
 
-    def __init__(
-        self, code: int, message: str, data: Optional[Dict[str, Any]] = None
-    ):
+    def __init__(self, code: int, message: str, data: Optional[Dict[str, Any]] = None):
         """Initialize MCP server error.
 
         Args:

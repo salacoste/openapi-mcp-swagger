@@ -85,15 +85,9 @@ class NormalizedParameter(BaseModel):
 
     name: str = Field(..., description="Parameter name")
     location: ParameterLocation = Field(..., description="Parameter location")
-    required: bool = Field(
-        default=False, description="Whether parameter is required"
-    )
-    description: Optional[str] = Field(
-        None, description="Parameter description"
-    )
-    schema_type: Optional[str] = Field(
-        None, alias="type", description="Parameter type"
-    )
+    required: bool = Field(default=False, description="Whether parameter is required")
+    description: Optional[str] = Field(None, description="Parameter description")
+    schema_type: Optional[str] = Field(None, alias="type", description="Parameter type")
     format: Optional[str] = Field(None, description="Parameter format")
     enum: Optional[List[Any]] = Field(None, description="Allowed values")
     default: Optional[Any] = Field(None, description="Default value")
@@ -103,24 +97,14 @@ class NormalizedParameter(BaseModel):
     )
 
     # Validation constraints
-    minimum: Optional[Union[int, float]] = Field(
-        None, description="Minimum value"
-    )
-    maximum: Optional[Union[int, float]] = Field(
-        None, description="Maximum value"
-    )
-    min_length: Optional[int] = Field(
-        None, description="Minimum string length"
-    )
-    max_length: Optional[int] = Field(
-        None, description="Maximum string length"
-    )
+    minimum: Optional[Union[int, float]] = Field(None, description="Minimum value")
+    maximum: Optional[Union[int, float]] = Field(None, description="Maximum value")
+    min_length: Optional[int] = Field(None, description="Minimum string length")
+    max_length: Optional[int] = Field(None, description="Maximum string length")
     pattern: Optional[str] = Field(None, description="Regex pattern")
 
     # Advanced schema properties
-    schema_ref: Optional[str] = Field(
-        None, description="Reference to schema component"
-    )
+    schema_ref: Optional[str] = Field(None, description="Reference to schema component")
     items_schema: Optional[Dict[str, Any]] = Field(
         None, description="Array items schema"
     )
@@ -140,9 +124,7 @@ class NormalizedParameter(BaseModel):
 class NormalizedRequestBody(BaseModel):
     """Normalized request body model."""
 
-    description: Optional[str] = Field(
-        None, description="Request body description"
-    )
+    description: Optional[str] = Field(None, description="Request body description")
     required: bool = Field(
         default=False, description="Whether request body is required"
     )
@@ -182,9 +164,7 @@ class NormalizedSecurity(BaseModel):
 
     scheme_id: str = Field(..., description="Security scheme identifier")
     type: SecurityType = Field(..., description="Security scheme type")
-    description: Optional[str] = Field(
-        None, description="Security scheme description"
-    )
+    description: Optional[str] = Field(None, description="Security scheme description")
 
     # API Key specific
     name: Optional[str] = Field(None, description="API key name")
@@ -193,20 +173,14 @@ class NormalizedSecurity(BaseModel):
     )
 
     # HTTP specific
-    scheme: Optional[str] = Field(
-        None, description="HTTP authentication scheme"
-    )
-    bearer_format: Optional[str] = Field(
-        None, description="Bearer token format"
-    )
+    scheme: Optional[str] = Field(None, description="HTTP authentication scheme")
+    bearer_format: Optional[str] = Field(None, description="Bearer token format")
 
     # OAuth2 specific
     flows: Optional[Dict[str, Any]] = Field(None, description="OAuth2 flows")
 
     # OpenID Connect specific
-    open_id_connect_url: Optional[str] = Field(
-        None, description="OpenID Connect URL"
-    )
+    open_id_connect_url: Optional[str] = Field(None, description="OpenID Connect URL")
 
     # Extension properties
     extensions: Dict[str, Any] = Field(
@@ -221,9 +195,7 @@ class NormalizedSecurityRequirement(BaseModel):
     """Normalized security requirement model."""
 
     scheme_id: str = Field(..., description="Security scheme identifier")
-    scopes: List[str] = Field(
-        default_factory=list, description="Required scopes"
-    )
+    scopes: List[str] = Field(default_factory=list, description="Required scopes")
 
 
 class NormalizedEndpoint(BaseModel):
@@ -232,9 +204,7 @@ class NormalizedEndpoint(BaseModel):
     # Basic endpoint identification
     path: str = Field(..., description="API path")
     method: HttpMethod = Field(..., description="HTTP method")
-    operation_id: Optional[str] = Field(
-        None, description="Unique operation identifier"
-    )
+    operation_id: Optional[str] = Field(None, description="Unique operation identifier")
 
     # Metadata
     summary: Optional[str] = Field(None, description="Brief operation summary")
@@ -275,9 +245,7 @@ class NormalizedEndpoint(BaseModel):
     )
 
     # Search optimization fields
-    searchable_text: str = Field(
-        default="", description="Combined searchable text"
-    )
+    searchable_text: str = Field(default="", description="Combined searchable text")
     parameter_names: List[str] = Field(
         default_factory=list, description="All parameter names for search"
     )
@@ -342,25 +310,19 @@ class NormalizedSchema(BaseModel):
     description: Optional[str] = Field(None, description="Schema description")
     default: Optional[Any] = Field(None, description="Default value")
     example: Optional[Any] = Field(None, description="Example value")
-    examples: Optional[List[Any]] = Field(
-        None, description="Multiple examples"
-    )
+    examples: Optional[List[Any]] = Field(None, description="Multiple examples")
 
     # Object properties
     properties: Dict[str, Dict[str, Any]] = Field(
         default_factory=dict, description="Object properties"
     )
-    required: List[str] = Field(
-        default_factory=list, description="Required properties"
-    )
+    required: List[str] = Field(default_factory=list, description="Required properties")
     additional_properties: Optional[Union[bool, Dict[str, Any]]] = Field(
         None, description="Additional properties"
     )
 
     # Array properties
-    items: Optional[Dict[str, Any]] = Field(
-        None, description="Array items schema"
-    )
+    items: Optional[Dict[str, Any]] = Field(None, description="Array items schema")
     min_items: Optional[int] = Field(None, description="Minimum array length")
     max_items: Optional[int] = Field(None, description="Maximum array length")
     unique_items: Optional[bool] = Field(
@@ -368,27 +330,15 @@ class NormalizedSchema(BaseModel):
     )
 
     # String properties
-    min_length: Optional[int] = Field(
-        None, description="Minimum string length"
-    )
-    max_length: Optional[int] = Field(
-        None, description="Maximum string length"
-    )
+    min_length: Optional[int] = Field(None, description="Minimum string length")
+    max_length: Optional[int] = Field(None, description="Maximum string length")
     pattern: Optional[str] = Field(None, description="String pattern")
 
     # Numeric properties
-    minimum: Optional[Union[int, float]] = Field(
-        None, description="Minimum value"
-    )
-    maximum: Optional[Union[int, float]] = Field(
-        None, description="Maximum value"
-    )
-    exclusive_minimum: Optional[bool] = Field(
-        None, description="Exclusive minimum"
-    )
-    exclusive_maximum: Optional[bool] = Field(
-        None, description="Exclusive maximum"
-    )
+    minimum: Optional[Union[int, float]] = Field(None, description="Minimum value")
+    maximum: Optional[Union[int, float]] = Field(None, description="Maximum value")
+    exclusive_minimum: Optional[bool] = Field(None, description="Exclusive minimum")
+    exclusive_maximum: Optional[bool] = Field(None, description="Exclusive maximum")
     multiple_of: Optional[Union[int, float]] = Field(
         None, description="Multiple of value"
     )
@@ -398,15 +348,9 @@ class NormalizedSchema(BaseModel):
     const: Optional[Any] = Field(None, description="Constant value")
 
     # Composition
-    all_of: Optional[List[Dict[str, Any]]] = Field(
-        None, description="All of schemas"
-    )
-    one_of: Optional[List[Dict[str, Any]]] = Field(
-        None, description="One of schemas"
-    )
-    any_of: Optional[List[Dict[str, Any]]] = Field(
-        None, description="Any of schemas"
-    )
+    all_of: Optional[List[Dict[str, Any]]] = Field(None, description="All of schemas")
+    one_of: Optional[List[Dict[str, Any]]] = Field(None, description="One of schemas")
+    any_of: Optional[List[Dict[str, Any]]] = Field(None, description="Any of schemas")
     not_schema: Optional[Dict[str, Any]] = Field(
         None, alias="not", description="Not schema"
     )
@@ -425,9 +369,7 @@ class NormalizedSchema(BaseModel):
     # Metadata
     read_only: Optional[bool] = Field(None, description="Read-only property")
     write_only: Optional[bool] = Field(None, description="Write-only property")
-    deprecated: bool = Field(
-        default=False, description="Whether schema is deprecated"
-    )
+    deprecated: bool = Field(default=False, description="Whether schema is deprecated")
 
     # OpenAPI specific
     discriminator: Optional[Dict[str, Any]] = Field(
@@ -447,9 +389,7 @@ class NormalizedSchema(BaseModel):
     )
 
     # Search optimization
-    searchable_text: str = Field(
-        default="", description="Combined searchable text"
-    )
+    searchable_text: str = Field(default="", description="Combined searchable text")
     property_names: List[str] = Field(
         default_factory=list, description="Property names for search"
     )
@@ -492,23 +432,15 @@ class NormalizedAPI(BaseModel):
     """Complete normalized OpenAPI document."""
 
     # Document metadata
-    openapi_version: str = Field(
-        ..., description="OpenAPI specification version"
-    )
+    openapi_version: str = Field(..., description="OpenAPI specification version")
     title: str = Field(..., description="API title")
     version: str = Field(..., description="API version")
     description: Optional[str] = Field(None, description="API description")
 
     # Contact and license
-    contact: Optional[Dict[str, Any]] = Field(
-        None, description="Contact information"
-    )
-    license: Optional[Dict[str, Any]] = Field(
-        None, description="License information"
-    )
-    terms_of_service: Optional[str] = Field(
-        None, description="Terms of service URL"
-    )
+    contact: Optional[Dict[str, Any]] = Field(None, description="Contact information")
+    license: Optional[Dict[str, Any]] = Field(None, description="License information")
+    terms_of_service: Optional[str] = Field(None, description="Terms of service URL")
 
     # Servers
     servers: List[Dict[str, Any]] = Field(
@@ -569,16 +501,12 @@ class NormalizedAPI(BaseModel):
     source_file: Optional[str] = Field(None, description="Source file path")
 
     # Statistics
-    endpoint_count: int = Field(
-        default=0, description="Total number of endpoints"
-    )
+    endpoint_count: int = Field(default=0, description="Total number of endpoints")
     schema_count: int = Field(default=0, description="Total number of schemas")
     security_scheme_count: int = Field(
         default=0, description="Total number of security schemes"
     )
-    extension_count: int = Field(
-        default=0, description="Total number of extensions"
-    )
+    extension_count: int = Field(default=0, description="Total number of extensions")
 
     # Relationships
     dependency_graph: Dict[str, Set[str]] = Field(
@@ -657,14 +585,10 @@ class NormalizedSecurityFlow(BaseModel):
     """Normalized OAuth2 flow."""
 
     type: SecurityFlowType = Field(..., description="Flow type")
-    authorization_url: Optional[str] = Field(
-        None, description="Authorization URL"
-    )
+    authorization_url: Optional[str] = Field(None, description="Authorization URL")
     token_url: Optional[str] = Field(None, description="Token URL")
     refresh_url: Optional[str] = Field(None, description="Refresh URL")
-    scopes: Dict[str, str] = Field(
-        default_factory=dict, description="Available scopes"
-    )
+    scopes: Dict[str, str] = Field(default_factory=dict, description="Available scopes")
 
     class Config:
         allow_population_by_field_name = True
@@ -675,25 +599,17 @@ class NormalizedSecurityScheme(BaseModel):
 
     name: str = Field(..., description="Security scheme name")
     type: SecuritySchemeType = Field(..., description="Security scheme type")
-    description: Optional[str] = Field(
-        None, description="Security scheme description"
-    )
+    description: Optional[str] = Field(None, description="Security scheme description")
 
     # API Key specific
-    api_key_name: Optional[str] = Field(
-        None, description="API key parameter name"
-    )
+    api_key_name: Optional[str] = Field(None, description="API key parameter name")
     api_key_location: Optional[SecuritySchemeLocation] = Field(
         None, description="API key location"
     )
 
     # HTTP specific
-    http_scheme: Optional[str] = Field(
-        None, description="HTTP authentication scheme"
-    )
-    bearer_format: Optional[str] = Field(
-        None, description="Bearer token format"
-    )
+    http_scheme: Optional[str] = Field(None, description="HTTP authentication scheme")
+    bearer_format: Optional[str] = Field(None, description="Bearer token format")
 
     # OAuth2 specific
     oauth2_flows: Dict[SecurityFlowType, NormalizedSecurityFlow] = Field(

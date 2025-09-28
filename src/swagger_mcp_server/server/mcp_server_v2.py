@@ -112,9 +112,7 @@ class SwaggerMcpServer:
             # Start performance monitoring
             await self.start_monitoring()
 
-            self.logger.info(
-                "MCP server initialization completed successfully"
-            )
+            self.logger.info("MCP server initialization completed successfully")
 
         except Exception as e:
             self.logger.error("Failed to initialize MCP server", error=str(e))
@@ -279,14 +277,8 @@ class SwaggerMcpServer:
                         ],
                     )
                     self.error_logger.log_error(error, request_id=request_id)
-                    error_response = create_mcp_error_response(
-                        error, request_id
-                    )
-                    return [
-                        types.TextContent(
-                            type="text", text=str(error_response)
-                        )
-                    ]
+                    error_response = create_mcp_error_response(error, request_id)
+                    return [types.TextContent(type="text", text=str(error_response))]
 
                 # Sanitize arguments for logging
                 safe_arguments = sanitize_error_data(arguments)
@@ -333,9 +325,7 @@ class SwaggerMcpServer:
                     request_id=request_id,
                 )
                 error_response = create_mcp_error_response(e, request_id)
-                return [
-                    types.TextContent(type="text", text=str(error_response))
-                ]
+                return [types.TextContent(type="text", text=str(error_response))]
 
             except Exception as e:
                 # Log unexpected error
@@ -358,12 +348,8 @@ class SwaggerMcpServer:
                         "request_id": request_id,
                     },
                 )
-                error_response = create_mcp_error_response(
-                    server_error, request_id
-                )
-                return [
-                    types.TextContent(type="text", text=str(error_response))
-                ]
+                error_response = create_mcp_error_response(server_error, request_id)
+                return [types.TextContent(type="text", text=str(error_response))]
 
         @self.server.list_resources()
         async def list_resources() -> List[types.Resource]:
@@ -393,9 +379,7 @@ class SwaggerMcpServer:
                     raise ValueError(f"Unknown resource: {uri}")
 
             except Exception as e:
-                self.logger.error(
-                    "Resource read failed", uri=uri, error=str(e)
-                )
+                self.logger.error("Resource read failed", uri=uri, error=str(e))
                 return f"Error reading resource: {str(e)}"
 
     # Resilient wrapper methods with timeout and circuit breaker protection
@@ -541,9 +525,7 @@ class SwaggerMcpServer:
                 "OPTIONS",
             }
             if httpMethods:
-                invalid_methods = [
-                    m for m in httpMethods if m not in valid_methods
-                ]
+                invalid_methods = [m for m in httpMethods if m not in valid_methods]
                 if invalid_methods:
                     raise ValidationError(
                         "httpMethods",
@@ -554,9 +536,7 @@ class SwaggerMcpServer:
 
             # Validate pagination parameters
             if page < 1:
-                raise ValidationError(
-                    "page", "Page number must be 1 or greater", page
-                )
+                raise ValidationError("page", "Page number must be 1 or greater", page)
             if perPage < 1 or perPage > 50:
                 raise ValidationError(
                     "perPage", "perPage must be between 1 and 50", perPage
@@ -575,13 +555,11 @@ class SwaggerMcpServer:
 
             # Try enhanced repository search with pagination first
             if hasattr(self.endpoint_repo, "search_endpoints_paginated"):
-                search_result = (
-                    await self.endpoint_repo.search_endpoints_paginated(
-                        query=keywords.strip(),
-                        methods=httpMethods,
-                        limit=perPage,
-                        offset=offset,
-                    )
+                search_result = await self.endpoint_repo.search_endpoints_paginated(
+                    query=keywords.strip(),
+                    methods=httpMethods,
+                    limit=perPage,
+                    offset=offset,
                 )
                 paginated_endpoints = search_result.get("endpoints", [])
                 total_count = search_result.get("total_count", 0)
@@ -604,17 +582,14 @@ class SwaggerMcpServer:
             results = []
             for endpoint in paginated_endpoints:
                 # Parse parameters to provide detailed metadata
-                parameters_info = self._parse_endpoint_parameters(
-                    endpoint.parameters
-                )
+                parameters_info = self._parse_endpoint_parameters(endpoint.parameters)
 
                 result = {
                     "endpoint_id": str(endpoint.id),
                     "path": endpoint.path,
                     "method": endpoint.method,
                     "summary": endpoint.summary or "No summary available",
-                    "description": endpoint.description
-                    or "No description available",
+                    "description": endpoint.description or "No description available",
                     "operationId": endpoint.operation_id,
                     "tags": endpoint.tags or [],
                     "parameters": parameters_info,
@@ -665,9 +640,7 @@ class SwaggerMcpServer:
             )
             return {"error": f"Search failed: {str(e)}"}
 
-    def _parse_endpoint_parameters(
-        self, parameters_data: Any
-    ) -> Dict[str, Any]:
+    def _parse_endpoint_parameters(self, parameters_data: Any) -> Dict[str, Any]:
         """Parse endpoint parameters to provide structured metadata."""
         if not parameters_data:
             return {
@@ -775,9 +748,7 @@ class SwaggerMcpServer:
                 }
 
             if len(componentName) > 255:
-                return {
-                    "error": "componentName parameter cannot exceed 255 characters"
-                }
+                return {"error": "componentName parameter cannot exceed 255 characters"}
 
             if maxDepth < 1 or maxDepth > 10:
                 return {"error": "maxDepth parameter must be between 1 and 10"}
@@ -830,16 +801,12 @@ class SwaggerMcpServer:
             # Build enhanced response per Story 2.3
             response = {
                 "schema": resolved_schema,
-                "dependencies": list(
-                    resolution_context["resolved_cache"].values()
-                ),
+                "dependencies": list(resolution_context["resolved_cache"].values()),
                 "metadata": {
                     "component_name": componentName,
                     "normalized_name": normalized_name,
                     "resolution_depth": resolution_context["current_depth"],
-                    "total_dependencies": len(
-                        resolution_context["resolved_cache"]
-                    ),
+                    "total_dependencies": len(resolution_context["resolved_cache"]),
                     "circular_references": resolution_context["circular_refs"],
                     "max_depth_reached": resolution_context["current_depth"]
                     >= maxDepth,
@@ -855,9 +822,7 @@ class SwaggerMcpServer:
             self.logger.info(
                 "Schema retrieval completed",
                 componentName=componentName,
-                dependencies_resolved=len(
-                    resolution_context["resolved_cache"]
-                ),
+                dependencies_resolved=len(resolution_context["resolved_cache"]),
                 circular_refs=len(resolution_context["circular_refs"]),
                 final_depth=resolution_context["current_depth"],
             )
@@ -931,16 +896,10 @@ class SwaggerMcpServer:
                 hasattr(schema, "additional_properties")
                 and schema.additional_properties
             ):
-                schema_def[
-                    "additionalProperties"
-                ] = schema.additional_properties
+                schema_def["additionalProperties"] = schema.additional_properties
 
             # Include examples if requested
-            if (
-                include_examples
-                and hasattr(schema, "example")
-                and schema.example
-            ):
+            if include_examples and hasattr(schema, "example") and schema.example:
                 schema_def["example"] = schema.example
 
             # Include extensions if requested
@@ -961,9 +920,7 @@ class SwaggerMcpServer:
             return schema_def
 
         except Exception as e:
-            self.logger.warning(
-                f"Failed to resolve schema '{schema_name}': {e}"
-            )
+            self.logger.warning(f"Failed to resolve schema '{schema_name}': {e}")
             return None
 
     async def _resolve_schema_dependencies(
@@ -974,10 +931,7 @@ class SwaggerMcpServer:
         include_extensions: bool,
     ) -> Dict[str, Any]:
         """Recursively resolve schema dependencies with circular reference detection."""
-        if (
-            resolution_context["current_depth"]
-            >= resolution_context["max_depth"]
-        ):
+        if resolution_context["current_depth"] >= resolution_context["max_depth"]:
             self.logger.warning(
                 f"Maximum resolution depth ({resolution_context['max_depth']}) reached"
             )
@@ -990,9 +944,7 @@ class SwaggerMcpServer:
             circular_path = " -> ".join(
                 resolution_context["resolution_stack"] + [schema_name]
             )
-            self.logger.warning(
-                f"Circular reference detected: {circular_path}"
-            )
+            self.logger.warning(f"Circular reference detected: {circular_path}")
             resolution_context["circular_refs"].append(circular_path)
             return schema  # Return schema without further resolution
 
@@ -1004,9 +956,7 @@ class SwaggerMcpServer:
             resolved_schema = schema.copy()
 
             # Resolve properties
-            if "properties" in schema and isinstance(
-                schema["properties"], dict
-            ):
+            if "properties" in schema and isinstance(schema["properties"], dict):
                 resolved_properties = {}
                 for prop_name, prop_def in schema["properties"].items():
                     resolved_properties[
@@ -1021,9 +971,7 @@ class SwaggerMcpServer:
 
             # Resolve array items
             if "items" in schema and isinstance(schema["items"], dict):
-                resolved_schema[
-                    "items"
-                ] = await self._resolve_property_references(
+                resolved_schema["items"] = await self._resolve_property_references(
                     schema["items"],
                     resolution_context,
                     include_examples,
@@ -1037,13 +985,11 @@ class SwaggerMcpServer:
                 ):
                     resolved_compositions = []
                     for composition_schema in schema[composition_key]:
-                        resolved_composition = (
-                            await self._resolve_property_references(
-                                composition_schema,
-                                resolution_context,
-                                include_examples,
-                                include_extensions,
-                            )
+                        resolved_composition = await self._resolve_property_references(
+                            composition_schema,
+                            resolution_context,
+                            include_examples,
+                            include_extensions,
                         )
                         resolved_compositions.append(resolved_composition)
                     resolved_schema[composition_key] = resolved_compositions
@@ -1183,16 +1129,12 @@ class SwaggerMcpServer:
 
             # Check if it looks like an endpoint ID (no slashes)
             if not endpoint.startswith("/") and "/" not in endpoint:
-                endpoint_data = await self.endpoint_repo.get_endpoint_by_id(
-                    endpoint
-                )
+                endpoint_data = await self.endpoint_repo.get_endpoint_by_id(endpoint)
 
             # If not found by ID or looks like a path, search by path+method
             if not endpoint_data:
                 if not method:
-                    return {
-                        "error": "HTTP method is required when using endpoint path"
-                    }
+                    return {"error": "HTTP method is required when using endpoint path"}
 
                 # Search for endpoint by path and method
                 search_results = await self.endpoint_repo.search_endpoints(
@@ -1211,9 +1153,7 @@ class SwaggerMcpServer:
                         endpoint_data = search_results[0]
 
             if not endpoint_data:
-                return {
-                    "error": f"Endpoint not found: {endpoint} {method or ''}"
-                }
+                return {"error": f"Endpoint not found: {endpoint} {method or ''}"}
 
             # Generate code example based on format
             if format == "curl":
@@ -1455,9 +1395,7 @@ def {func_name}({', '.join(func_params)}) -> Dict[Any, Any]:
             if "user" in endpoint_data.path.lower():
                 return '{"name": "John Doe", "email": "john@example.com"}'
             elif "order" in endpoint_data.path.lower():
-                return (
-                    '{"items": [{"id": "123", "quantity": 1}], "total": 29.99}'
-                )
+                return '{"items": [{"id": "123", "quantity": 1}], "total": 29.99}'
             else:
                 return '{"data": "example_value"}'
         return ""
@@ -1479,9 +1417,7 @@ def {func_name}({', '.join(func_params)}) -> Dict[Any, Any]:
                 info_parts.append(f"API: {metadata.title} v{metadata.version}")
                 if metadata.description:
                     info_parts.append(f"Description: {metadata.description}")
-                info_parts.append(
-                    f"OpenAPI Version: {metadata.openapi_version}"
-                )
+                info_parts.append(f"OpenAPI Version: {metadata.openapi_version}")
                 if metadata.base_url:
                     info_parts.append(f"Base URL: {metadata.base_url}")
                 info_parts.append("---")
@@ -1581,9 +1517,7 @@ def {func_name}({', '.join(func_params)}) -> Dict[Any, Any]:
 
     async def get_health_status(self) -> Dict[str, Any]:
         """Get comprehensive health status."""
-        return await self.health_checker.get_overall_health(
-            self, self.db_manager
-        )
+        return await self.health_checker.get_overall_health(self, self.db_manager)
 
     async def get_basic_health(self) -> Dict[str, Any]:
         """Get basic health status for quick checks."""
@@ -1641,9 +1575,7 @@ async def main() -> None:
     import argparse
 
     parser = argparse.ArgumentParser(description="Swagger MCP Server")
-    parser.add_argument(
-        "--debug", action="store_true", help="Enable debug logging"
-    )
+    parser.add_argument("--debug", action="store_true", help="Enable debug logging")
 
     args = parser.parse_args()
 

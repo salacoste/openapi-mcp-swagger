@@ -161,9 +161,7 @@ class ResultFilter:
         self.config = config
         self.logger = logging.getLogger(__name__)
 
-    def apply_filters(
-        self, results: List[Dict], filters: Dict[str, Any]
-    ) -> List[Dict]:
+    def apply_filters(self, results: List[Dict], filters: Dict[str, Any]) -> List[Dict]:
         """Apply multiple filtering criteria to search results.
 
         Args:
@@ -181,9 +179,7 @@ class ResultFilter:
         try:
             # HTTP method filtering
             if "methods" in filters and filters["methods"]:
-                filtered = self._filter_by_methods(
-                    filtered, filters["methods"]
-                )
+                filtered = self._filter_by_methods(filtered, filters["methods"])
 
             # Authentication filtering
             if "authentication" in filters:
@@ -193,9 +189,7 @@ class ResultFilter:
 
             # Parameter filtering
             if "parameters" in filters:
-                filtered = self._filter_by_parameters(
-                    filtered, filters["parameters"]
-                )
+                filtered = self._filter_by_parameters(filtered, filters["parameters"])
 
             # Response filtering
             if "response_types" in filters:
@@ -205,26 +199,19 @@ class ResultFilter:
 
             # Complexity filtering
             if "complexity" in filters:
-                filtered = self._filter_by_complexity(
-                    filtered, filters["complexity"]
-                )
+                filtered = self._filter_by_complexity(filtered, filters["complexity"])
 
             # Tag filtering
             if "tags" in filters and filters["tags"]:
                 filtered = self._filter_by_tags(filtered, filters["tags"])
 
             # Deprecated filtering
-            if (
-                "include_deprecated" in filters
-                and not filters["include_deprecated"]
-            ):
+            if "include_deprecated" in filters and not filters["include_deprecated"]:
                 filtered = self._filter_by_deprecated(filtered, False)
 
             # Custom filtering
             if "custom" in filters:
-                filtered = self._apply_custom_filters(
-                    filtered, filters["custom"]
-                )
+                filtered = self._apply_custom_filters(filtered, filters["custom"])
 
         except Exception as e:
             self.logger.error(f"Error applying filters: {e}")
@@ -233,19 +220,13 @@ class ResultFilter:
 
         return filtered
 
-    def _filter_by_methods(
-        self, results: List[Dict], methods: List[str]
-    ) -> List[Dict]:
+    def _filter_by_methods(self, results: List[Dict], methods: List[str]) -> List[Dict]:
         """Filter by HTTP methods."""
         if not methods:
             return results
 
         methods_upper = [m.upper() for m in methods]
-        return [
-            r
-            for r in results
-            if r.get("http_method", "").upper() in methods_upper
-        ]
+        return [r for r in results if r.get("http_method", "").upper() in methods_upper]
 
     def _filter_by_authentication(
         self, results: List[Dict], auth_filter: Dict
@@ -293,18 +274,14 @@ class ResultFilter:
             # Limit by maximum parameter count
             max_params = param_filter["max_parameters"]
             filtered = [
-                r
-                for r in filtered
-                if len(r.get("parameter_names", [])) <= max_params
+                r for r in filtered if len(r.get("parameter_names", [])) <= max_params
             ]
 
         if "has_file_upload" in param_filter:
             # Filter by file upload capability
             has_upload = param_filter["has_file_upload"]
             filtered = [
-                r
-                for r in filtered
-                if r.get("has_file_parameters", False) == has_upload
+                r for r in filtered if r.get("has_file_parameters", False) == has_upload
             ]
 
         return filtered
@@ -338,16 +315,12 @@ class ResultFilter:
             if r.get("complexity_level", "simple") in complexity_filter
         ]
 
-    def _filter_by_tags(
-        self, results: List[Dict], tags: List[str]
-    ) -> List[Dict]:
+    def _filter_by_tags(self, results: List[Dict], tags: List[str]) -> List[Dict]:
         """Filter by OpenAPI tags."""
         if not tags:
             return results
 
-        return [
-            r for r in results if any(tag in r.get("tags", []) for tag in tags)
-        ]
+        return [r for r in results if any(tag in r.get("tags", []) for tag in tags)]
 
     def _filter_by_deprecated(
         self, results: List[Dict], include_deprecated: bool
@@ -379,9 +352,7 @@ class ResultOrganizer:
         self.config = config
         self.logger = logging.getLogger(__name__)
 
-    def organize_results(
-        self, results: List[EnhancedSearchResult]
-    ) -> Dict[str, Any]:
+    def organize_results(self, results: List[EnhancedSearchResult]) -> Dict[str, Any]:
         """Organize results by multiple criteria.
 
         Args:
@@ -397,9 +368,7 @@ class ResultOrganizer:
                 "by_complexity": self._cluster_by_complexity(results),
                 "by_method": self._cluster_by_method(results),
                 "by_operation_type": self._cluster_by_operation_type(results),
-                "by_auth_requirement": self._cluster_by_auth_requirement(
-                    results
-                ),
+                "by_auth_requirement": self._cluster_by_auth_requirement(results),
             }
 
             return organization
@@ -408,9 +377,7 @@ class ResultOrganizer:
             self.logger.error(f"Error organizing results: {e}")
             return {"by_relevance": results}
 
-    def _cluster_by_tags(
-        self, results: List[EnhancedSearchResult]
-    ) -> Dict[str, List]:
+    def _cluster_by_tags(self, results: List[EnhancedSearchResult]) -> Dict[str, List]:
         """Cluster results by OpenAPI tags."""
         clusters = defaultdict(list)
 
@@ -479,8 +446,7 @@ class ResultOrganizer:
         for result in results:
             if result.authentication_info.required:
                 auth_types = [
-                    scheme.value
-                    for scheme in result.authentication_info.schemes
+                    scheme.value for scheme in result.authentication_info.schemes
                 ]
                 for auth_type in auth_types:
                     clusters[f"auth_{auth_type}"].append(result)
@@ -494,16 +460,12 @@ class ResultOrganizer:
         # Remove path parameters and extract main resource
         # e.g., "/api/v1/users/{id}/profile" -> "users"
         path_parts = [
-            part
-            for part in path.split("/")
-            if part and not part.startswith("{")
+            part for part in path.split("/") if part and not part.startswith("{")
         ]
 
         # Skip common prefixes like api, v1, etc.
         resource_parts = [
-            part
-            for part in path_parts
-            if part not in ["api", "v1", "v2", "v3"]
+            part for part in path_parts if part not in ["api", "v1", "v2", "v3"]
         ]
 
         if resource_parts:
@@ -542,9 +504,7 @@ class MetadataEnhancer:
         try:
             for i, result in enumerate(results):
                 # Analyze parameters
-                param_summary = self._analyze_parameters(
-                    result.get("parameters", {})
-                )
+                param_summary = self._analyze_parameters(result.get("parameters", {}))
 
                 # Extract authentication info
                 auth_info = self._extract_authentication_info(
@@ -552,14 +512,10 @@ class MetadataEnhancer:
                 )
 
                 # Analyze responses
-                response_info = self._analyze_responses(
-                    result.get("responses", {})
-                )
+                response_info = self._analyze_responses(result.get("responses", {}))
 
                 # Determine complexity
-                complexity = self._determine_complexity(
-                    param_summary, response_info
-                )
+                complexity = self._determine_complexity(param_summary, response_info)
 
                 # Extract organizational metadata
                 resource_group = self._extract_resource_group(
@@ -620,16 +576,12 @@ class MetadataEnhancer:
 
         # Parse parameters string or dict
         if isinstance(parameters, str):
-            param_names = [
-                p.strip() for p in parameters.split(",") if p.strip()
-            ]
+            param_names = [p.strip() for p in parameters.split(",") if p.strip()]
             total_count = len(param_names)
             required_count = total_count  # Assume all required if just names
             optional_count = 0
             parameter_types = {"string": total_count}
-            has_file_upload = any(
-                "file" in name.lower() for name in param_names
-            )
+            has_file_upload = any("file" in name.lower() for name in param_names)
             has_complex_types = False
             common_parameters = param_names
         else:
@@ -640,20 +592,15 @@ class MetadataEnhancer:
             )
             optional_count = total_count - required_count
             parameter_types = {}
-            has_file_upload = any(
-                p.get("type") == "file" for p in parameters.values()
-            )
+            has_file_upload = any(p.get("type") == "file" for p in parameters.values())
             has_complex_types = any(
-                p.get("type") in ["object", "array"]
-                for p in parameters.values()
+                p.get("type") in ["object", "array"] for p in parameters.values()
             )
             common_parameters = list(parameters.keys())
 
             for param in parameters.values():
                 param_type = param.get("type", "string")
-                parameter_types[param_type] = (
-                    parameter_types.get(param_type, 0) + 1
-                )
+                parameter_types[param_type] = parameter_types.get(param_type, 0) + 1
 
         return ParameterSummary(
             total_count=total_count,
@@ -665,9 +612,7 @@ class MetadataEnhancer:
             common_parameters=common_parameters[:5],  # Limit to top 5
         )
 
-    def _extract_authentication_info(
-        self, security: Dict
-    ) -> AuthenticationInfo:
+    def _extract_authentication_info(self, security: Dict) -> AuthenticationInfo:
         """Extract authentication information."""
         if not security:
             return AuthenticationInfo(
@@ -686,10 +631,7 @@ class MetadataEnhancer:
                 # Map common scheme names to types
                 if "bearer" in scheme_name.lower():
                     schemes.append(AuthenticationType.BEARER)
-                elif (
-                    "api" in scheme_name.lower()
-                    and "key" in scheme_name.lower()
-                ):
+                elif "api" in scheme_name.lower() and "key" in scheme_name.lower():
                     schemes.append(AuthenticationType.API_KEY)
                 elif "oauth" in scheme_name.lower():
                     schemes.append(AuthenticationType.OAUTH2)
@@ -704,9 +646,7 @@ class MetadataEnhancer:
         if not schemes:
             schemes = [AuthenticationType.CUSTOM]
 
-        description = (
-            f"Requires {', '.join(s.value for s in schemes)} authentication"
-        )
+        description = f"Requires {', '.join(s.value for s in schemes)} authentication"
 
         return AuthenticationInfo(
             required=True,
@@ -814,23 +754,17 @@ class MetadataEnhancer:
 
         # Extract main resource from path
         path_parts = [
-            part
-            for part in path.split("/")
-            if part and not part.startswith("{")
+            part for part in path.split("/") if part and not part.startswith("{")
         ]
 
         # Skip common prefixes
         resource_parts = [
-            part
-            for part in path_parts
-            if part not in ["api", "v1", "v2", "v3"]
+            part for part in path_parts if part not in ["api", "v1", "v2", "v3"]
         ]
 
         return resource_parts[0] if resource_parts else "unknown"
 
-    def _determine_operation_type(
-        self, method: str, path: str
-    ) -> OperationType:
+    def _determine_operation_type(self, method: str, path: str) -> OperationType:
         """Determine REST operation type."""
         method = method.upper()
         path_lower = path.lower()
@@ -902,9 +836,7 @@ class MetadataEnhancer:
                 rank_position=i + 1,
                 ranking_factors=["basic_ranking"],
                 complexity_level=ComplexityLevel.SIMPLE,
-                parameter_summary=ParameterSummary(
-                    0, 0, 0, {}, False, False, []
-                ),
+                parameter_summary=ParameterSummary(0, 0, 0, {}, False, False, []),
                 authentication_info=AuthenticationInfo(
                     False, [AuthenticationType.NONE], [], "Unknown"
                 ),
@@ -945,9 +877,7 @@ class ResultCache:
         self.ttl = ttl_seconds
         self.logger = logging.getLogger(__name__)
 
-    def get_cache_key(
-        self, query: str, filters: Dict, pagination: Dict
-    ) -> str:
+    def get_cache_key(self, query: str, filters: Dict, pagination: Dict) -> str:
         """Generate cache key for query combination.
 
         Args:
@@ -958,9 +888,7 @@ class ResultCache:
         Returns:
             str: Cache key hash
         """
-        cache_data = (
-            f"{query}:{sorted(filters.items())}:{sorted(pagination.items())}"
-        )
+        cache_data = f"{query}:{sorted(filters.items())}:{sorted(pagination.items())}"
         return hashlib.md5(cache_data.encode()).hexdigest()
 
     async def get_cached_results(self, cache_key: str) -> Optional[Dict]:
@@ -985,9 +913,7 @@ class ResultCache:
 
             # Update access stats
             self.access_times[cache_key] = current_time
-            self.access_count[cache_key] = (
-                self.access_count.get(cache_key, 0) + 1
-            )
+            self.access_count[cache_key] = self.access_count.get(cache_key, 0) + 1
 
             self.logger.debug(f"Cache hit for key: {cache_key[:8]}...")
             return self.cache[cache_key]
@@ -1111,9 +1037,7 @@ class ResultProcessor:
             )
 
             # Add processing metadata
-            processing_time = (
-                time.time() - start_time
-            ) * 1000  # Convert to ms
+            processing_time = (time.time() - start_time) * 1000  # Convert to ms
             processed_results["processing_time_ms"] = processing_time
             processed_results["cache_key"] = cache_key
 
@@ -1125,9 +1049,7 @@ class ResultProcessor:
         except Exception as e:
             self.logger.error(f"Error processing search results: {e}")
             # Return basic results on error
-            return self._create_fallback_results(
-                raw_results, filters, pagination
-            )
+            return self._create_fallback_results(raw_results, filters, pagination)
 
     async def _process_results_pipeline(
         self,
@@ -1141,9 +1063,7 @@ class ResultProcessor:
         filtered_results = self.filter.apply_filters(raw_results, filters)
 
         # Step 2: Enhance with metadata
-        enhanced_results = await self.enhancer.enhance_with_metadata(
-            filtered_results
-        )
+        enhanced_results = await self.enhancer.enhance_with_metadata(filtered_results)
 
         # Step 3: Apply pagination
         paginated_results, pagination_info = self._paginate_results(
@@ -1229,9 +1149,9 @@ class ResultProcessor:
         # Calculate average relevance
         avg_relevance = 0.0
         if enhanced_results:
-            avg_relevance = sum(
-                r.relevance_score for r in enhanced_results
-            ) / len(enhanced_results)
+            avg_relevance = sum(r.relevance_score for r in enhanced_results) / len(
+                enhanced_results
+            )
 
         return ResultSummary(
             total_results=len(raw_results),

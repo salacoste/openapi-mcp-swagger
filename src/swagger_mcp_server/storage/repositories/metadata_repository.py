@@ -27,9 +27,7 @@ class MetadataRepository(BaseRepository[APIMetadata]):
         """Get API metadata by title and version."""
         try:
             stmt = select(APIMetadata).where(
-                and_(
-                    APIMetadata.title == title, APIMetadata.version == version
-                )
+                and_(APIMetadata.title == title, APIMetadata.version == version)
             )
 
             result = await self.session.execute(stmt)
@@ -46,9 +44,7 @@ class MetadataRepository(BaseRepository[APIMetadata]):
             )
             raise RepositoryError(f"Failed to get API metadata: {str(e)}")
 
-    async def get_by_specification_hash(
-        self, spec_hash: str
-    ) -> Optional[APIMetadata]:
+    async def get_by_specification_hash(self, spec_hash: str) -> Optional[APIMetadata]:
         """Get API metadata by specification hash."""
         try:
             stmt = select(APIMetadata).where(
@@ -66,16 +62,12 @@ class MetadataRepository(BaseRepository[APIMetadata]):
                 spec_hash=spec_hash,
                 error=str(e),
             )
-            raise RepositoryError(
-                f"Failed to get API metadata by hash: {str(e)}"
-            )
+            raise RepositoryError(f"Failed to get API metadata by hash: {str(e)}")
 
     async def get_by_file_path(self, file_path: str) -> Optional[APIMetadata]:
         """Get API metadata by file path."""
         try:
-            stmt = select(APIMetadata).where(
-                APIMetadata.file_path == file_path
-            )
+            stmt = select(APIMetadata).where(APIMetadata.file_path == file_path)
 
             result = await self.session.execute(stmt)
             metadata = result.scalar_one_or_none()
@@ -88,9 +80,7 @@ class MetadataRepository(BaseRepository[APIMetadata]):
                 file_path=file_path,
                 error=str(e),
             )
-            raise RepositoryError(
-                f"Failed to get API metadata by file path: {str(e)}"
-            )
+            raise RepositoryError(f"Failed to get API metadata by file path: {str(e)}")
 
     async def search_apis(
         self,
@@ -124,9 +114,7 @@ class MetadataRepository(BaseRepository[APIMetadata]):
 
             # Additional filters
             if openapi_version:
-                stmt = stmt.where(
-                    APIMetadata.openapi_version == openapi_version
-                )
+                stmt = stmt.where(APIMetadata.openapi_version == openapi_version)
 
             stmt = stmt.order_by(APIMetadata.title, APIMetadata.version)
             stmt = stmt.limit(limit).offset(offset)
@@ -137,9 +125,7 @@ class MetadataRepository(BaseRepository[APIMetadata]):
             return list(apis)
 
         except Exception as e:
-            self.logger.error(
-                "Failed to search APIs", query=query, error=str(e)
-            )
+            self.logger.error("Failed to search APIs", query=query, error=str(e))
             raise RepositoryError(f"Failed to search APIs: {str(e)}")
 
     async def _filter_apis(
@@ -161,11 +147,7 @@ class MetadataRepository(BaseRepository[APIMetadata]):
     async def get_all_titles(self) -> List[str]:
         """Get all unique API titles."""
         try:
-            stmt = (
-                select(APIMetadata.title)
-                .distinct()
-                .order_by(APIMetadata.title)
-            )
+            stmt = select(APIMetadata.title).distinct().order_by(APIMetadata.title)
 
             result = await self.session.execute(stmt)
             titles = result.scalars().all()
@@ -179,9 +161,7 @@ class MetadataRepository(BaseRepository[APIMetadata]):
     async def get_versions_for_title(self, title: str) -> List[str]:
         """Get all versions for a specific API title."""
         try:
-            stmt = select(APIMetadata.version).where(
-                APIMetadata.title == title
-            )
+            stmt = select(APIMetadata.version).where(APIMetadata.title == title)
             stmt = stmt.order_by(APIMetadata.version.desc())
 
             result = await self.session.execute(stmt)
@@ -195,9 +175,7 @@ class MetadataRepository(BaseRepository[APIMetadata]):
                 title=title,
                 error=str(e),
             )
-            raise RepositoryError(
-                f"Failed to get versions for API title: {str(e)}"
-            )
+            raise RepositoryError(f"Failed to get versions for API title: {str(e)}")
 
     async def get_latest_version(self, title: str) -> Optional[APIMetadata]:
         """Get the latest version of an API by title."""
@@ -212,14 +190,10 @@ class MetadataRepository(BaseRepository[APIMetadata]):
             return metadata
 
         except Exception as e:
-            self.logger.error(
-                "Failed to get latest version", title=title, error=str(e)
-            )
+            self.logger.error("Failed to get latest version", title=title, error=str(e))
             raise RepositoryError(f"Failed to get latest version: {str(e)}")
 
-    async def get_by_openapi_version(
-        self, openapi_version: str
-    ) -> List[APIMetadata]:
+    async def get_by_openapi_version(self, openapi_version: str) -> List[APIMetadata]:
         """Get all APIs by OpenAPI version."""
         try:
             stmt = select(APIMetadata).where(
@@ -238,9 +212,7 @@ class MetadataRepository(BaseRepository[APIMetadata]):
                 openapi_version=openapi_version,
                 error=str(e),
             )
-            raise RepositoryError(
-                f"Failed to get APIs by OpenAPI version: {str(e)}"
-            )
+            raise RepositoryError(f"Failed to get APIs by OpenAPI version: {str(e)}")
 
     async def get_all_openapi_versions(self) -> List[str]:
         """Get all unique OpenAPI versions."""
@@ -254,12 +226,8 @@ class MetadataRepository(BaseRepository[APIMetadata]):
             return list(versions)
 
         except Exception as e:
-            self.logger.error(
-                "Failed to get all OpenAPI versions", error=str(e)
-            )
-            raise RepositoryError(
-                f"Failed to get all OpenAPI versions: {str(e)}"
-            )
+            self.logger.error("Failed to get all OpenAPI versions", error=str(e))
+            raise RepositoryError(f"Failed to get all OpenAPI versions: {str(e)}")
 
     async def get_large_apis(
         self, size_threshold_bytes: int = 1048576
@@ -299,9 +267,7 @@ class MetadataRepository(BaseRepository[APIMetadata]):
             self.logger.error(
                 "Failed to get recently added APIs", limit=limit, error=str(e)
             )
-            raise RepositoryError(
-                f"Failed to get recently added APIs: {str(e)}"
-            )
+            raise RepositoryError(f"Failed to get recently added APIs: {str(e)}")
 
     async def get_recently_updated(self, limit: int = 10) -> List[APIMetadata]:
         """Get recently updated APIs."""
@@ -320,9 +286,7 @@ class MetadataRepository(BaseRepository[APIMetadata]):
                 limit=limit,
                 error=str(e),
             )
-            raise RepositoryError(
-                f"Failed to get recently updated APIs: {str(e)}"
-            )
+            raise RepositoryError(f"Failed to get recently updated APIs: {str(e)}")
 
     async def get_statistics(self) -> Dict[str, Any]:
         """Get API metadata statistics."""
@@ -340,8 +304,7 @@ class MetadataRepository(BaseRepository[APIMetadata]):
 
             version_result = await self.session.execute(version_query)
             versions = {
-                row.openapi_version: row.count
-                for row in version_result.fetchall()
+                row.openapi_version: row.count for row in version_result.fetchall()
             }
 
             # File size statistics
@@ -358,34 +321,24 @@ class MetadataRepository(BaseRepository[APIMetadata]):
             with_contact_query = select(func.count()).where(
                 APIMetadata.contact_info.isnot(None)
             )
-            with_contact_result = await self.session.execute(
-                with_contact_query
-            )
+            with_contact_result = await self.session.execute(with_contact_query)
             with_contact = with_contact_result.scalar() or 0
 
             with_license_query = select(func.count()).where(
                 APIMetadata.license_info.isnot(None)
             )
-            with_license_result = await self.session.execute(
-                with_license_query
-            )
+            with_license_result = await self.session.execute(with_license_query)
             with_license = with_license_result.scalar() or 0
 
             with_servers_query = select(func.count()).where(
                 APIMetadata.servers.isnot(None)
             )
-            with_servers_result = await self.session.execute(
-                with_servers_query
-            )
+            with_servers_result = await self.session.execute(with_servers_query)
             with_servers = with_servers_result.scalar() or 0
 
             # Unique titles (may have multiple versions)
-            unique_titles_query = select(
-                func.count(func.distinct(APIMetadata.title))
-            )
-            unique_titles_result = await self.session.execute(
-                unique_titles_query
-            )
+            unique_titles_query = select(func.count(func.distinct(APIMetadata.title)))
+            unique_titles_result = await self.session.execute(unique_titles_query)
             unique_titles = unique_titles_result.scalar() or 0
 
             return {
@@ -416,12 +369,8 @@ class MetadataRepository(BaseRepository[APIMetadata]):
             }
 
         except Exception as e:
-            self.logger.error(
-                "Failed to get API metadata statistics", error=str(e)
-            )
-            raise RepositoryError(
-                f"Failed to get API metadata statistics: {str(e)}"
-            )
+            self.logger.error("Failed to get API metadata statistics", error=str(e))
+            raise RepositoryError(f"Failed to get API metadata statistics: {str(e)}")
 
     async def find_duplicates_by_hash(self) -> List[List[APIMetadata]]:
         """Find duplicate APIs by specification hash."""
@@ -433,12 +382,8 @@ class MetadataRepository(BaseRepository[APIMetadata]):
                 .having(func.count() > 1)
             )
 
-            duplicate_hashes_result = await self.session.execute(
-                duplicate_hashes_query
-            )
-            duplicate_hashes = [
-                row[0] for row in duplicate_hashes_result.fetchall()
-            ]
+            duplicate_hashes_result = await self.session.execute(duplicate_hashes_query)
+            duplicate_hashes = [row[0] for row in duplicate_hashes_result.fetchall()]
 
             if not duplicate_hashes:
                 return []
@@ -535,9 +480,7 @@ class MetadataRepository(BaseRepository[APIMetadata]):
             # Count deprecated endpoints
             deprecated_endpoints_count = await self.session.execute(
                 select(func.count()).where(
-                    and_(
-                        Endpoint.api_id == api_id, Endpoint.deprecated == True
-                    )
+                    and_(Endpoint.api_id == api_id, Endpoint.deprecated == True)
                 )
             )
             deprecated_endpoints = deprecated_endpoints_count.scalar() or 0
@@ -551,9 +494,7 @@ class MetadataRepository(BaseRepository[APIMetadata]):
                     "deprecated_endpoints": deprecated_endpoints,
                 },
                 "health": {
-                    "deprecation_rate": (
-                        deprecated_endpoints / endpoints * 100
-                    )
+                    "deprecation_rate": (deprecated_endpoints / endpoints * 100)
                     if endpoints > 0
                     else 0,
                     "has_schemas": schemas > 0,
@@ -562,7 +503,5 @@ class MetadataRepository(BaseRepository[APIMetadata]):
             }
 
         except Exception as e:
-            self.logger.error(
-                "Failed to get API summary", api_id=api_id, error=str(e)
-            )
+            self.logger.error("Failed to get API summary", api_id=api_id, error=str(e))
             raise RepositoryError(f"Failed to get API summary: {str(e)}")

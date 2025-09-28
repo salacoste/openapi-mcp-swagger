@@ -77,9 +77,7 @@ class SecurityMapper:
 
         for scheme_name, scheme_data in security_schemes.items():
             if not isinstance(scheme_name, str):
-                warnings.append(
-                    f"Skipping non-string scheme name: {scheme_name}"
-                )
+                warnings.append(f"Skipping non-string scheme name: {scheme_name}")
                 continue
 
             if not isinstance(scheme_data, dict):
@@ -94,7 +92,9 @@ class SecurityMapper:
                 normalized_schemes[scheme_name] = normalized_scheme
 
             except Exception as e:
-                error_msg = f"Failed to normalize security scheme {scheme_name}: {str(e)}"
+                error_msg = (
+                    f"Failed to normalize security scheme {scheme_name}: {str(e)}"
+                )
                 errors.append(error_msg)
                 self.logger.error(
                     "Security scheme normalization failed",
@@ -138,38 +138,26 @@ class SecurityMapper:
             raise ValueError(f"Security scheme must have 'type' property")
 
         if scheme_type_str not in self.scheme_type_map:
-            raise ValueError(
-                f"Unknown security scheme type: {scheme_type_str}"
-            )
+            raise ValueError(f"Unknown security scheme type: {scheme_type_str}")
 
         scheme_type = self.scheme_type_map[scheme_type_str]
         description = scheme_data.get("description")
 
         # Type-specific processing
         if scheme_type == SecuritySchemeType.API_KEY:
-            return self._normalize_api_key_scheme(
-                scheme_name, scheme_data, description
-            )
+            return self._normalize_api_key_scheme(scheme_name, scheme_data, description)
         elif scheme_type == SecuritySchemeType.HTTP:
-            return self._normalize_http_scheme(
-                scheme_name, scheme_data, description
-            )
+            return self._normalize_http_scheme(scheme_name, scheme_data, description)
         elif scheme_type == SecuritySchemeType.OAUTH2:
-            return self._normalize_oauth2_scheme(
-                scheme_name, scheme_data, description
-            )
+            return self._normalize_oauth2_scheme(scheme_name, scheme_data, description)
         elif scheme_type == SecuritySchemeType.OPEN_ID_CONNECT:
-            return self._normalize_openid_scheme(
-                scheme_name, scheme_data, description
-            )
+            return self._normalize_openid_scheme(scheme_name, scheme_data, description)
         elif scheme_type == SecuritySchemeType.MUTUAL_TLS:
             return self._normalize_mutual_tls_scheme(
                 scheme_name, scheme_data, description
             )
         else:
-            raise ValueError(
-                f"Unsupported security scheme type: {scheme_type}"
-            )
+            raise ValueError(f"Unsupported security scheme type: {scheme_type}")
 
     def _normalize_api_key_scheme(
         self,
@@ -280,9 +268,7 @@ class SecurityMapper:
         """Normalize OpenID Connect security scheme."""
         openid_connect_url = scheme_data.get("openIdConnectUrl")
         if not openid_connect_url:
-            raise ValueError(
-                "OpenID Connect scheme must have 'openIdConnectUrl'"
-            )
+            raise ValueError("OpenID Connect scheme must have 'openIdConnectUrl'")
 
         return NormalizedSecurityScheme(
             name=scheme_name,
@@ -482,10 +468,7 @@ class SecurityMapper:
             stats["scheme_types"][scheme_type] += 1
 
             # OAuth2 flow analysis
-            if (
-                scheme.type == SecuritySchemeType.OAUTH2
-                and scheme.oauth2_flows
-            ):
+            if scheme.type == SecuritySchemeType.OAUTH2 and scheme.oauth2_flows:
                 for flow_type in scheme.oauth2_flows.keys():
                     flow_name = flow_type.value
                     if flow_name not in stats["oauth2_flows"]:
@@ -494,9 +477,7 @@ class SecurityMapper:
 
         # Analyze requirements
         if security_requirements:
-            analysis = self.analyze_security_requirements(
-                security_requirements
-            )
+            analysis = self.analyze_security_requirements(security_requirements)
             stats["optional_auth"] = analysis["optional_security"]
             stats["multi_factor_auth"] = analysis["multi_scheme_auth"]
             stats["most_used_scopes"] = analysis["scope_patterns"]

@@ -60,9 +60,7 @@ class EnvironmentConfigExtractor:
         for env_var, config_path in self.ENV_MAPPINGS.items():
             if env_var in os.environ:
                 try:
-                    value = self.convert_env_value(
-                        os.environ[env_var], config_path
-                    )
+                    value = self.convert_env_value(os.environ[env_var], config_path)
                     self.set_nested_config(config, config_path, value)
                 except Exception:
                     # Skip invalid environment variables silently
@@ -145,9 +143,7 @@ class EnvironmentConfigExtractor:
         # Set the final value
         current[keys[-1]] = value
 
-    def get_nested_config_value(
-        self, config: Dict[str, Any], path: str
-    ) -> Any:
+    def get_nested_config_value(self, config: Dict[str, Any], path: str) -> Any:
         """Get nested configuration value using dot notation.
 
         Args:
@@ -261,9 +257,7 @@ class EnvironmentConfigExtractor:
                 )
 
         # Check for SSL configuration completeness
-        ssl_enabled = current_env.get(
-            "SWAGGER_MCP_SERVER_SSL_ENABLED", ""
-        ).lower()
+        ssl_enabled = current_env.get("SWAGGER_MCP_SERVER_SSL_ENABLED", "").lower()
         if ssl_enabled in ("true", "1", "yes", "on"):
             if "SWAGGER_MCP_SERVER_SSL_CERT" not in current_env:
                 issues.append("SSL enabled but no certificate file specified")
@@ -282,9 +276,7 @@ class EnvironmentConfigExtractor:
             and "SWAGGER_MCP_DB_POOL_SIZE" in current_env
         ):
             try:
-                max_conn = int(
-                    current_env["SWAGGER_MCP_SERVER_MAX_CONNECTIONS"]
-                )
+                max_conn = int(current_env["SWAGGER_MCP_SERVER_MAX_CONNECTIONS"])
                 pool_size = int(current_env["SWAGGER_MCP_DB_POOL_SIZE"])
                 if max_conn > pool_size * 10:
                     issues.append(
@@ -294,9 +286,7 @@ class EnvironmentConfigExtractor:
                         f"Consider increasing SWAGGER_MCP_DB_POOL_SIZE to at least {max_conn // 10}"
                     )
             except ValueError:
-                issues.append(
-                    "Invalid numeric values in connection configuration"
-                )
+                issues.append("Invalid numeric values in connection configuration")
 
         # Check for development vs production settings
         log_level = current_env.get("SWAGGER_MCP_LOG_LEVEL", "").upper()
@@ -312,9 +302,7 @@ class EnvironmentConfigExtractor:
             "environment_variables": current_env,
         }
 
-    def generate_environment_template(
-        self, template_type: str = "production"
-    ) -> str:
+    def generate_environment_template(self, template_type: str = "production") -> str:
         """Generate environment variable template file.
 
         Args:

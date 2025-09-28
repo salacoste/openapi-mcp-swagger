@@ -38,9 +38,7 @@ class DaemonManager:
 
         try:
             # Start daemon process
-            process = await self._start_daemon_process(
-                server_script, daemon_env
-            )
+            process = await self._start_daemon_process(server_script, daemon_env)
 
             # Store process reference
             server_id = server_config.get("server_id", f"daemon-{process.pid}")
@@ -66,9 +64,7 @@ class DaemonManager:
             logger.error("Failed to start daemon server", error=str(e))
             raise
 
-    async def stop_daemon_server(
-        self, server_id: str, timeout: int = 30
-    ) -> bool:
+    async def stop_daemon_server(self, server_id: str, timeout: int = 30) -> bool:
         """Stop daemon server gracefully.
 
         Args:
@@ -91,14 +87,10 @@ class DaemonManager:
             # Wait for graceful shutdown
             try:
                 process.wait(timeout=timeout)
-                logger.info(
-                    "Daemon server stopped gracefully", server_id=server_id
-                )
+                logger.info("Daemon server stopped gracefully", server_id=server_id)
             except subprocess.TimeoutExpired:
                 # Force kill if timeout exceeded
-                logger.warning(
-                    "Forcing daemon server shutdown", server_id=server_id
-                )
+                logger.warning("Forcing daemon server shutdown", server_id=server_id)
                 process.kill()
                 process.wait()
 
@@ -114,9 +106,7 @@ class DaemonManager:
             )
             return False
 
-    async def get_daemon_status(
-        self, server_id: str
-    ) -> Optional[Dict[str, Any]]:
+    async def get_daemon_status(self, server_id: str) -> Optional[Dict[str, Any]]:
         """Get daemon server status.
 
         Args:
@@ -174,9 +164,7 @@ class DaemonManager:
         env.update(
             {
                 "SWAGGER_MCP_DAEMON": "true",
-                "SWAGGER_MCP_HOST": str(
-                    server_config.get("host", "localhost")
-                ),
+                "SWAGGER_MCP_HOST": str(server_config.get("host", "localhost")),
                 "SWAGGER_MCP_PORT": str(server_config.get("port", 8080)),
                 "PYTHONUNBUFFERED": "1",  # Ensure output is not buffered
             }
@@ -188,9 +176,7 @@ class DaemonManager:
 
         # Add working directory
         if server_config.get("working_directory"):
-            env["SWAGGER_MCP_WORKDIR"] = str(
-                server_config["working_directory"]
-            )
+            env["SWAGGER_MCP_WORKDIR"] = str(server_config["working_directory"])
 
         return env
 
@@ -211,9 +197,7 @@ class DaemonManager:
 
         if not server_script.exists():
             # Create a simple server script if it doesn't exist
-            server_script = self._generate_simple_server_script(
-                work_dir, server_config
-            )
+            server_script = self._generate_simple_server_script(work_dir, server_config)
 
         return server_script
 
@@ -327,9 +311,7 @@ if __name__ == "__main__":
                         f"Daemon process exited with code {return_code}: {error_output}"
                     )
                 except:
-                    raise Exception(
-                        f"Daemon process exited with code {return_code}"
-                    )
+                    raise Exception(f"Daemon process exited with code {return_code}")
 
             logger.info(
                 "Daemon process started successfully",

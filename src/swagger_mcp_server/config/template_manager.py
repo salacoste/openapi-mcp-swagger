@@ -414,9 +414,7 @@ class ConfigurationTemplateManager:
             return f"Error: {e}"
 
         descriptions = self.get_available_templates()
-        description = descriptions.get(
-            template_name, "No description available"
-        )
+        description = descriptions.get(template_name, "No description available")
 
         doc = f"""# {template_name.title()} Configuration Template
 
@@ -465,9 +463,7 @@ Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 """
         return doc
 
-    def validate_template(
-        self, template: Dict[str, Any]
-    ) -> tuple[bool, list[str]]:
+    def validate_template(self, template: Dict[str, Any]) -> tuple[bool, list[str]]:
         """Validate a configuration template.
 
         Args:
@@ -491,9 +487,7 @@ Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
                 (
                     is_valid,
                     error_msg,
-                ) = ConfigurationSchema.validate_configuration_value(
-                    key, value
-                )
+                ) = ConfigurationSchema.validate_configuration_value(key, value)
                 if not is_valid:
                     errors.append(f"{key}: {error_msg}")
 

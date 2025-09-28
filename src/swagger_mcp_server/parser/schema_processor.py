@@ -75,20 +75,14 @@ class SchemaProcessor:
         # First pass: Create basic schema objects
         for schema_name, schema_def in schemas_data.items():
             if not isinstance(schema_def, dict):
-                errors.append(
-                    f"Schema definition must be object: {schema_name}"
-                )
+                errors.append(f"Schema definition must be object: {schema_name}")
                 continue
 
             try:
-                normalized_schema = self._create_basic_schema(
-                    schema_name, schema_def
-                )
+                normalized_schema = self._create_basic_schema(schema_name, schema_def)
                 self.processed_schemas[schema_name] = normalized_schema
             except Exception as e:
-                errors.append(
-                    f"Failed to create basic schema {schema_name}: {str(e)}"
-                )
+                errors.append(f"Failed to create basic schema {schema_name}: {str(e)}")
 
         # Second pass: Resolve references and build dependency graph
         if full_document:
@@ -283,9 +277,7 @@ class SchemaProcessor:
                     schema.dependencies.add(target_schema)
 
             elif resolution.circular:
-                self.circular_references.add(
-                    f"{schema_name} -> {resolution.target}"
-                )
+                self.circular_references.add(f"{schema_name} -> {resolution.target}")
 
             if resolution.error:
                 self.logger.warning(
@@ -316,9 +308,7 @@ class SchemaProcessor:
             for key, value in obj.items():
                 if key != "$ref":  # Avoid infinite recursion
                     sub_path = f"{path}.{key}" if path else key
-                    references.update(
-                        self._find_all_references(value, sub_path)
-                    )
+                    references.update(self._find_all_references(value, sub_path))
 
         elif isinstance(obj, list):
             # Recurse into all items
@@ -379,9 +369,7 @@ class SchemaProcessor:
             # Check for circular references if this is a schema reference
             if "schemas" in path_parts:
                 schema_name = path_parts[-1]
-                if self._would_create_circular_reference(
-                    schema_name, target_path
-                ):
+                if self._would_create_circular_reference(schema_name, target_path):
                     result = ReferenceResolution(
                         resolved=True, target=target, circular=True
                     )
@@ -462,9 +450,7 @@ class SchemaProcessor:
                 if dep.startswith("schemas/"):
                     dep_schema = dep.replace("schemas/", "")
                     if dep_schema in self.processed_schemas:
-                        self.processed_schemas[dep_schema].used_by.add(
-                            schema_name
-                        )
+                        self.processed_schemas[dep_schema].used_by.add(schema_name)
 
     def _detect_circular_references(self) -> List[List[str]]:
         """Detect circular reference cycles in the dependency graph.
@@ -536,10 +522,7 @@ class SchemaProcessor:
             # Check discriminator properties
             if schema.discriminator:
                 discriminator_prop = schema.discriminator.get("propertyName")
-                if (
-                    discriminator_prop
-                    and discriminator_prop not in schema.properties
-                ):
+                if discriminator_prop and discriminator_prop not in schema.properties:
                     errors.append(
                         f"Schema {schema_name}: Discriminator property '{discriminator_prop}' not defined"
                     )
@@ -547,9 +530,7 @@ class SchemaProcessor:
             # Validate dependencies exist
             for dep in schema.dependencies:
                 if dep not in self.processed_schemas:
-                    errors.append(
-                        f"Schema {schema_name}: Dependency '{dep}' not found"
-                    )
+                    errors.append(f"Schema {schema_name}: Dependency '{dep}' not found")
 
         return errors
 
@@ -570,9 +551,7 @@ class SchemaProcessor:
 
         return extensions
 
-    def resolve_schema_reference(
-        self, ref_path: str
-    ) -> Optional[NormalizedSchema]:
+    def resolve_schema_reference(self, ref_path: str) -> Optional[NormalizedSchema]:
         """Resolve a schema reference to its normalized schema.
 
         Args:

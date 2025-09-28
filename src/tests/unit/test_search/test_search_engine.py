@@ -53,9 +53,7 @@ def search_engine(mock_index_manager, search_config):
 class TestSearchEngine:
     """Test cases for SearchEngine class."""
 
-    def test_initialization(
-        self, search_engine, mock_index_manager, search_config
-    ):
+    def test_initialization(self, search_engine, mock_index_manager, search_config):
         """Test SearchEngine initialization."""
         assert search_engine.index_manager == mock_index_manager
         assert search_engine.config == search_config
@@ -88,9 +86,7 @@ class TestSearchEngine:
             await search_engine.search("test", page=-1)
 
     @pytest.mark.asyncio
-    async def test_search_with_invalid_per_page_raises_error(
-        self, search_engine
-    ):
+    async def test_search_with_invalid_per_page_raises_error(self, search_engine):
         """Test that invalid per_page raises ValueError."""
         with pytest.raises(ValueError, match="per_page must be between"):
             await search_engine.search("test", per_page=0)
@@ -155,12 +151,8 @@ class TestSearchEngine:
                 "per_page": 20,
             }
 
-            with patch.object(
-                search_engine, "_parse_search_query"
-            ) as mock_parse:
-                with patch.object(
-                    search_engine, "_apply_filters"
-                ) as mock_filter:
+            with patch.object(search_engine, "_parse_search_query") as mock_parse:
+                with patch.object(search_engine, "_apply_filters") as mock_filter:
                     mock_parse.return_value = Mock()
                     mock_filter.return_value = Mock()
 
@@ -190,9 +182,7 @@ class TestSearchEngine:
             assert response.page == 2
             assert response.per_page == 10
             assert response.total_results == 100
-            assert (
-                response.has_more is True
-            )  # 100 total, page 2 of 10 per page
+            assert response.has_more is True  # 100 total, page 2 of 10 per page
 
     @pytest.mark.asyncio
     async def test_search_by_path_exact_match(self, search_engine):
@@ -256,9 +246,7 @@ class TestSearchEngine:
         ) as mock_execute:
             mock_execute.return_value = {"hits": [], "total": 0}
 
-            await search_engine.search_by_tag(
-                "users", additional_query="profile"
-            )
+            await search_engine.search_by_tag("users", additional_query="profile")
 
             mock_execute.assert_called_once()
 

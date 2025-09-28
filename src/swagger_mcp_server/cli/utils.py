@@ -33,10 +33,7 @@ def validate_swagger_file(file_path: str) -> bool:
 
         # Check for OpenAPI/Swagger indicators
         return (
-            "swagger" in data
-            or "openapi" in data
-            or "info" in data
-            or "paths" in data
+            "swagger" in data or "openapi" in data or "info" in data or "paths" in data
         )
     except Exception:
         return False
@@ -79,9 +76,7 @@ def check_port_available(port: int, host: str = "localhost") -> bool:
         return False
 
 
-def find_free_port(
-    start_port: int = 8080, end_port: int = 8180
-) -> Optional[int]:
+def find_free_port(start_port: int = 8080, end_port: int = 8180) -> Optional[int]:
     """Find the next available port in the given range."""
     for port in range(start_port, end_port + 1):
         if check_port_available(port):
@@ -118,9 +113,7 @@ def create_directory_safely(path: str, force: bool = False) -> bool:
 
     if path_obj.exists():
         if not path_obj.is_dir():
-            click.echo(
-                f"Error: {path} exists but is not a directory", err=True
-            )
+            click.echo(f"Error: {path} exists but is not a directory", err=True)
             return False
 
         if not force and any(path_obj.iterdir()):
@@ -290,9 +283,7 @@ def print_version_info(detailed: bool = False):
             click.echo(f"  {dep}: {status}")
 
 
-def safe_file_operation(
-    operation, file_path: str, backup: bool = True
-) -> bool:
+def safe_file_operation(operation, file_path: str, backup: bool = True) -> bool:
     """Safely perform file operations with optional backup."""
     if backup and os.path.exists(file_path):
         backup_path = f"{file_path}.backup"
@@ -344,12 +335,8 @@ def get_config_directories() -> Dict[str, Path]:
         config_dir = home / "AppData" / "Roaming" / "swagger-mcp-server"
         data_dir = home / "AppData" / "Local" / "swagger-mcp-server"
     elif system == "Darwin":  # macOS
-        config_dir = (
-            home / "Library" / "Application Support" / "swagger-mcp-server"
-        )
-        data_dir = (
-            home / "Library" / "Application Support" / "swagger-mcp-server"
-        )
+        config_dir = home / "Library" / "Application Support" / "swagger-mcp-server"
+        data_dir = home / "Library" / "Application Support" / "swagger-mcp-server"
     else:  # Linux and other Unix-like
         config_dir = home / ".config" / "swagger-mcp-server"
         data_dir = home / ".local" / "share" / "swagger-mcp-server"

@@ -58,9 +58,7 @@ class TestConfigurationTemplateManager:
         assert template is not None
         assert template["server"]["host"] == "0.0.0.0"
         assert template["server"]["port"] == 8080
-        assert (
-            template["server"]["ssl"]["enabled"] is False
-        )  # Handled by ingress
+        assert template["server"]["ssl"]["enabled"] is False  # Handled by ingress
         assert template["database"]["path"] == "/data/mcp_server.db"
         assert template["search"]["index_directory"] == "/data/search_index"
         assert template["logging"]["file"] is None  # Log to stdout
@@ -116,9 +114,7 @@ class TestConfigurationTemplateManager:
             "features.metrics.enabled": False,
         }
 
-        customized = template_manager.customize_template(
-            base_template, customizations
-        )
+        customized = template_manager.customize_template(base_template, customizations)
 
         # Check customizations applied
         assert customized["server"]["port"] == 9000
@@ -142,9 +138,7 @@ class TestConfigurationTemplateManager:
             "server.new_setting": True,
         }
 
-        customized = template_manager.customize_template(
-            base_template, customizations
-        )
+        customized = template_manager.customize_template(base_template, customizations)
 
         # Check new nested structure created
         assert customized["new_section"]["nested"]["value"] == "test"
@@ -161,9 +155,7 @@ class TestConfigurationTemplateManager:
         assert "Level: DEBUG" in doc
         assert "swagger-mcp-server config init --template development" in doc
 
-    def test_generate_template_documentation_production(
-        self, template_manager
-    ):
+    def test_generate_template_documentation_production(self, template_manager):
         """Test production template documentation generation."""
         doc = template_manager.generate_template_documentation("production")
 
@@ -253,9 +245,7 @@ class TestConfigurationTemplateManager:
 
         # Development should have debugging features
         assert dev_template["logging"]["level"] == "DEBUG"
-        assert (
-            dev_template["server"]["max_connections"] == 10
-        )  # Low for development
+        assert dev_template["server"]["max_connections"] == 10  # Low for development
         assert dev_template["features"]["rate_limiting"]["enabled"] is False
 
         # Production should be secure and performant
@@ -265,9 +255,7 @@ class TestConfigurationTemplateManager:
         assert prod_template["server"]["max_connections"] == 100
 
         # Staging should balance production and development
-        assert (
-            staging_template["server"]["ssl"]["enabled"] is False
-        )  # For testing
+        assert staging_template["server"]["ssl"]["enabled"] is False  # For testing
         assert staging_template["logging"]["level"] == "INFO"
         assert staging_template["server"]["max_connections"] == 50
 
@@ -295,9 +283,7 @@ class TestConfigurationTemplateManager:
         original_port = original["server"]["port"]
 
         customizations = {"server.port": 9000}
-        customized = template_manager.customize_template(
-            original, customizations
-        )
+        customized = template_manager.customize_template(original, customizations)
 
         # Original should be unchanged
         assert original["server"]["port"] == original_port

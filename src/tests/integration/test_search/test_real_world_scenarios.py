@@ -132,9 +132,7 @@ def large_api_dataset():
                         if "{id}" in variation
                         else [],
                         "tags": [pattern["category"], method.lower()],
-                        "security": [{"bearer_auth": []}]
-                        if "admin" in path
-                        else [],
+                        "security": [{"bearer_auth": []}] if "admin" in path else [],
                         "responses": {
                             "200": {"description": "Success"},
                             "404": {"description": "Not found"}
@@ -291,12 +289,8 @@ class TestRealWorldSearchScenarios:
 
             # User-related endpoints should appear early
             top_3_results = response.results[:3]
-            user_related = any(
-                "user" in r.endpoint_path.lower() for r in top_3_results
-            )
-            assert (
-                user_related
-            ), "Expected user-related endpoint in top 3 results"
+            user_related = any("user" in r.endpoint_path.lower() for r in top_3_results)
+            assert user_related, "Expected user-related endpoint in top 3 results"
 
     @pytest.mark.asyncio
     async def test_search_with_typos_and_variations(
@@ -320,8 +314,7 @@ class TestRealWorldSearchScenarios:
 
             # Both should find relevant results
             assert (
-                singular_response.total_results > 0
-                or plural_response.total_results > 0
+                singular_response.total_results > 0 or plural_response.total_results > 0
             )
 
     @pytest.mark.asyncio
@@ -334,9 +327,7 @@ class TestRealWorldSearchScenarios:
         )
 
         # Find all GET endpoints
-        get_response = await search_engine.search(
-            "api", filters={"http_method": "GET"}
-        )
+        get_response = await search_engine.search("api", filters={"http_method": "GET"})
 
         if get_response.total_results > 0:
             assert all(r.http_method == "GET" for r in get_response.results)
@@ -347,10 +338,7 @@ class TestRealWorldSearchScenarios:
         )
 
         if admin_response.total_results > 0:
-            assert all(
-                r.http_method in ["GET", "POST"]
-                for r in admin_response.results
-            )
+            assert all(r.http_method in ["GET", "POST"] for r in admin_response.results)
 
     @pytest.mark.asyncio
     async def test_pagination_with_large_results(

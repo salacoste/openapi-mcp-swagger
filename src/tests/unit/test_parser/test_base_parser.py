@@ -108,9 +108,7 @@ class TestParseMetrics:
         metrics.parse_duration_ms = 1000  # 1 second
 
         expected_speed = 2.0  # 2MB/s
-        assert (
-            abs(metrics.processing_speed_mb_per_sec - expected_speed) < 0.001
-        )
+        assert abs(metrics.processing_speed_mb_per_sec - expected_speed) < 0.001
 
     def test_processing_speed_zero_duration(self):
         """Test processing speed with zero duration."""
@@ -242,9 +240,7 @@ class TestBaseParser:
         assert mock_parser.can_parse("test.yaml") is False
         assert mock_parser.can_parse("test.txt") is False
 
-    async def test_validate_file_constraints_success(
-        self, mock_parser, temp_json_file
-    ):
+    async def test_validate_file_constraints_success(self, mock_parser, temp_json_file):
         """Test successful file constraint validation."""
         # Should not raise exception
         await mock_parser.validate_file_constraints(temp_json_file)
@@ -252,9 +248,7 @@ class TestBaseParser:
     async def test_validate_file_constraints_not_found(self, mock_parser):
         """Test file constraint validation with missing file."""
         with pytest.raises(SwaggerParseError) as exc_info:
-            await mock_parser.validate_file_constraints(
-                Path("nonexistent.json")
-            )
+            await mock_parser.validate_file_constraints(Path("nonexistent.json"))
 
         assert "File not found" in str(exc_info.value)
         assert exc_info.value.error_type == "FileNotFound"

@@ -10,6 +10,7 @@ import os
 from typing import Dict, Any, List
 from pathlib import Path
 
+
 class StandaloneMCPServer:
     def __init__(self, swagger_file: str):
         self.swagger_file = Path(swagger_file)
@@ -18,12 +19,14 @@ class StandaloneMCPServer:
     def _load_swagger(self) -> Dict[str, Any]:
         """Загрузка Swagger файла"""
         try:
-            with open(self.swagger_file, 'r', encoding='utf-8') as f:
+            with open(self.swagger_file, "r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception as e:
             return {"error": f"Failed to load swagger file: {e}"}
 
-    def search_endpoints(self, keywords: str, http_methods: List[str] = None, max_results: int = 10) -> Dict[str, Any]:
+    def search_endpoints(
+        self, keywords: str, http_methods: List[str] = None, max_results: int = 10
+    ) -> Dict[str, Any]:
         """Поиск endpoints по ключевым словам"""
         if "error" in self.swagger_data:
             return self.swagger_data
@@ -38,7 +41,9 @@ class StandaloneMCPServer:
                 if method.upper() == "PARAMETERS":
                     continue
 
-                if http_methods and method.upper() not in [m.upper() for m in http_methods]:
+                if http_methods and method.upper() not in [
+                    m.upper() for m in http_methods
+                ]:
                     continue
 
                 # Поиск в summary, description, tags
@@ -46,30 +51,29 @@ class StandaloneMCPServer:
                 description = details.get("description", "").lower()
                 tags = " ".join(details.get("tags", [])).lower()
 
-                if (keywords_lower in summary or
-                    keywords_lower in description or
-                    keywords_lower in tags or
-                    keywords_lower in path.lower()):
-
-                    results.append({
-                        "endpoint_id": f"{method}_{path.replace('/', '_')}",
-                        "path": path,
-                        "method": method.upper(),
-                        "summary": details.get("summary", ""),
-                        "description": details.get("description", ""),
-                        "tags": details.get("tags", [])
-                    })
+                if (
+                    keywords_lower in summary
+                    or keywords_lower in description
+                    or keywords_lower in tags
+                    or keywords_lower in path.lower()
+                ):
+                    results.append(
+                        {
+                            "endpoint_id": f"{method}_{path.replace('/', '_')}",
+                            "path": path,
+                            "method": method.upper(),
+                            "summary": details.get("summary", ""),
+                            "description": details.get("description", ""),
+                            "tags": details.get("tags", []),
+                        }
+                    )
 
                 if len(results) >= max_results:
                     break
             if len(results) >= max_results:
                 break
 
-        return {
-            "results": results,
-            "total": len(results),
-            "query": keywords
-        }
+        return {"results": results, "total": len(results), "query": keywords}
 
     def get_schema(self, component_name: str, max_depth: int = 3) -> Dict[str, Any]:
         """Получение схемы компонента"""
@@ -83,36 +87,35 @@ class StandaloneMCPServer:
             return {
                 "component_name": component_name,
                 "schema": schemas[component_name],
-                "type": "schema"
+                "type": "schema",
             }
 
         # Поиск по частичному совпадению
         matches = []
         for name, schema in schemas.items():
             if component_name.lower() in name.lower():
-                matches.append({
-                    "name": name,
-                    "schema": schema
-                })
+                matches.append({"name": name, "schema": schema})
 
         if matches:
             return {
                 "component_name": component_name,
                 "matches": matches,
-                "type": "partial_match"
+                "type": "partial_match",
             }
 
         return {
             "error": f"Component '{component_name}' not found",
-            "available_components": list(schemas.keys())
+            "available_components": list(schemas.keys()),
         }
 
-    def get_example(self, endpoint_id: str, language: str = "javascript", style: str = "production") -> Dict[str, Any]:
+    def get_example(
+        self, endpoint_id: str, language: str = "javascript", style: str = "production"
+    ) -> Dict[str, Any]:
         """Генерация примера запроса"""
         # Упрощенная генерация примеров
         examples = {
             "javascript": {
-                "auth": '''
+                "auth": """
 async function getOzonAuthToken(clientId, clientSecret) {
   const response = await fetch('https://api-performance.ozon.ru/api/client/token', {
     method: 'POST',
@@ -127,8 +130,8 @@ async function getOzonAuthToken(clientId, clientSecret) {
   });
 
   return await response.json();
-}''',
-                "campaign": '''
+}""",
+                "campaign": """
 async function createCampaign(accessToken, campaignData) {
   const response = await fetch('https://api-performance.ozon.ru/api/client/campaign', {
     method: 'POST',
@@ -140,10 +143,10 @@ async function createCampaign(accessToken, campaignData) {
   });
 
   return await response.json();
-}'''
+}""",
             },
             "python": {
-                "auth": '''
+                "auth": """
 import requests
 
 def get_ozon_auth_token(client_id: str, client_secret: str) -> dict:
@@ -156,8 +159,8 @@ def get_ozon_auth_token(client_id: str, client_secret: str) -> dict:
     }
 
     response = requests.post(url, json=payload)
-    return response.json()''',
-                "campaign": '''
+    return response.json()""",
+                "campaign": """
 def create_campaign(access_token: str, campaign_data: dict) -> dict:
     url = "https://api-performance.ozon.ru/api/client/campaign"
 
@@ -167,8 +170,8 @@ def create_campaign(access_token: str, campaign_data: dict) -> dict:
     }
 
     response = requests.post(url, json=campaign_data, headers=headers)
-    return response.json()'''
-            }
+    return response.json()""",
+            },
         }
 
         # Определяем тип примера по endpoint_id
@@ -183,7 +186,9 @@ def create_campaign(access_token: str, campaign_data: dict) -> dict:
             "endpoint_id": endpoint_id,
             "language": language,
             "style": style,
-            "example": examples.get(language, {}).get(example_type, "# Example not available for this combination")
+            "example": examples.get(language, {}).get(
+                example_type, "# Example not available for this combination"
+            ),
         }
 
     def handle_request(self, request: Dict[str, Any]) -> Dict[str, Any]:
@@ -195,21 +200,22 @@ def create_campaign(access_token: str, campaign_data: dict) -> dict:
             return self.search_endpoints(
                 keywords=params.get("keywords", ""),
                 http_methods=params.get("httpMethods"),
-                max_results=params.get("maxResults", 10)
+                max_results=params.get("maxResults", 10),
             )
         elif method == "getSchema":
             return self.get_schema(
                 component_name=params.get("componentName", ""),
-                max_depth=params.get("maxDepth", 3)
+                max_depth=params.get("maxDepth", 3),
             )
         elif method == "getExample":
             return self.get_example(
                 endpoint_id=params.get("endpointId", ""),
                 language=params.get("language", "javascript"),
-                style=params.get("style", "production")
+                style=params.get("style", "production"),
             )
         else:
             return {"error": f"Unknown method: {method}"}
+
 
 def main():
     """Основная функция для CLI использования"""
@@ -230,10 +236,7 @@ def main():
                 print(json.dumps(response))
                 sys.stdout.flush()
             except Exception as e:
-                error_response = {
-                    "error": str(e),
-                    "code": -32000
-                }
+                error_response = {"error": str(e), "code": -32000}
                 print(json.dumps(error_response))
                 sys.stdout.flush()
     else:
@@ -245,7 +248,7 @@ def main():
         while True:
             try:
                 user_input = input("Enter method and params (JSON): ").strip()
-                if user_input.lower() == 'quit':
+                if user_input.lower() == "quit":
                     break
 
                 request = json.loads(user_input)
@@ -256,6 +259,7 @@ def main():
                 break
             except Exception as e:
                 print(f"Error: {e}")
+
 
 if __name__ == "__main__":
     main()

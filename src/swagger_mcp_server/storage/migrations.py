@@ -43,9 +43,7 @@ class Migration:
 
     def _calculate_checksum(self) -> str:
         """Calculate SHA-256 checksum of the migration content."""
-        content = (
-            f"{self.version}{self.name}{self.up_sql}{self.down_sql or ''}"
-        )
+        content = f"{self.version}{self.name}{self.up_sql}{self.down_sql or ''}"
         return hashlib.sha256(content.encode("utf-8")).hexdigest()
 
     def to_dict(self) -> Dict[str, Any]:
@@ -94,20 +92,14 @@ class MigrationManager:
             self.logger.info("Migration system initialized successfully")
 
         except Exception as e:
-            self.logger.error(
-                "Failed to initialize migration system", error=str(e)
-            )
-            raise MigrationError(
-                f"Failed to initialize migration system: {str(e)}"
-            )
+            self.logger.error("Failed to initialize migration system", error=str(e))
+            raise MigrationError(f"Failed to initialize migration system: {str(e)}")
 
     async def get_applied_migrations(self) -> List[DatabaseMigration]:
         """Get list of applied migrations."""
         try:
             async with self.db_manager.get_session() as session:
-                stmt = select(DatabaseMigration).order_by(
-                    DatabaseMigration.version
-                )
+                stmt = select(DatabaseMigration).order_by(DatabaseMigration.version)
                 result = await session.execute(stmt)
                 migrations = result.scalars().all()
                 return list(migrations)
@@ -449,14 +441,10 @@ class MigrationManager:
                 f"Failed to apply migration {migration.version}: {str(e)}"
             )
 
-    async def rollback_migration(
-        self, version: str, dry_run: bool = False
-    ) -> bool:
+    async def rollback_migration(self, version: str, dry_run: bool = False) -> bool:
         """Rollback a migration."""
         try:
-            self.logger.info(
-                "Rolling back migration", version=version, dry_run=dry_run
-            )
+            self.logger.info("Rolling back migration", version=version, dry_run=dry_run)
 
             # Get migration record
             async with self.db_manager.get_session() as session:
@@ -490,9 +478,7 @@ class MigrationManager:
 
                 try:
                     # Execute rollback SQL
-                    await self.db_manager.execute_raw_sql(
-                        migration_record.rollback_sql
-                    )
+                    await self.db_manager.execute_raw_sql(migration_record.rollback_sql)
 
                     # Remove migration record
                     await session.delete(migration_record)
@@ -519,9 +505,7 @@ class MigrationManager:
             self.logger.error(
                 "Failed to rollback migration", version=version, error=str(e)
             )
-            raise MigrationError(
-                f"Failed to rollback migration {version}: {str(e)}"
-            )
+            raise MigrationError(f"Failed to rollback migration {version}: {str(e)}")
 
     async def migrate_to_latest(self, dry_run: bool = False) -> List[str]:
         """Apply all pending migrations to bring database to latest version."""
@@ -533,9 +517,7 @@ class MigrationManager:
 
             available_migrations = self.get_builtin_migrations()
             pending_migrations = [
-                m
-                for m in available_migrations
-                if m.version not in applied_versions
+                m for m in available_migrations if m.version not in applied_versions
             ]
 
             # Sort by version
@@ -645,9 +627,7 @@ class MigrationManager:
             integrity_result = await self.db_manager.execute_raw_sql(
                 "PRAGMA integrity_check"
             )
-            integrity_results["sqlite_integrity"] = [
-                row[0] for row in integrity_result
-            ]
+            integrity_results["sqlite_integrity"] = [row[0] for row in integrity_result]
 
             # Foreign key check
             fk_result = await self.db_manager.execute_raw_sql(
@@ -698,19 +678,13 @@ class MigrationManager:
             return integrity_results
 
         except Exception as e:
-            self.logger.error(
-                "Failed to validate database integrity", error=str(e)
-            )
-            raise MigrationError(
-                f"Failed to validate database integrity: {str(e)}"
-            )
+            self.logger.error("Failed to validate database integrity", error=str(e))
+            raise MigrationError(f"Failed to validate database integrity: {str(e)}")
 
     async def reset_database(self, confirm: bool = False) -> None:
         """Reset database to initial state (WARNING: destroys all data)."""
         if not confirm:
-            raise MigrationError(
-                "Database reset requires explicit confirmation"
-            )
+            raise MigrationError("Database reset requires explicit confirmation")
 
         try:
             self.logger.warning("RESETTING DATABASE - ALL DATA WILL BE LOST")

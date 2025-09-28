@@ -14,9 +14,7 @@ logger = get_logger(__name__)
 class StructureValidator:
     """Validates and preserves OpenAPI document structure."""
 
-    def __init__(
-        self, error_handler: ErrorHandler, preserve_order: bool = True
-    ):
+    def __init__(self, error_handler: ErrorHandler, preserve_order: bool = True):
         """Initialize structure validator.
 
         Args:
@@ -104,9 +102,7 @@ class StructureValidator:
                 suggestion="Check OpenAPI specification format and required fields",
             )
 
-    def _validate_root_structure(
-        self, data: Dict[str, Any], file_path: str
-    ) -> None:
+    def _validate_root_structure(self, data: Dict[str, Any], file_path: str) -> None:
         """Validate root OpenAPI document structure.
 
         Args:
@@ -154,9 +150,7 @@ class StructureValidator:
                 )
                 self.error_handler.add_error(error)
 
-    def _validate_info_section(
-        self, data: Dict[str, Any], file_path: str
-    ) -> None:
+    def _validate_info_section(self, data: Dict[str, Any], file_path: str) -> None:
         """Validate info section structure.
 
         Args:
@@ -208,9 +202,7 @@ class StructureValidator:
                 )
                 self.error_handler.add_error(error)
 
-    def _validate_paths_section(
-        self, data: Dict[str, Any], file_path: str
-    ) -> None:
+    def _validate_paths_section(self, data: Dict[str, Any], file_path: str) -> None:
         """Validate paths section structure.
 
         Args:
@@ -326,9 +318,7 @@ class StructureValidator:
                     )
                     self.error_handler.add_error(error)
 
-    def _validate_servers_section(
-        self, data: Dict[str, Any], file_path: str
-    ) -> None:
+    def _validate_servers_section(self, data: Dict[str, Any], file_path: str) -> None:
         """Validate servers section structure.
 
         Args:
@@ -377,9 +367,7 @@ class StructureValidator:
             # Extensions are already preserved in the deep copy
             # Just log them for tracking
             extensions = [
-                k
-                for k in data.keys()
-                if isinstance(k, str) and k.startswith("x-")
+                k for k in data.keys() if isinstance(k, str) and k.startswith("x-")
             ]
             if extensions:
                 self.logger.debug(
@@ -491,14 +479,10 @@ class StructureValidator:
                     f"{path}[length mismatch: {len(original)} vs {len(preserved)}]"
                 )
             else:
-                for i, (orig_item, pres_item) in enumerate(
-                    zip(original, preserved)
-                ):
+                for i, (orig_item, pres_item) in enumerate(zip(original, preserved)):
                     current_path = f"{path}[{i}]" if path else f"[{i}]"
                     missing.extend(
-                        self._find_missing_keys(
-                            orig_item, pres_item, current_path
-                        )
+                        self._find_missing_keys(orig_item, pres_item, current_path)
                     )
 
         return missing

@@ -138,9 +138,7 @@ async def large_dataset(performance_db):
                     "required": True,
                     "content": {
                         "application/json": {
-                            "schema": {
-                                "$ref": f"#/components/schemas/Model{i % 100}"
-                            }
+                            "schema": {"$ref": f"#/components/schemas/Model{i % 100}"}
                         }
                     },
                 }
@@ -182,9 +180,7 @@ async def large_dataset(performance_db):
                 description=f"Authentication scheme {i}",
                 http_scheme="bearer" if scheme_type == "http" else None,
                 bearer_format="JWT" if scheme_type == "http" else None,
-                api_key_name=f"X-API-Key-{i}"
-                if scheme_type == "apiKey"
-                else None,
+                api_key_name=f"X-API-Key-{i}" if scheme_type == "apiKey" else None,
                 api_key_location="header" if scheme_type == "apiKey" else None,
                 reference_count=i * 5,
             )
@@ -211,12 +207,8 @@ async def measure_time(coro, iterations: int = 1) -> Dict[str, float]:
         "median": statistics.median(times),
         "min": min(times),
         "max": max(times),
-        "p95": statistics.quantiles(times, n=20)[18]
-        if len(times) > 1
-        else times[0],
-        "p99": statistics.quantiles(times, n=100)[98]
-        if len(times) > 1
-        else times[0],
+        "p95": statistics.quantiles(times, n=20)[18] if len(times) > 1 else times[0],
+        "p99": statistics.quantiles(times, n=100)[98] if len(times) > 1 else times[0],
     }
 
 
@@ -224,9 +216,7 @@ async def measure_time(coro, iterations: int = 1) -> Dict[str, float]:
 class TestSearchPerformance:
     """Test search performance requirements (NFR1: <200ms)."""
 
-    async def test_endpoint_search_performance(
-        self, performance_db, large_dataset
-    ):
+    async def test_endpoint_search_performance(self, performance_db, large_dataset):
         """Test endpoint search meets <200ms requirement."""
         async with performance_db.get_session() as session:
             repo = EndpointRepository(session)
@@ -285,9 +275,7 @@ class TestSearchPerformance:
                     stats["p95"] < 250.0
                 ), f"P95 search too slow: {stats['p95']:.1f}ms > 250ms for '{description}'"
 
-    async def test_endpoint_search_large_results(
-        self, performance_db, large_dataset
-    ):
+    async def test_endpoint_search_large_results(self, performance_db, large_dataset):
         """Test search performance with large result sets."""
         async with performance_db.get_session() as session:
             repo = EndpointRepository(session)
@@ -311,9 +299,7 @@ class TestSearchPerformance:
                 stats["mean"] < 200.0
             ), f"Large result search too slow: {stats['mean']:.1f}ms"
 
-    async def test_schema_search_performance(
-        self, performance_db, large_dataset
-    ):
+    async def test_schema_search_performance(self, performance_db, large_dataset):
         """Test schema search performance."""
         async with performance_db.get_session() as session:
             repo = SchemaRepository(session)
@@ -332,9 +318,7 @@ class TestSearchPerformance:
                 description = scenario.pop("description")
 
                 stats = await measure_time(
-                    repo.search_schemas(
-                        query=query, api_id=large_dataset.id, limit=50
-                    ),
+                    repo.search_schemas(query=query, api_id=large_dataset.id, limit=50),
                     iterations=10,
                 )
 
@@ -363,9 +347,7 @@ class TestSchemaRetrievalPerformance:
 
             # Test retrieving schemas by ID
             for schema_id in schema_ids:
-                stats = await measure_time(
-                    repo.get_by_id(schema_id), iterations=5
-                )
+                stats = await measure_time(repo.get_by_id(schema_id), iterations=5)
 
                 # Schema retrieval should be <500ms (actually should be much faster)
                 assert (
@@ -375,9 +357,7 @@ class TestSchemaRetrievalPerformance:
                     stats["mean"] < 50.0
                 ), f"Schema retrieval unexpectedly slow: {stats['mean']:.1f}ms"
 
-    async def test_schema_with_dependencies(
-        self, performance_db, large_dataset
-    ):
+    async def test_schema_with_dependencies(self, performance_db, large_dataset):
         """Test schema retrieval with dependency resolution."""
         async with performance_db.get_session() as session:
             repo = SchemaRepository(session)
@@ -409,9 +389,7 @@ class TestSchemaRetrievalPerformance:
                 repo.get_schemas_by_api(large_dataset.id), iterations=5
             )
 
-            print(
-                f"Bulk schema retrieval (100 schemas): {stats['mean']:.1f}ms"
-            )
+            print(f"Bulk schema retrieval (100 schemas): {stats['mean']:.1f}ms")
 
             # Bulk retrieval should be reasonable
             assert (
@@ -466,15 +444,11 @@ class TestDatabasePerformance:
         print(f"Database health check: {stats['mean']:.1f}ms")
 
         # Health check should be fast
-        assert (
-            stats["mean"] < 100.0
-        ), f"Health check too slow: {stats['mean']:.1f}ms"
+        assert stats["mean"] < 100.0, f"Health check too slow: {stats['mean']:.1f}ms"
 
     async def test_migration_status_performance(self, performance_db):
         """Test migration status check performance."""
-        stats = await measure_time(
-            performance_db.get_migration_status(), iterations=5
-        )
+        stats = await measure_time(performance_db.get_migration_status(), iterations=5)
 
         print(f"Migration status check: {stats['mean']:.1f}ms")
 
@@ -488,9 +462,7 @@ class TestDatabasePerformance:
 class TestMemoryPerformance:
     """Test memory usage and efficiency."""
 
-    async def test_large_result_set_memory(
-        self, performance_db, large_dataset
-    ):
+    async def test_large_result_set_memory(self, performance_db, large_dataset):
         """Test memory usage with large result sets."""
         import os
 
@@ -517,16 +489,12 @@ class TestMemoryPerformance:
             )
 
             # Should not use excessive memory (less than 50MB for this dataset)
-            assert (
-                memory_used < 50.0
-            ), f"Excessive memory usage: {memory_used:.1f}MB"
+            assert memory_used < 50.0, f"Excessive memory usage: {memory_used:.1f}MB"
 
             # Clean up
             del large_results
 
-    async def test_connection_pooling_efficiency(
-        self, performance_db, large_dataset
-    ):
+    async def test_connection_pooling_efficiency(self, performance_db, large_dataset):
         """Test connection pool efficiency."""
 
         async def db_operation(i):
@@ -545,26 +513,20 @@ class TestMemoryPerformance:
         total_time = (end_time - start_time) * 1000
         avg_time = total_time / len(tasks)
 
-        print(
-            f"20 pooled operations: {total_time:.1f}ms total, {avg_time:.1f}ms avg"
-        )
+        print(f"20 pooled operations: {total_time:.1f}ms total, {avg_time:.1f}ms avg")
 
         # Connection pooling should be efficient
         assert (
             avg_time < 50.0
         ), f"Connection pooling inefficient: {avg_time:.1f}ms per operation"
-        assert len([r for r in results if r]) == len(
-            tasks
-        ), "Some operations failed"
+        assert len([r for r in results if r]) == len(tasks), "Some operations failed"
 
 
 @pytest.mark.performance
 class TestIndexPerformance:
     """Test database index performance."""
 
-    async def test_index_usage_verification(
-        self, performance_db, large_dataset
-    ):
+    async def test_index_usage_verification(self, performance_db, large_dataset):
         """Test that queries are using indexes efficiently."""
         # Test common query patterns that should use indexes
 
@@ -582,9 +544,7 @@ class TestIndexPerformance:
 
             # Query by method (should use ix_endpoints_method)
             stats = await measure_time(
-                repo.list(
-                    filters={"method": "GET", "api_id": large_dataset.id}
-                ),
+                repo.list(filters={"method": "GET", "api_id": large_dataset.id}),
                 iterations=5,
             )
             print(f"Endpoints by method: {stats['mean']:.1f}ms")
@@ -609,9 +569,7 @@ class TestIndexPerformance:
             print(f"FTS5 search: {stats['mean']:.1f}ms")
 
             # FTS5 should be very fast
-            assert (
-                stats["mean"] < 50.0
-            ), f"FTS5 search too slow: {stats['mean']:.1f}ms"
+            assert stats["mean"] < 50.0, f"FTS5 search too slow: {stats['mean']:.1f}ms"
 
 
 @pytest.mark.performance
@@ -682,9 +640,7 @@ class TestStressTests:
             final_memory = process.memory_info().rss / 1024 / 1024
             total_growth = final_memory - initial_memory
 
-            print(
-                f"Total memory growth after 100 operations: {total_growth:.1f}MB"
-            )
+            print(f"Total memory growth after 100 operations: {total_growth:.1f}MB")
 
             # Memory should not grow excessively
             assert (

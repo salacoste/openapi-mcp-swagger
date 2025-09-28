@@ -260,9 +260,7 @@ class ErrorHandler:
                     # Simple heuristic: escape quotes not at start/end of values
                     if '"' in line:
                         # This is a simplified fix - real implementation would be more complex
-                        fixed_line = re.sub(
-                            r'(?<!\\)"(?![\s,}\]])', r"\"", line
-                        )
+                        fixed_line = re.sub(r'(?<!\\)"(?![\s,}\]])', r"\"", line)
                         if fixed_line != line:
                             lines[i] = fixed_line
                 repaired = "\n".join(lines)
@@ -327,9 +325,7 @@ class ErrorHandler:
         return {
             "total_errors": len(self.errors),
             "total_warnings": len(self.warnings),
-            "error_types": list(
-                set(e.error_type for e in self.errors + self.warnings)
-            ),
+            "error_types": list(set(e.error_type for e in self.errors + self.warnings)),
             "has_critical_errors": any(not e.recoverable for e in self.errors),
             "errors": [self._serialize_error(e) for e in self.errors],
             "warnings": [self._serialize_error(e) for e in self.warnings],
@@ -393,15 +389,13 @@ class ErrorHandler:
         if section_path.startswith("paths."):
             return f"Path definitions should be objects with HTTP method keys (get, post, etc.)"
         elif section_path.startswith("components.schemas."):
-            return f"Schema definitions should be objects with OpenAPI schema properties"
-        else:
             return (
-                f"Convert {section_path} from {actual_type} to {expected_type}"
+                f"Schema definitions should be objects with OpenAPI schema properties"
             )
+        else:
+            return f"Convert {section_path} from {actual_type} to {expected_type}"
 
-    def _build_error_context(
-        self, error_msg: str, context: ErrorContext
-    ) -> str:
+    def _build_error_context(self, error_msg: str, context: ErrorContext) -> str:
         """Build detailed error context string.
 
         Args:

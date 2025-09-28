@@ -153,21 +153,15 @@ class TestResultFilter:
         assert len(filtered) == 2  # get_users and get_user
         assert all(result["http_method"] == "GET" for result in filtered)
 
-    def test_filter_by_multiple_methods(
-        self, result_filter, sample_raw_results
-    ):
+    def test_filter_by_multiple_methods(self, result_filter, sample_raw_results):
         """Test filtering by multiple HTTP methods."""
         filters = {"methods": ["GET", "POST"]}
         filtered = result_filter.apply_filters(sample_raw_results, filters)
 
         assert len(filtered) == 6  # All results
-        assert all(
-            result["http_method"] in ["GET", "POST"] for result in filtered
-        )
+        assert all(result["http_method"] in ["GET", "POST"] for result in filtered)
 
-    def test_filter_by_authentication_required(
-        self, result_filter, sample_raw_results
-    ):
+    def test_filter_by_authentication_required(self, result_filter, sample_raw_results):
         """Test filtering by authentication requirement."""
         # Filter for endpoints requiring authentication
         filters = {"authentication": {"required": True}}
@@ -188,17 +182,13 @@ class TestResultFilter:
         assert len(filtered) == 1
         assert filtered[0]["endpoint_id"] == "authenticate"
 
-    def test_filter_by_authentication_schemes(
-        self, result_filter, sample_raw_results
-    ):
+    def test_filter_by_authentication_schemes(self, result_filter, sample_raw_results):
         """Test filtering by specific authentication schemes."""
         filters = {"authentication": {"schemes": ["bearer"]}}
         filtered = result_filter.apply_filters(sample_raw_results, filtered)
 
         # Should include endpoints with bearer auth
-        bearer_results = [
-            r for r in filtered if "bearer" in r.get("security", {})
-        ]
+        bearer_results = [r for r in filtered if "bearer" in r.get("security", {})]
         assert len(bearer_results) >= 0
 
     def test_filter_by_tags(self, result_filter, sample_raw_results):
@@ -210,9 +200,7 @@ class TestResultFilter:
         assert len(filtered) >= 3
         assert all("users" in result.get("tags", "") for result in filtered)
 
-    def test_filter_exclude_deprecated(
-        self, result_filter, sample_raw_results
-    ):
+    def test_filter_exclude_deprecated(self, result_filter, sample_raw_results):
         """Test filtering to exclude deprecated endpoints."""
         filters = {"include_deprecated": False}
         filtered = result_filter.apply_filters(sample_raw_results, filters)
@@ -221,9 +209,7 @@ class TestResultFilter:
         assert len(filtered) == 5
         assert all(not result.get("deprecated", False) for result in filtered)
 
-    def test_filter_complex_combination(
-        self, result_filter, sample_raw_results
-    ):
+    def test_filter_complex_combination(self, result_filter, sample_raw_results):
         """Test complex filter combinations."""
         filters = {
             "methods": ["POST"],
@@ -243,9 +229,7 @@ class TestResultFilter:
         filtered = result_filter.apply_filters(sample_raw_results, {})
         assert len(filtered) == len(sample_raw_results)
 
-    def test_invalid_filters_graceful_handling(
-        self, result_filter, sample_raw_results
-    ):
+    def test_invalid_filters_graceful_handling(self, result_filter, sample_raw_results):
         """Test graceful handling of invalid filter values."""
         filters = {"methods": None, "invalid_filter": "invalid_value"}
         filtered = result_filter.apply_filters(sample_raw_results, filters)
@@ -407,9 +391,7 @@ class TestResultOrganizer:
         assert len(by_method["GET"]) == 1
         assert len(by_method["POST"]) == 2
 
-    def test_cluster_by_operation_type(
-        self, result_organizer, enhanced_results
-    ):
+    def test_cluster_by_operation_type(self, result_organizer, enhanced_results):
         """Test clustering results by operation type."""
         organization = result_organizer.organize_results(enhanced_results)
 
@@ -418,9 +400,7 @@ class TestResultOrganizer:
         assert "create" in by_operation
         assert "action" in by_operation
 
-    def test_cluster_by_auth_requirement(
-        self, result_organizer, enhanced_results
-    ):
+    def test_cluster_by_auth_requirement(self, result_organizer, enhanced_results):
         """Test clustering results by authentication requirements."""
         organization = result_organizer.organize_results(enhanced_results)
 
@@ -445,31 +425,21 @@ class TestMetadataEnhancer:
         return MetadataEnhancer(search_config)
 
     @pytest.mark.asyncio
-    async def test_enhance_with_metadata(
-        self, metadata_enhancer, sample_raw_results
-    ):
+    async def test_enhance_with_metadata(self, metadata_enhancer, sample_raw_results):
         """Test basic metadata enhancement."""
-        enhanced = await metadata_enhancer.enhance_with_metadata(
-            sample_raw_results[:2]
-        )
+        enhanced = await metadata_enhancer.enhance_with_metadata(sample_raw_results[:2])
 
         assert len(enhanced) == 2
-        assert all(
-            isinstance(result, EnhancedSearchResult) for result in enhanced
-        )
+        assert all(isinstance(result, EnhancedSearchResult) for result in enhanced)
         assert all(result.parameter_summary is not None for result in enhanced)
-        assert all(
-            result.authentication_info is not None for result in enhanced
-        )
+        assert all(result.authentication_info is not None for result in enhanced)
         assert all(result.response_info is not None for result in enhanced)
 
     @pytest.mark.asyncio
     async def test_parameter_analysis(self, metadata_enhancer):
         """Test parameter analysis functionality."""
         # Test string parameters
-        param_summary = metadata_enhancer._analyze_parameters(
-            "email,password,name"
-        )
+        param_summary = metadata_enhancer._analyze_parameters("email,password,name")
         assert param_summary.total_count == 3
         assert (
             param_summary.required_count == 3
@@ -483,9 +453,7 @@ class TestMetadataEnhancer:
     async def test_authentication_info_extraction(self, metadata_enhancer):
         """Test authentication information extraction."""
         # Test bearer authentication
-        auth_info = metadata_enhancer._extract_authentication_info(
-            {"bearer": []}
-        )
+        auth_info = metadata_enhancer._extract_authentication_info({"bearer": []})
         assert auth_info.required == True
         assert AuthenticationType.BEARER in auth_info.schemes
 
@@ -549,9 +517,7 @@ class TestMetadataEnhancer:
     async def test_operation_type_determination(self, metadata_enhancer):
         """Test operation type determination from method and path."""
         # Test CREATE operation
-        op_type = metadata_enhancer._determine_operation_type(
-            "POST", "/api/v1/users"
-        )
+        op_type = metadata_enhancer._determine_operation_type("POST", "/api/v1/users")
         assert op_type == OperationType.CREATE
 
         # Test READ operation
@@ -561,9 +527,7 @@ class TestMetadataEnhancer:
         assert op_type == OperationType.READ
 
         # Test LIST operation
-        op_type = metadata_enhancer._determine_operation_type(
-            "GET", "/api/v1/users"
-        )
+        op_type = metadata_enhancer._determine_operation_type("GET", "/api/v1/users")
         assert op_type == OperationType.LIST
 
         # Test UPDATE operation
@@ -579,9 +543,7 @@ class TestMetadataEnhancer:
         assert op_type == OperationType.DELETE
 
         # Test UPLOAD operation
-        op_type = metadata_enhancer._determine_operation_type(
-            "POST", "/api/v1/upload"
-        )
+        op_type = metadata_enhancer._determine_operation_type("POST", "/api/v1/upload")
         assert op_type == OperationType.UPLOAD
 
     @pytest.mark.asyncio
@@ -589,9 +551,7 @@ class TestMetadataEnhancer:
         """Test graceful error handling with fallback results."""
         # Test with malformed data
         malformed_results = [{"invalid": "data"}]
-        enhanced = await metadata_enhancer.enhance_with_metadata(
-            malformed_results
-        )
+        enhanced = await metadata_enhancer.enhance_with_metadata(malformed_results)
 
         assert len(enhanced) == 1
         assert isinstance(enhanced[0], EnhancedSearchResult)
@@ -609,15 +569,9 @@ class TestResultCache:
     @pytest.mark.asyncio
     async def test_cache_key_generation(self, result_cache):
         """Test cache key generation."""
-        key1 = result_cache.get_cache_key(
-            "query", {"filter": "value"}, {"page": 1}
-        )
-        key2 = result_cache.get_cache_key(
-            "query", {"filter": "value"}, {"page": 1}
-        )
-        key3 = result_cache.get_cache_key(
-            "different", {"filter": "value"}, {"page": 1}
-        )
+        key1 = result_cache.get_cache_key("query", {"filter": "value"}, {"page": 1})
+        key2 = result_cache.get_cache_key("query", {"filter": "value"}, {"page": 1})
+        key3 = result_cache.get_cache_key("different", {"filter": "value"}, {"page": 1})
 
         assert key1 == key2  # Same inputs should generate same key
         assert key1 != key3  # Different inputs should generate different keys
@@ -722,9 +676,7 @@ class TestResultProcessor:
         assert processed["pagination"]["per_page"] == 3
 
     @pytest.mark.asyncio
-    async def test_caching_integration(
-        self, result_processor, sample_raw_results
-    ):
+    async def test_caching_integration(self, result_processor, sample_raw_results):
         """Test caching integration in processing pipeline."""
         filters = {"methods": ["GET"]}
         pagination = {"page": 1, "per_page": 10}
@@ -796,9 +748,7 @@ class TestResultProcessor:
         assert processed["pagination"]["has_previous"] == True
 
     @pytest.mark.asyncio
-    async def test_performance_requirements(
-        self, result_processor, sample_raw_results
-    ):
+    async def test_performance_requirements(self, result_processor, sample_raw_results):
         """Test that processing meets <200ms performance requirement."""
         start_time = time.time()
 
@@ -828,9 +778,7 @@ class TestResultProcessor:
         assert "error" in processed or len(processed["results"]) >= 0
 
     @pytest.mark.asyncio
-    async def test_filter_combinations(
-        self, result_processor, sample_raw_results
-    ):
+    async def test_filter_combinations(self, result_processor, sample_raw_results):
         """Test various filter combinations."""
         test_cases = [
             {"methods": ["GET"]},
@@ -880,9 +828,7 @@ class TestResultProcessor:
             assert isinstance(organization[category], dict)
 
     @pytest.mark.asyncio
-    async def test_metadata_accuracy(
-        self, result_processor, sample_raw_results
-    ):
+    async def test_metadata_accuracy(self, result_processor, sample_raw_results):
         """Test accuracy of enhanced metadata."""
         processed = await result_processor.process_search_results(
             sample_raw_results, "test", {}, {"page": 1, "per_page": 10}

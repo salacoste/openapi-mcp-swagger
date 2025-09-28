@@ -79,9 +79,7 @@ class TestEnhancedSearchEndpoints:
         product_endpoint.path = "/api/v1/products/search"
         product_endpoint.method = "GET"
         product_endpoint.summary = "Search products"
-        product_endpoint.description = (
-            "Search and filter products by various criteria"
-        )
+        product_endpoint.description = "Search and filter products by various criteria"
         product_endpoint.operation_id = "searchProducts"
         product_endpoint.tags = ["products", "search"]
         product_endpoint.parameters = [
@@ -238,9 +236,7 @@ class TestEnhancedSearchEndpoints:
     async def test_http_method_filtering(self, server):
         """Test HTTP method filtering functionality."""
         # Filter by single method
-        result = await server._search_endpoints(
-            keywords="api", httpMethods=["GET"]
-        )
+        result = await server._search_endpoints(keywords="api", httpMethods=["GET"])
         assert "error" not in result
         for endpoint in result["results"]:
             assert endpoint["method"] == "GET"
@@ -257,9 +253,7 @@ class TestEnhancedSearchEndpoints:
     async def test_pagination_functionality(self, server):
         """Test pagination functionality."""
         # Test first page
-        result = await server._search_endpoints(
-            keywords="api", page=1, perPage=2
-        )
+        result = await server._search_endpoints(keywords="api", page=1, perPage=2)
         assert "error" not in result
         assert "pagination" in result
         assert result["pagination"]["page"] == 1
@@ -355,14 +349,10 @@ class TestEnhancedSearchEndpoints:
         if result["results"]:
             # Check that authentication info is extracted when present
             endpoints_with_auth = [
-                ep
-                for ep in result["results"]
-                if ep["authentication"] is not None
+                ep for ep in result["results"] if ep["authentication"] is not None
             ]
             # Should have at least one endpoint with auth info
-            assert (
-                len(endpoints_with_auth) >= 0
-            )  # May be 0 if no auth configured
+            assert len(endpoints_with_auth) >= 0  # May be 0 if no auth configured
 
     @pytest.mark.asyncio
     async def test_edge_cases(self, server):

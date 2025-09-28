@@ -82,9 +82,7 @@ class TestEnhancedGetSchema:
             "id": {"type": "string"},
             "title": {"type": "string"},
             "content": {"type": "string"},
-            "author": {
-                "$ref": "#/components/schemas/User"
-            },  # Circular reference!
+            "author": {"$ref": "#/components/schemas/User"},  # Circular reference!
         }
         post_schema.required = ["id", "title", "author"]
         schemas["Post"] = post_schema
@@ -168,9 +166,7 @@ class TestEnhancedGetSchema:
         assert "required" in result["error"].lower()
 
     @pytest.mark.asyncio
-    async def test_parameter_validation_component_name_max_length(
-        self, server
-    ):
+    async def test_parameter_validation_component_name_max_length(self, server):
         """Test componentName parameter max length validation."""
         long_name = "a" * 256  # Exceeds 255 char limit
         result = await server._get_schema(componentName=long_name)
@@ -182,10 +178,7 @@ class TestEnhancedGetSchema:
         """Test maxDepth parameter validation."""
         # Valid range
         result = await server._get_schema(componentName="User", maxDepth=5)
-        assert (
-            "error" not in result
-            or "not properly initialized" in result["error"]
-        )
+        assert "error" not in result or "not properly initialized" in result["error"]
 
         # Invalid - too small
         result = await server._get_schema(componentName="User", maxDepth=0)
@@ -200,19 +193,13 @@ class TestEnhancedGetSchema:
     def test_component_name_normalization(self, server):
         """Test component name normalization for various formats."""
         # Full OpenAPI 3.0 path
-        assert (
-            server._normalize_component_name("#/components/schemas/User")
-            == "User"
-        )
+        assert server._normalize_component_name("#/components/schemas/User") == "User"
 
         # OpenAPI 2.0 definitions path
         assert server._normalize_component_name("#/definitions/User") == "User"
 
         # Relative paths
-        assert (
-            server._normalize_component_name("components/schemas/User")
-            == "User"
-        )
+        assert server._normalize_component_name("components/schemas/User") == "User"
         assert server._normalize_component_name("definitions/User") == "User"
 
         # Simple names
@@ -221,9 +208,7 @@ class TestEnhancedGetSchema:
 
         # Complex names
         assert (
-            server._normalize_component_name(
-                "#/components/schemas/User.Profile"
-            )
+            server._normalize_component_name("#/components/schemas/User.Profile")
             == "User.Profile"
         )
 
@@ -287,10 +272,7 @@ class TestEnhancedGetSchema:
         # Check that dependencies were cached
         dependency_names = [dep["name"] for dep in dependencies]
         assert "User" in dependency_names
-        assert (
-            "UserProfile" in dependency_names
-            or "UserSettings" in dependency_names
-        )
+        assert "UserProfile" in dependency_names or "UserSettings" in dependency_names
 
     @pytest.mark.asyncio
     async def test_circular_reference_detection(self, server):
@@ -341,9 +323,7 @@ class TestEnhancedGetSchema:
     async def test_examples_inclusion(self, server):
         """Test that examples are included when requested."""
         # With examples
-        result = await server._get_schema(
-            componentName="User", includeExamples=True
-        )
+        result = await server._get_schema(componentName="User", includeExamples=True)
 
         assert "error" not in result
         schema = result["schema"]
@@ -351,9 +331,7 @@ class TestEnhancedGetSchema:
             assert schema["example"] is not None
 
         # Without examples
-        result = await server._get_schema(
-            componentName="User", includeExamples=False
-        )
+        result = await server._get_schema(componentName="User", includeExamples=False)
 
         assert "error" not in result
         # Implementation should respect the flag
@@ -361,9 +339,7 @@ class TestEnhancedGetSchema:
     @pytest.mark.asyncio
     async def test_extensions_inclusion(self, server):
         """Test that OpenAPI extensions are included when requested."""
-        result = await server._get_schema(
-            componentName="User", includeExtensions=True
-        )
+        result = await server._get_schema(componentName="User", includeExtensions=True)
 
         assert "error" not in result
         schema = result["schema"]

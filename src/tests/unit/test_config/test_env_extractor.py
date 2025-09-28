@@ -73,9 +73,7 @@ class TestEnvironmentConfigExtractor:
             assert isinstance(config["server"]["port"], int)
             assert isinstance(config["server"]["max_connections"], int)
             assert isinstance(config["database"]["pool_size"], int)
-            assert isinstance(
-                config["search"]["performance"]["cache_size_mb"], int
-            )
+            assert isinstance(config["search"]["performance"]["cache_size_mb"], int)
 
     def test_type_conversion_floats(self, extractor):
         """Test type conversion for float values."""
@@ -87,12 +85,8 @@ class TestEnvironmentConfigExtractor:
         with patch.dict(os.environ, env_vars):
             config = extractor.extract_environment_config()
 
-            assert isinstance(
-                config["search"]["field_weights"]["endpoint_path"], float
-            )
-            assert isinstance(
-                config["search"]["field_weights"]["description"], float
-            )
+            assert isinstance(config["search"]["field_weights"]["endpoint_path"], float)
+            assert isinstance(config["search"]["field_weights"]["description"], float)
 
     def test_type_conversion_booleans(self, extractor):
         """Test type conversion for boolean values."""
@@ -109,16 +103,12 @@ class TestEnvironmentConfigExtractor:
         ]
 
         for true_val in true_values:
-            with patch.dict(
-                os.environ, {"SWAGGER_MCP_SERVER_SSL_ENABLED": true_val}
-            ):
+            with patch.dict(os.environ, {"SWAGGER_MCP_SERVER_SSL_ENABLED": true_val}):
                 config = extractor.extract_environment_config()
                 assert config["server"]["ssl"]["enabled"] is True
 
         for false_val in false_values:
-            with patch.dict(
-                os.environ, {"SWAGGER_MCP_SERVER_SSL_ENABLED": false_val}
-            ):
+            with patch.dict(os.environ, {"SWAGGER_MCP_SERVER_SSL_ENABLED": false_val}):
                 config = extractor.extract_environment_config()
                 assert config["server"]["ssl"]["enabled"] is False
 
@@ -127,9 +117,7 @@ class TestEnvironmentConfigExtractor:
         with patch.dict(os.environ, {"SWAGGER_MCP_SERVER_PORT": "invalid"}):
             config = extractor.extract_environment_config()
             # Should skip invalid values
-            assert "server" not in config or "port" not in config.get(
-                "server", {}
-            )
+            assert "server" not in config or "port" not in config.get("server", {})
 
     def test_type_conversion_invalid_float(self, extractor):
         """Test handling of invalid float values."""
@@ -155,38 +143,22 @@ class TestEnvironmentConfigExtractor:
         }
 
         # Test simple nested access
-        assert (
-            extractor.get_nested_config_value(config, "server.host")
-            == "localhost"
-        )
+        assert extractor.get_nested_config_value(config, "server.host") == "localhost"
         assert extractor.get_nested_config_value(config, "server.port") == 8080
-        assert (
-            extractor.get_nested_config_value(config, "database.path")
-            == "./test.db"
-        )
+        assert extractor.get_nested_config_value(config, "database.path") == "./test.db"
 
         # Test deep nested access
-        assert (
-            extractor.get_nested_config_value(config, "server.ssl.enabled")
-            is True
-        )
+        assert extractor.get_nested_config_value(config, "server.ssl.enabled") is True
         assert (
             extractor.get_nested_config_value(config, "server.ssl.cert_file")
             == "/path/to/cert.pem"
         )
 
         # Test non-existent keys
+        assert extractor.get_nested_config_value(config, "nonexistent.key") is None
+        assert extractor.get_nested_config_value(config, "server.nonexistent") is None
         assert (
-            extractor.get_nested_config_value(config, "nonexistent.key")
-            is None
-        )
-        assert (
-            extractor.get_nested_config_value(config, "server.nonexistent")
-            is None
-        )
-        assert (
-            extractor.get_nested_config_value(config, "server.ssl.nonexistent")
-            is None
+            extractor.get_nested_config_value(config, "server.ssl.nonexistent") is None
         )
 
     def test_set_nested_config(self, extractor):
@@ -204,9 +176,7 @@ class TestEnvironmentConfigExtractor:
         # Test setting value in existing structure
         extractor.set_nested_config(config, "server.port", 8080)
         assert config["server"]["port"] == 8080
-        assert (
-            config["server"]["host"] == "localhost"
-        )  # Should preserve existing
+        assert config["server"]["host"] == "localhost"  # Should preserve existing
 
         # Test creating new branch
         extractor.set_nested_config(config, "database.path", "./test.db")
@@ -313,9 +283,7 @@ class TestEnvironmentConfigExtractor:
         with patch.dict(os.environ, invalid_env):
             config = extractor.extract_environment_config()
             # Invalid values should be skipped
-            assert "server" not in config or "port" not in config.get(
-                "server", {}
-            )
+            assert "server" not in config or "port" not in config.get("server", {})
             assert "search" not in config or "field_weights" not in config.get(
                 "search", {}
             )

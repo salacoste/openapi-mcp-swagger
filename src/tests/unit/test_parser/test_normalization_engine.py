@@ -53,9 +53,7 @@ class TestEndpointNormalizer:
                         "200": {
                             "description": "Successful response",
                             "content": {
-                                "application/json": {
-                                    "schema": {"type": "array"}
-                                }
+                                "application/json": {"schema": {"type": "array"}}
                             },
                         }
                     },
@@ -63,9 +61,7 @@ class TestEndpointNormalizer:
             }
         }
 
-        endpoints, errors, warnings = self.normalizer.normalize_endpoints(
-            paths_data
-        )
+        endpoints, errors, warnings = self.normalizer.normalize_endpoints(paths_data)
 
         assert len(endpoints) == 1
         assert len(errors) == 0
@@ -100,9 +96,7 @@ class TestEndpointNormalizer:
             }
         }
 
-        endpoints, errors, warnings = self.normalizer.normalize_endpoints(
-            paths_data
-        )
+        endpoints, errors, warnings = self.normalizer.normalize_endpoints(paths_data)
 
         assert len(endpoints) == 1
         assert len(errors) == 0
@@ -133,9 +127,7 @@ class TestEndpointNormalizer:
             }
         }
 
-        endpoints, errors, warnings = self.normalizer.normalize_endpoints(
-            paths_data
-        )
+        endpoints, errors, warnings = self.normalizer.normalize_endpoints(paths_data)
 
         assert len(endpoints) == 1
         endpoint = endpoints[0]
@@ -227,9 +219,7 @@ class TestSchemaProcessor:
             }
         }
 
-        schemas, errors, warnings = self.processor.process_schemas(
-            components_data
-        )
+        schemas, errors, warnings = self.processor.process_schemas(components_data)
 
         assert len(schemas) == 1
         assert len(errors) == 0
@@ -261,9 +251,7 @@ class TestSchemaProcessor:
             }
         }
 
-        schemas, errors, warnings = self.processor.process_schemas(
-            components_data
-        )
+        schemas, errors, warnings = self.processor.process_schemas(components_data)
 
         assert len(schemas) == 2
         assert len(errors) == 0
@@ -289,9 +277,7 @@ class TestSchemaProcessor:
             }
         }
 
-        schemas, errors, warnings = self.processor.process_schemas(
-            components_data
-        )
+        schemas, errors, warnings = self.processor.process_schemas(components_data)
 
         # Should handle self-reference without error
         assert len(schemas) == 1
@@ -391,9 +377,7 @@ class TestSecurityMapper:
     def test_validate_security_consistency(self):
         """Test security consistency validation."""
         schemes = {
-            "bearerAuth": Mock(
-                type=SecuritySchemeType.HTTP, oauth2_flows=None
-            ),
+            "bearerAuth": Mock(type=SecuritySchemeType.HTTP, oauth2_flows=None),
             "oauth2": Mock(
                 type=SecuritySchemeType.OAUTH2,
                 oauth2_flows={
@@ -407,9 +391,7 @@ class TestSecurityMapper:
             [Mock(scheme_id="nonexistent", scopes=[])],  # Invalid reference
         ]
 
-        errors = self.mapper.validate_security_consistency(
-            schemes, requirements
-        )
+        errors = self.mapper.validate_security_consistency(schemes, requirements)
         assert len(errors) == 1
         assert "nonexistent" in errors[0]
 
@@ -529,9 +511,7 @@ class TestConsistencyValidator:
             ),
         ]
 
-        errors, warnings = self.validator.validate_path_parameter_consistency(
-            endpoints
-        )
+        errors, warnings = self.validator.validate_path_parameter_consistency(endpoints)
         assert len(errors) >= 1
 
     def test_generate_consistency_report(self):
@@ -588,9 +568,7 @@ class TestSearchOptimizer:
             ],
             request_body=Mock(content={"application/json": {}}),
             responses={
-                "201": Mock(
-                    description="Created", content={"application/json": {}}
-                )
+                "201": Mock(description="Created", content={"application/json": {}})
             },
             deprecated=False,
         )
@@ -634,9 +612,7 @@ class TestSearchOptimizer:
         tokens = self.optimizer._tokenize_content(content)
 
         assert "create" in tokens
-        assert (
-            "new" in tokens
-        )  # "new" is not a stop word in this implementation
+        assert "new" in tokens  # "new" is not a stop word in this implementation
         assert "user" in tokens
         assert "email" in tokens
         assert "example" in tokens
@@ -804,9 +780,7 @@ class TestIntegrationTests:
                                 "description": "Success",
                                 "content": {
                                     "application/json": {
-                                        "schema": {
-                                            "$ref": "#/components/schemas/User"
-                                        }
+                                        "schema": {"$ref": "#/components/schemas/User"}
                                     }
                                 },
                             },
@@ -867,9 +841,7 @@ class TestIntegrationTests:
             security_schemes,
             security_errors,
             security_warnings,
-        ) = self.security_mapper.normalize_security_schemes(
-            openapi_data["components"]
-        )
+        ) = self.security_mapper.normalize_security_schemes(openapi_data["components"])
 
         assert len(security_schemes) == 1
         assert len(security_errors) == 0
@@ -897,12 +869,8 @@ class TestIntegrationTests:
         assert len(search_index.vocabulary) > 0
 
         # Step 6: Generate statistics
-        endpoint_stats = self.endpoint_normalizer.get_endpoint_statistics(
-            endpoints
-        )
-        search_stats = self.search_optimizer.get_search_statistics(
-            search_index
-        )
+        endpoint_stats = self.endpoint_normalizer.get_endpoint_statistics(endpoints)
+        search_stats = self.search_optimizer.get_search_statistics(search_index)
 
         assert endpoint_stats["total_endpoints"] == 2
         assert endpoint_stats["methods"]["get"] == 2
@@ -942,9 +910,7 @@ class TestIntegrationTests:
 
         # Test search optimization performance
         start_time = time.time()
-        search_index = self.search_optimizer.optimize_for_search(
-            endpoints, {}, {}
-        )
+        search_index = self.search_optimizer.optimize_for_search(endpoints, {}, {})
         end_time = time.time()
         optimization_time = end_time - start_time
 

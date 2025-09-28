@@ -195,9 +195,7 @@ class TestDatabaseManager:
         assert result[0][0] == 1
 
         # Test with parameters
-        result = await db_manager.execute_raw_sql(
-            "SELECT ? as value", ("test_param",)
-        )
+        result = await db_manager.execute_raw_sql("SELECT ? as value", ("test_param",))
         assert result[0][0] == "test_param"
 
     async def test_database_info(self, temp_db):
@@ -243,9 +241,7 @@ class TestRepositories:
             assert retrieved_api.title == "Test API"
 
             # Test get by title and version
-            by_title_version = await repo.get_by_title_version(
-                "Test API", "1.0.0"
-            )
+            by_title_version = await repo.get_by_title_version("Test API", "1.0.0")
             assert by_title_version is not None
             assert by_title_version.id == created_api.id
 
@@ -315,9 +311,7 @@ class TestRepositories:
             assert by_tags[0].id == created_endpoint.id
 
             # Test get methods for path
-            methods = await endpoint_repo.get_methods_for_path(
-                "/users/{id}", api.id
-            )
+            methods = await endpoint_repo.get_methods_for_path("/users/{id}", api.id)
             assert "get" in methods
 
             # Test statistics
@@ -327,9 +321,7 @@ class TestRepositories:
 
             await session.commit()
 
-    async def test_schema_repository(
-        self, temp_db, sample_api_metadata, sample_schema
-    ):
+    async def test_schema_repository(self, temp_db, sample_api_metadata, sample_schema):
         """Test SchemaRepository operations."""
         async with temp_db.get_session() as session:
             metadata_repo = MetadataRepository(session)
@@ -362,9 +354,7 @@ class TestRepositories:
             assert by_type[0].id == created_schema.id
 
             # Test find schemas with property
-            with_property = await schema_repo.find_schemas_with_property(
-                "name", api.id
-            )
+            with_property = await schema_repo.find_schemas_with_property("name", api.id)
             assert len(with_property) == 1
             assert with_property[0].id == created_schema.id
 
@@ -471,15 +461,11 @@ class TestMigrationSystem:
         await migration_manager.initialize_migration_system()
 
         # Test dry run first
-        applied_versions = await migration_manager.migrate_to_latest(
-            dry_run=True
-        )
+        applied_versions = await migration_manager.migrate_to_latest(dry_run=True)
         assert len(applied_versions) >= 0
 
         # Test actual migration
-        applied_versions = await migration_manager.migrate_to_latest(
-            dry_run=False
-        )
+        applied_versions = await migration_manager.migrate_to_latest(dry_run=False)
         assert len(applied_versions) >= 0
 
         # Check status after migration
@@ -621,9 +607,7 @@ class TestBackupSystem:
             backup_paths.append(backup_path)
 
         # Test dry run cleanup (keep only 2)
-        deleted = await backup_manager.cleanup_old_backups(
-            keep_count=2, dry_run=True
-        )
+        deleted = await backup_manager.cleanup_old_backups(keep_count=2, dry_run=True)
         assert len(deleted) >= 3
 
         # Verify files still exist
@@ -631,9 +615,7 @@ class TestBackupSystem:
             assert os.path.exists(backup_path)
 
         # Test actual cleanup
-        deleted = await backup_manager.cleanup_old_backups(
-            keep_count=2, dry_run=False
-        )
+        deleted = await backup_manager.cleanup_old_backups(keep_count=2, dry_run=False)
         assert len(deleted) >= 3
 
         # Verify some files were deleted
@@ -905,18 +887,14 @@ class TestPerformanceBenchmarks:
             # Test search query performance
             start_time = time.time()
             results = await endpoint_repo.search_endpoints("resource")
-            query_time = (
-                time.time() - start_time
-            ) * 1000  # Convert to milliseconds
+            query_time = (time.time() - start_time) * 1000  # Convert to milliseconds
 
             assert len(results) > 0
             assert query_time < 200  # Must be under 200ms
 
             # Test individual lookups
             start_time = time.time()
-            endpoint = await endpoint_repo.get_by_operation_id(
-                "getResource0", api.id
-            )
+            endpoint = await endpoint_repo.get_by_operation_id("getResource0", api.id)
             lookup_time = (time.time() - start_time) * 1000
 
             assert endpoint is not None

@@ -190,9 +190,7 @@ class TestServerRegistry:
         instance = await self.registry.register_server(server_info)
 
         # Update status
-        result = await self.registry.update_server_status(
-            instance.id, "running"
-        )
+        result = await self.registry.update_server_status(instance.id, "running")
         assert result is True
 
         # Verify status was updated
@@ -200,9 +198,7 @@ class TestServerRegistry:
         assert retrieved.status == "running"
 
         # Test updating non-existent server
-        result = await self.registry.update_server_status(
-            "non-existent", "running"
-        )
+        result = await self.registry.update_server_status("non-existent", "running")
         assert result is False
 
     @pytest.mark.asyncio

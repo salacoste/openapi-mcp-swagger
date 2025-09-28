@@ -175,9 +175,7 @@ class SystemCompatibilityChecker:
                 "message": "Could not check memory usage",
             }
 
-    async def check_network_connectivity(
-        self, timeout: int = 5
-    ) -> Dict[str, Any]:
+    async def check_network_connectivity(self, timeout: int = 5) -> Dict[str, Any]:
         """Check basic network connectivity (optional for offline use)."""
         try:
             async with aiohttp.ClientSession(
@@ -223,9 +221,7 @@ class SystemCompatibilityChecker:
             test_dir.mkdir(parents=True, exist_ok=True)
             test_dir.rmdir()
         except PermissionError:
-            permission_issues.append(
-                "Cannot create directories in home folder"
-            )
+            permission_issues.append("Cannot create directories in home folder")
 
         # Check if we can create files
         try:
@@ -274,9 +270,7 @@ class SystemCompatibilityChecker:
         for module, description in core_modules.items():
             try:
                 __import__(module)
-                available.append(
-                    {"module": module, "description": description}
-                )
+                available.append({"module": module, "description": description})
             except ImportError:
                 missing.append({"module": module, "description": description})
 
@@ -284,13 +278,9 @@ class SystemCompatibilityChecker:
         for module, description in optional_modules.items():
             try:
                 __import__(module)
-                available.append(
-                    {"module": module, "description": description}
-                )
+                available.append({"module": module, "description": description})
             except ImportError:
-                optional_missing.append(
-                    {"module": module, "description": description}
-                )
+                optional_missing.append({"module": module, "description": description})
 
         return {
             "available": available,
@@ -347,9 +337,7 @@ class SystemCompatibilityChecker:
             },
             "resources": {
                 "cpu_count": psutil.cpu_count(),
-                "memory_gb": round(
-                    psutil.virtual_memory().total / (1024**3), 2
-                ),
+                "memory_gb": round(psutil.virtual_memory().total / (1024**3), 2),
                 "disk_free_gb": round(
                     shutil.disk_usage(Path.home()).free / (1024**3), 2
                 ),

@@ -69,9 +69,7 @@ class TestConfigurationManager:
         assert config["logging"]["level"] == "INFO"
 
     @pytest.mark.asyncio
-    async def test_load_configuration_from_file(
-        self, config_manager, sample_config
-    ):
+    async def test_load_configuration_from_file(self, config_manager, sample_config):
         """Test loading configuration from file."""
         # Save sample config to file
         config_file = config_manager.config_file
@@ -210,9 +208,7 @@ class TestConfigurationManager:
 
         # Test invalid logging level
         with pytest.raises(ConfigurationError) as exc_info:
-            await config_manager.set_configuration_value(
-                "logging.level", "INVALID"
-            )
+            await config_manager.set_configuration_value("logging.level", "INVALID")
         assert (
             "invalid log level" in str(exc_info.value).lower()
             or "invalid" in str(exc_info.value).lower()
@@ -222,9 +218,7 @@ class TestConfigurationManager:
     async def test_validate_ssl_configuration(self, config_manager):
         """Test SSL configuration validation."""
         # Enable SSL without certificates
-        await config_manager.set_configuration_value(
-            "server.ssl.enabled", True
-        )
+        await config_manager.set_configuration_value("server.ssl.enabled", True)
 
         (
             is_valid,
@@ -278,9 +272,7 @@ class TestConfigurationManager:
         assert len(backup_files) >= 1
 
     @pytest.mark.asyncio
-    async def test_configuration_file_formats(
-        self, config_manager, sample_config
-    ):
+    async def test_configuration_file_formats(self, config_manager, sample_config):
         """Test JSON and YAML configuration file formats."""
         # Test YAML format
         yaml_file = config_manager.config_dir / "config.yaml"
@@ -298,15 +290,11 @@ class TestConfigurationManager:
     async def test_nested_configuration_access(self, config_manager):
         """Test accessing nested configuration values."""
         # Test deep nesting
-        ssl_enabled = await config_manager.get_configuration_value(
-            "server.ssl.enabled"
-        )
+        ssl_enabled = await config_manager.get_configuration_value("server.ssl.enabled")
         assert ssl_enabled is False
 
         # Test setting deep nested values
-        await config_manager.set_configuration_value(
-            "features.metrics.enabled", True
-        )
+        await config_manager.set_configuration_value("features.metrics.enabled", True)
         metrics_enabled = await config_manager.get_configuration_value(
             "features.metrics.enabled"
         )
@@ -407,13 +395,9 @@ async def test_configuration_integration():
         config = await manager.load_configuration()
         assert config["server"]["port"] == 9000
         assert config["logging"]["level"] == "DEBUG"
-        assert (
-            config["server"]["host"] == "localhost"
-        )  # Development template value
+        assert config["server"]["host"] == "localhost"  # Development template value
 
         # Test environment override
-        with patch.dict(
-            os.environ, {"SWAGGER_MCP_SERVER_HOST": "test.example.com"}
-        ):
+        with patch.dict(os.environ, {"SWAGGER_MCP_SERVER_HOST": "test.example.com"}):
             config_with_env = await manager.load_configuration()
             assert config_with_env["server"]["host"] == "test.example.com"

@@ -348,9 +348,7 @@ class OpenAPIValidator:
                 )
             )
 
-    async def _validate_info_object(
-        self, info: Any, result: ValidationResult
-    ) -> None:
+    async def _validate_info_object(self, info: Any, result: ValidationResult) -> None:
         """Validate info object structure.
 
         Args:

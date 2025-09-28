@@ -22,9 +22,7 @@ class TestPipelinePerformance:
         """Path to the test Swagger file."""
         project_root = Path(__file__).parent.parent.parent.parent
         swagger_file = project_root / "swagger-openapi-data" / "swagger.json"
-        assert (
-            swagger_file.exists()
-        ), f"Test swagger file not found: {swagger_file}"
+        assert swagger_file.exists(), f"Test swagger file not found: {swagger_file}"
         return str(swagger_file)
 
     @pytest.fixture
@@ -80,9 +78,7 @@ class TestPipelinePerformance:
         )
 
     @pytest.mark.asyncio
-    async def test_pipeline_memory_efficiency(
-        self, test_swagger_file, temp_db_config
-    ):
+    async def test_pipeline_memory_efficiency(self, test_swagger_file, temp_db_config):
         """Test that pipeline processes large files without excessive memory usage."""
         pipeline = PipelineFactory.create_high_performance_pipeline()
         pipeline.db_config = temp_db_config
@@ -123,9 +119,7 @@ class TestPipelinePerformance:
         file_paths = [test_swagger_file] * 3
 
         start_time = time.time()
-        batch_result = await pipeline.process_batch(
-            file_paths, max_concurrent=2
-        )
+        batch_result = await pipeline.process_batch(file_paths, max_concurrent=2)
         batch_time = time.time() - start_time
 
         # Verify all files processed successfully
@@ -193,9 +187,7 @@ if __name__ == "__main__":
                 duration = time.time() - start
 
                 if result.success:
-                    print(
-                        f"✅ SUCCESS: Processed in {duration:.2f}s (target: <60s)"
-                    )
+                    print(f"✅ SUCCESS: Processed in {duration:.2f}s (target: <60s)")
                     print(
                         f"📊 {result.metrics.endpoints_processed} endpoints, {result.metrics.schemas_processed} schemas"
                     )

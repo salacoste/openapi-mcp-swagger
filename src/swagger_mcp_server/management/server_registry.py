@@ -57,9 +57,7 @@ class ServerRegistry:
         Args:
             registry_dir: Directory for registry files (default: ~/.swagger-mcp-server)
         """
-        self.registry_dir = registry_dir or (
-            Path.home() / ".swagger-mcp-server"
-        )
+        self.registry_dir = registry_dir or (Path.home() / ".swagger-mcp-server")
         self.registry_file = self.registry_dir / "servers.json"
         self.lock_file = self.registry_dir / "registry.lock"
 
@@ -70,9 +68,7 @@ class ServerRegistry:
         if not self.registry_file.exists():
             self._save_registry({})
 
-    async def register_server(
-        self, server_info: Dict[str, Any]
-    ) -> ServerInstance:
+    async def register_server(self, server_info: Dict[str, Any]) -> ServerInstance:
         """Register a new server instance.
 
         Args:
@@ -86,9 +82,7 @@ class ServerRegistry:
 
             # Generate unique server ID
             timestamp = int(time.time())
-            server_id = (
-                f"{server_info['name']}-{server_info['port']}-{timestamp}"
-            )
+            server_id = f"{server_info['name']}-{server_info['port']}-{timestamp}"
 
             # Create server instance
             instance = ServerInstance(

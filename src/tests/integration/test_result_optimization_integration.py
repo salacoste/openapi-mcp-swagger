@@ -286,9 +286,7 @@ async def mock_search_engine(search_config, extended_sample_endpoints):
         # Normalize scores
         if matches:
             max_score = matches[0][1]
-            matches = [
-                (endpoint, score / max_score) for endpoint, score in matches
-            ]
+            matches = [(endpoint, score / max_score) for endpoint, score in matches]
 
         # Paginate
         start = (page - 1) * per_page
@@ -404,9 +402,7 @@ class TestAdvancedFiltering:
 
         assert response["summary"]["filtered_results"] > 0
         for result in response["results"]:
-            assert any(
-                "authentication" in tag for tag in result.get("tags", [])
-            )
+            assert any("authentication" in tag for tag in result.get("tags", []))
 
     @pytest.mark.asyncio
     async def test_deprecated_filtering(self, mock_search_engine):
@@ -464,9 +460,7 @@ class TestResultOrganization:
     @pytest.mark.asyncio
     async def test_organization_by_resource(self, mock_search_engine):
         """Test result organization by resource groups."""
-        response = await mock_search_engine.search_advanced(
-            "api", page=1, per_page=20
-        )
+        response = await mock_search_engine.search_advanced("api", page=1, per_page=20)
 
         organization = response["organization"]
         assert "by_resource" in organization
@@ -490,9 +484,7 @@ class TestResultOrganization:
 
         # Should have different complexity levels
         complexity_levels = ["simple", "moderate", "complex"]
-        found_levels = [
-            level for level in complexity_levels if level in by_complexity
-        ]
+        found_levels = [level for level in complexity_levels if level in by_complexity]
         assert len(found_levels) > 0
 
     @pytest.mark.asyncio
@@ -510,9 +502,7 @@ class TestResultOrganization:
 
         # Should have HTTP methods
         expected_methods = ["GET", "POST", "PUT", "DELETE", "PATCH"]
-        found_methods = [
-            method for method in expected_methods if method in by_method
-        ]
+        found_methods = [method for method in expected_methods if method in by_method]
         assert len(found_methods) > 0
 
     @pytest.mark.asyncio
@@ -530,9 +520,7 @@ class TestResultOrganization:
 
         # Should have CRUD operations
         expected_operations = ["create", "read", "update", "delete", "list"]
-        found_operations = [
-            op for op in expected_operations if op in by_operation
-        ]
+        found_operations = [op for op in expected_operations if op in by_operation]
         assert len(found_operations) > 0
 
 
@@ -564,8 +552,7 @@ class TestMetadataEnhancement:
             assert param_summary["optional_count"] >= 0
             assert (
                 param_summary["total_count"]
-                == param_summary["required_count"]
-                + param_summary["optional_count"]
+                == param_summary["required_count"] + param_summary["optional_count"]
             )
 
     @pytest.mark.asyncio
@@ -647,9 +634,7 @@ class TestMetadataEnhancement:
 
         # Should have various operation types
         expected_operations = ["create", "read", "update", "delete", "list"]
-        found_operations = [
-            op for op in expected_operations if op in operation_counts
-        ]
+        found_operations = [op for op in expected_operations if op in operation_counts]
         assert len(found_operations) > 0
 
 
@@ -677,20 +662,14 @@ class TestPaginationAndLimiting:
 
         # Verify results are different (assuming enough results)
         if len(response1["results"]) == 3 and len(response2["results"]) > 0:
-            result_ids_1 = {
-                result["endpoint_id"] for result in response1["results"]
-            }
-            result_ids_2 = {
-                result["endpoint_id"] for result in response2["results"]
-            }
+            result_ids_1 = {result["endpoint_id"] for result in response1["results"]}
+            result_ids_2 = {result["endpoint_id"] for result in response2["results"]}
             assert result_ids_1 != result_ids_2
 
     @pytest.mark.asyncio
     async def test_pagination_metadata(self, mock_search_engine):
         """Test pagination metadata accuracy."""
-        response = await mock_search_engine.search_advanced(
-            "users", page=2, per_page=5
-        )
+        response = await mock_search_engine.search_advanced("users", page=2, per_page=5)
 
         pagination = response["pagination"]
 
@@ -723,9 +702,7 @@ class TestPaginationAndLimiting:
     async def test_invalid_page_number(self, mock_search_engine):
         """Test invalid page number handling."""
         with pytest.raises(ValueError, match="Page number must be"):
-            await mock_search_engine.search_advanced(
-                "users", page=0, per_page=10
-            )
+            await mock_search_engine.search_advanced("users", page=0, per_page=10)
 
 
 class TestCachingPerformance:
@@ -787,12 +764,8 @@ class TestCachingPerformance:
 
         # Results should be different
         if response1["results"] and response2["results"]:
-            result_methods_1 = {
-                result["method"] for result in response1["results"]
-            }
-            result_methods_2 = {
-                result["method"] for result in response2["results"]
-            }
+            result_methods_1 = {result["method"] for result in response1["results"]}
+            result_methods_2 = {result["method"] for result in response2["results"]}
             assert result_methods_1 != result_methods_2
 
 
@@ -897,9 +870,7 @@ class TestRealWorldScenarios:
         response = await mock_search_engine.search_advanced(
             "users", filters={"methods": ["POST"]}
         )
-        creation_endpoints = [
-            r for r in response["results"] if r["method"] == "POST"
-        ]
+        creation_endpoints = [r for r in response["results"] if r["method"] == "POST"]
         assert len(creation_endpoints) > 0
 
         # 3. Look for authentication requirements
@@ -907,9 +878,7 @@ class TestRealWorldScenarios:
             "users", filters={"authentication": {"required": True}}
         )
         auth_required = [
-            r
-            for r in response["results"]
-            if r["authentication_info"]["required"]
+            r for r in response["results"] if r["authentication_info"]["required"]
         ]
         assert len(auth_required) > 0
 
@@ -922,9 +891,7 @@ class TestRealWorldScenarios:
         )
 
         public_endpoints = [
-            r
-            for r in response["results"]
-            if not r["authentication_info"]["required"]
+            r for r in response["results"] if not r["authentication_info"]["required"]
         ]
 
         # Should find at least the login endpoint
@@ -964,9 +931,7 @@ class TestRealWorldScenarios:
         )
 
         upload_endpoints = [
-            r
-            for r in response["results"]
-            if r["parameter_summary"]["has_file_upload"]
+            r for r in response["results"] if r["parameter_summary"]["has_file_upload"]
         ]
         assert len(upload_endpoints) >= 0  # May or may not have file upload
 
@@ -974,9 +939,7 @@ class TestRealWorldScenarios:
     async def test_developer_exploration_scenario(self, mock_search_engine):
         """Test developer exploration scenario."""
         # Explore API structure through organization
-        response = await mock_search_engine.search_advanced(
-            "api", page=1, per_page=50
-        )
+        response = await mock_search_engine.search_advanced("api", page=1, per_page=50)
 
         organization = response["organization"]
 

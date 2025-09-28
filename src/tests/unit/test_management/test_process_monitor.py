@@ -36,18 +36,14 @@ class TestProcessMonitor:
         """Test successful process metrics retrieval."""
         mock_process = Mock()
         mock_process.cpu_percent.return_value = 25.5
-        mock_process.memory_info.return_value = Mock(
-            rss=1024 * 1024 * 100
-        )  # 100MB
+        mock_process.memory_info.return_value = Mock(rss=1024 * 1024 * 100)  # 100MB
         mock_process.memory_percent.return_value = 15.2
         mock_process.num_threads.return_value = 8
         mock_process.connections.return_value = [
             Mock(),
             Mock(),
         ]  # 2 connections
-        mock_process.create_time.return_value = (
-            time.time() - 3600
-        )  # 1 hour ago
+        mock_process.create_time.return_value = time.time() - 3600  # 1 hour ago
         mock_process.status.return_value = "running"
 
         with patch(
@@ -175,9 +171,7 @@ class TestProcessMonitor:
             mock_sock.connect_ex.return_value = 0  # Success
             mock_socket.return_value = mock_sock
 
-            check = await self.monitor._check_network_connectivity(
-                "localhost", 8080
-            )
+            check = await self.monitor._check_network_connectivity("localhost", 8080)
 
         assert check.passed is True
         assert check.level == HealthLevel.HEALTHY
@@ -195,9 +189,7 @@ class TestProcessMonitor:
             mock_sock.connect_ex.return_value = 1  # Failed
             mock_socket.return_value = mock_sock
 
-            check = await self.monitor._check_network_connectivity(
-                "localhost", 8080
-            )
+            check = await self.monitor._check_network_connectivity("localhost", 8080)
 
         assert check.passed is False
         assert check.level == HealthLevel.CRITICAL
@@ -232,9 +224,7 @@ class TestProcessMonitor:
         mock_session = Mock()
         # Create a proper OSError for ClientConnectorError
         os_error = OSError(61, "Connection refused")
-        mock_session.get.side_effect = aiohttp.ClientConnectorError(
-            None, os_error
-        )
+        mock_session.get.side_effect = aiohttp.ClientConnectorError(None, os_error)
 
         self.monitor.session = mock_session
 
@@ -322,9 +312,7 @@ class TestProcessMonitor:
 
         with patch.object(
             self.monitor, "get_process_metrics", return_value=process_metrics
-        ), patch.object(
-            self.monitor, "_get_mcp_metrics", return_value=mcp_metrics
-        ):
+        ), patch.object(self.monitor, "_get_mcp_metrics", return_value=mcp_metrics):
             server_metrics = await self.monitor.get_server_metrics(
                 12345, "localhost", 8080
             )
@@ -341,9 +329,7 @@ class TestProcessMonitor:
     @pytest.mark.asyncio
     async def test_get_server_metrics_no_process(self):
         """Test server metrics when process doesn't exist."""
-        with patch.object(
-            self.monitor, "get_process_metrics", return_value=None
-        ):
+        with patch.object(self.monitor, "get_process_metrics", return_value=None):
             server_metrics = await self.monitor.get_server_metrics(
                 99999, "localhost", 8080
             )

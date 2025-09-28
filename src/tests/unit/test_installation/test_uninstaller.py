@@ -83,9 +83,7 @@ class TestUninstallationManager:
         assert not manager.install_dir.exists()
 
     @pytest.mark.asyncio
-    async def test_perform_uninstallation_preserve_config(
-        self, setup_installation
-    ):
+    async def test_perform_uninstallation_preserve_config(self, setup_installation):
         """Test uninstallation with config preservation."""
         manager = setup_installation
 
@@ -102,9 +100,7 @@ class TestUninstallationManager:
         assert len(preserved_files) > 0
 
     @pytest.mark.asyncio
-    async def test_perform_uninstallation_preserve_data(
-        self, setup_installation
-    ):
+    async def test_perform_uninstallation_preserve_data(self, setup_installation):
         """Test uninstallation with data preservation."""
         manager = setup_installation
 
@@ -129,9 +125,7 @@ class TestUninstallationManager:
             "_stop_running_servers",
             side_effect=Exception("Test error"),
         ):
-            with pytest.raises(
-                UninstallationError, match="Uninstallation failed"
-            ):
+            with pytest.raises(UninstallationError, match="Uninstallation failed"):
                 await manager.perform_uninstallation()
 
     @pytest.mark.asyncio
@@ -164,9 +158,7 @@ class TestUninstallationManager:
             {"server": {"id": "server2"}},
         ]
         mock_manager = Mock()
-        mock_manager.get_all_servers_status = AsyncMock(
-            return_value=mock_servers
-        )
+        mock_manager.get_all_servers_status = AsyncMock(return_value=mock_servers)
         mock_manager.stop_server = AsyncMock()
 
         with patch(
@@ -267,9 +259,7 @@ class TestUninstallationManager:
         await manager._selective_cleanup(results)
 
         # Should preserve config files
-        config_preserved = any(
-            "config:" in item for item in results["preserved_items"]
-        )
+        config_preserved = any("config:" in item for item in results["preserved_items"])
         assert config_preserved
 
         # Should remove cache and logs
@@ -391,9 +381,7 @@ class TestUninstallationManager:
     async def test_create_uninstall_log(self, manager):
         """Test uninstallation log creation."""
         # Clean up any existing log files first
-        existing_logs = list(
-            Path.home().glob("swagger-mcp-server-uninstall-*.log")
-        )
+        existing_logs = list(Path.home().glob("swagger-mcp-server-uninstall-*.log"))
         for log_file in existing_logs:
             log_file.unlink()
 
@@ -408,9 +396,7 @@ class TestUninstallationManager:
         await manager._create_uninstall_log(results)
 
         # Check that log file was created
-        log_files = list(
-            Path.home().glob("swagger-mcp-server-uninstall-*.log")
-        )
+        log_files = list(Path.home().glob("swagger-mcp-server-uninstall-*.log"))
         assert len(log_files) > 0
 
         # Check log content
@@ -444,9 +430,7 @@ class TestUninstallationManager:
         assert "Installation directory does not exist" in result["warnings"]
 
     @pytest.mark.asyncio
-    async def test_get_uninstall_preview_with_installation(
-        self, setup_installation
-    ):
+    async def test_get_uninstall_preview_with_installation(self, setup_installation):
         """Test uninstall preview with existing installation."""
         manager = setup_installation
 
@@ -462,9 +446,7 @@ class TestUninstallationManager:
         assert len(result["will_remove"]) > 0
 
     @pytest.mark.asyncio
-    async def test_get_uninstall_preview_preserve_config(
-        self, setup_installation
-    ):
+    async def test_get_uninstall_preview_preserve_config(self, setup_installation):
         """Test uninstall preview with config preservation."""
         manager = setup_installation
 
@@ -475,24 +457,18 @@ class TestUninstallationManager:
             result = await manager.get_uninstall_preview(preserve_config=True)
 
         # Config should be in preserved items
-        config_preserved = any(
-            "config" in item for item in result["will_preserve"]
-        )
+        config_preserved = any("config" in item for item in result["will_preserve"])
         assert config_preserved
 
     @pytest.mark.asyncio
-    async def test_get_uninstall_preview_with_running_servers(
-        self, setup_installation
-    ):
+    async def test_get_uninstall_preview_with_running_servers(self, setup_installation):
         """Test uninstall preview with running servers."""
         manager = setup_installation
 
         # Mock running servers
         mock_servers = [{"server": {"id": "server1"}}]
         mock_manager = Mock()
-        mock_manager.get_all_servers_status = AsyncMock(
-            return_value=mock_servers
-        )
+        mock_manager.get_all_servers_status = AsyncMock(return_value=mock_servers)
 
         with patch(
             "swagger_mcp_server.management.MCPServerManager",

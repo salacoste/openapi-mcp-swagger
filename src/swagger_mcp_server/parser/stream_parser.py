@@ -111,9 +111,7 @@ class SwaggerStreamParser(BaseParser):
             # Extract basic API info
             if parsed_data:
                 result.data = parsed_data
-                result.openapi_version = self._extract_openapi_version(
-                    parsed_data
-                )
+                result.openapi_version = self._extract_openapi_version(parsed_data)
                 result.api_title = self._extract_api_title(parsed_data)
                 result.api_version = self._extract_api_version(parsed_data)
 
@@ -191,9 +189,7 @@ class SwaggerStreamParser(BaseParser):
             # Open file and create parser
             with open(file_path, "rb") as file:
                 # Use ijson to parse the JSON incrementally
-                parser = ijson.parse(
-                    file, buf_size=self.config.chunk_size_bytes
-                )
+                parser = ijson.parse(file, buf_size=self.config.chunk_size_bytes)
 
                 # Build the JSON structure incrementally
                 result = await self._build_json_structure(parser, metrics)
@@ -253,9 +249,7 @@ class SwaggerStreamParser(BaseParser):
 
                     # Check memory usage
                     current_memory = self._get_memory_usage_mb()
-                    metrics.memory_peak_mb = max(
-                        metrics.memory_peak_mb, current_memory
-                    )
+                    metrics.memory_peak_mb = max(metrics.memory_peak_mb, current_memory)
 
                     if current_memory > self.config.max_memory_mb:
                         raise SwaggerParseError(
@@ -309,9 +303,7 @@ class SwaggerStreamParser(BaseParser):
 
             # Final progress report
             if self.config.progress_callback:
-                self.config.progress_callback(
-                    bytes_processed, metrics.file_size_bytes
-                )
+                self.config.progress_callback(bytes_processed, metrics.file_size_bytes)
 
             return stack[0] if stack else {}
 
@@ -417,11 +409,7 @@ class SwaggerStreamParser(BaseParser):
                             "trace",
                         }
                         endpoint_count += len(
-                            [
-                                m
-                                for m in path_data.keys()
-                                if m.lower() in http_methods
-                            ]
+                            [m for m in path_data.keys() if m.lower() in http_methods]
                         )
                 metrics.endpoints_found = endpoint_count
 
