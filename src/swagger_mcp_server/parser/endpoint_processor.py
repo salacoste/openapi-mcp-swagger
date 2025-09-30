@@ -61,8 +61,8 @@ class EndpointProcessor:
         # Categorize endpoint
         category_info = self.categorization_engine.categorize_endpoint(operation, path)
 
-        # Add to catalog
-        self.category_catalog.add_endpoint(category_info, method.upper())
+        # Add to catalog (use synchronous version)
+        self.category_catalog.add_endpoint_sync(category_info, method.upper())
 
         # Enrich operation with category fields
         enriched_operation = operation.copy()

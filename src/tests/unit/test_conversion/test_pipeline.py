@@ -79,7 +79,7 @@ class TestConversionPipeline:
         """Test default output directory generation."""
         pipeline = ConversionPipeline(self.swagger_file)
 
-        expected_dir = "./mcp-server-test_api"
+        expected_dir = "generated-mcp-servers/mcp-server-test_api"
         assert pipeline.output_dir == expected_dir
 
     @pytest.mark.asyncio

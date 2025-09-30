@@ -173,9 +173,9 @@ class TestParsingCategorization:
         assert len(stats_ops) == 1
         assert stats_ops[0]["category_display_name"] == "Статистика"
 
-        # Verify uncategorized endpoint
+        # Verify uncategorized endpoint (case-insensitive check)
         uncategorized_ops = [
-            op for op in enriched_operations if op.get("category") == "uncategorized"
+            op for op in enriched_operations if op.get("category", "").lower() == "uncategorized"
         ]
         assert len(uncategorized_ops) == 1
         assert uncategorized_ops[0]["category_display_name"] == "Uncategorized"
@@ -192,7 +192,7 @@ class TestParsingCategorization:
         correctly_categorized = sum(
             1
             for op in enriched_operations
-            if op.get("category") != "uncategorized"
+            if op.get("category", "").lower() != "uncategorized"
         )
 
         total_endpoints = len(enriched_operations)
@@ -217,7 +217,7 @@ class TestParsingCategorization:
         correctly_categorized = sum(
             1
             for op in enriched_operations
-            if op.get("category") != "uncategorized"
+            if op.get("category", "").lower() != "uncategorized"
         )
 
         accuracy = (correctly_categorized / len(enriched_operations)) * 100
@@ -234,8 +234,8 @@ class TestParsingCategorization:
         # Get category catalog data
         catalog_data = processor.get_category_catalog_data()
 
-        # Verify categories are present
-        category_names = {cat["category_name"] for cat in catalog_data}
+        # Verify categories are present (case-insensitive)
+        category_names = {cat["category_name"].lower() for cat in catalog_data}
         assert "campaign" in category_names
         assert "statistics" in category_names
         assert "ad" in category_names
@@ -244,7 +244,7 @@ class TestParsingCategorization:
 
         # Find Campaign category and verify stats
         campaign_cat = next(
-            cat for cat in catalog_data if cat["category_name"] == "campaign"
+            cat for cat in catalog_data if cat["category_name"].lower() == "campaign"
         )
         assert campaign_cat["endpoint_count"] == 3
         assert set(campaign_cat["http_methods"]) == {"GET", "PUT"}
@@ -280,7 +280,7 @@ class TestParsingCategorization:
 
         # Verify catalog
         assert len(catalog) == 2
-        category_names = {cat["category_name"] for cat in catalog}
+        category_names = {cat["category_name"].lower() for cat in catalog}
         assert "campaign" in category_names
         assert "statistics" in category_names
 

@@ -588,19 +588,19 @@ class SwaggerMcpServer:
                     "perPage", "perPage must be between 1 and 50", perPage
                 )
 
-            # Epic 6: Validate category filters
-            if category:
+            # Epic 6: Validate category filters - normalize empty strings to None
+            if category is not None:
                 category = category.strip()
                 if len(category) == 0:
                     category = None
 
-            if categoryGroup:
+            if categoryGroup is not None:
                 categoryGroup = categoryGroup.strip()
                 if len(categoryGroup) == 0:
                     categoryGroup = None
 
-            # Validate mutual exclusivity
-            if category and categoryGroup:
+            # Validate mutual exclusivity (after normalization)
+            if category is not None and categoryGroup is not None:
                 raise ValidationError(
                     parameter="category",
                     message="Cannot filter by both category and categoryGroup simultaneously",
@@ -705,6 +705,9 @@ class SwaggerMcpServer:
 
             return response
 
+        except ValidationError:
+            # Re-raise validation errors - they should bubble up to MCP protocol layer
+            raise
         except Exception as e:
             self.logger.error(
                 "Enhanced endpoint search failed",

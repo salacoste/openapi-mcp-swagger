@@ -9,7 +9,6 @@ from pathlib import Path
 # Add the current directory to Python path
 sys.path.insert(0, str(Path(__file__).parent))
 
-
 async def main():
     """Main daemon server function."""
     try:
@@ -34,7 +33,6 @@ async def main():
     except Exception as e:
         print(f"❌ Server error: {e}")
         sys.exit(1)
-
 
 if __name__ == "__main__":
     asyncio.run(main())
