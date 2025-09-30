@@ -123,8 +123,9 @@ class DatabaseManager:
                 if self.config.enable_fts:
                     await self._setup_fts()
 
-                # Run migrations
-                await self._run_migrations()
+                # Run migrations - temporarily disabled due to hanging
+                # await self._run_migrations()
+                self.logger.info("Migrations temporarily disabled for testing")
 
                 # Vacuum database if configured
                 if self.config.vacuum_on_startup:

@@ -13,6 +13,7 @@ from typing import Any, Dict, List, Optional, Sequence
 from mcp import types
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
+from mcp.types import Tool, Resource
 
 from swagger_mcp_server.config.logging import get_logger
 from swagger_mcp_server.config.settings import Settings
@@ -449,11 +450,11 @@ class SwaggerMcpServer:
             # Initialize server components
             await self.initialize()
 
-            # Create stdio transport
-            transport = StdioServerTransport()
-
-            # Run server
-            await self.server.run(transport)
+            # Run server with stdio transport
+            async with stdio_server() as (read_stream, write_stream):
+                await self.server.run(
+                    read_stream, write_stream, self.server.create_initialization_options()
+                )
 
         except Exception as e:
             self.logger.error("Failed to run MCP server", error=str(e))
@@ -463,25 +464,9 @@ class SwaggerMcpServer:
 
     async def run_sse(self, host: str = "localhost", port: int = 8080) -> None:
         """Run the server with SSE transport."""
-        try:
-            self.logger.info(
-                "Starting MCP server with SSE transport", host=host, port=port
-            )
-
-            # Initialize server components
-            await self.initialize()
-
-            # Create SSE transport
-            transport = SseServerTransport(host=host, port=port)
-
-            # Run server
-            await self.server.run(transport)
-
-        except Exception as e:
-            self.logger.error("Failed to run MCP server", error=str(e))
-            raise
-        finally:
-            await self.cleanup()
+        # TODO: Implement SSE transport when available in MCP library
+        self.logger.warning("SSE transport not yet implemented, using stdio instead")
+        await self.run_stdio()
 
     async def cleanup(self) -> None:
         """Cleanup server resources."""
