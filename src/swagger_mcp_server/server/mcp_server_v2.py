@@ -127,7 +127,7 @@ class SwaggerMcpServer:
             return [
                 types.Tool(
                     name="searchEndpoints",
-                    description="Search API endpoints by keywords and HTTP method filters with intelligent discovery capabilities",
+                    description="Search API endpoints by keywords, HTTP methods, and categories with intelligent discovery and progressive disclosure capabilities",
                     inputSchema={
                         "type": "object",
                         "properties": {
@@ -153,6 +153,16 @@ class SwaggerMcpServer:
                                     ],
                                 },
                                 "uniqueItems": True,
+                            },
+                            "category": {
+                                "type": "string",
+                                "description": "Filter results by category name (case-insensitive)",
+                                "maxLength": 255,
+                            },
+                            "categoryGroup": {
+                                "type": "string",
+                                "description": "Filter results by parent group name",
+                                "maxLength": 255,
                             },
                             "page": {
                                 "type": "integer",
@@ -254,6 +264,31 @@ class SwaggerMcpServer:
                         "required": ["endpoint", "format"],
                     },
                 ),
+                types.Tool(
+                    name="getEndpointCategories",
+                    description="Retrieve hierarchical catalog of API endpoint categories with compact format for context-efficient discovery and progressive disclosure navigation",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "categoryGroup": {
+                                "type": "string",
+                                "description": "Optional filter by parent group name",
+                                "maxLength": 255,
+                            },
+                            "includeEmpty": {
+                                "type": "boolean",
+                                "description": "Include categories with zero endpoints",
+                                "default": False,
+                            },
+                            "sortBy": {
+                                "type": "string",
+                                "description": "Sort order for categories",
+                                "enum": ["name", "endpointCount", "group"],
+                                "default": "name",
+                            },
+                        },
+                    },
+                ),
             ]
 
         @self.server.call_tool()
@@ -265,7 +300,7 @@ class SwaggerMcpServer:
 
             try:
                 # Validate method name
-                if name not in ["searchEndpoints", "getSchema", "getExample"]:
+                if name not in ["searchEndpoints", "getSchema", "getExample", "getEndpointCategories"]:
                     error = ValidationError(
                         parameter="method",
                         message=f"Unknown method '{name}'",
@@ -274,6 +309,7 @@ class SwaggerMcpServer:
                             "searchEndpoints",
                             "getSchema",
                             "getExample",
+                            "getEndpointCategories",
                         ],
                     )
                     self.error_logger.log_error(error, request_id=request_id)
@@ -303,6 +339,10 @@ class SwaggerMcpServer:
                     )
                 elif name == "getExample":
                     result = await self._get_example_with_resilience(
+                        arguments, request_id
+                    )
+                elif name == "getEndpointCategories":
+                    result = await self._get_endpoint_categories_with_resilience(
                         arguments, request_id
                     )
 
@@ -481,14 +521,20 @@ class SwaggerMcpServer:
         self,
         keywords: str,
         httpMethods: Optional[List[str]] = None,
+        category: Optional[str] = None,
+        categoryGroup: Optional[str] = None,
         page: int = 1,
         perPage: int = 20,
     ) -> Dict[str, Any]:
-        """Search for API endpoints with enhanced functionality per Story 2.2.
+        """Search for API endpoints with enhanced functionality.
+
+        Epic 6: Story 6.3 - Enhanced with category filtering
 
         Args:
             keywords: Search keywords for paths, descriptions, and parameter names (max 500 chars)
             httpMethods: Optional list of HTTP methods to filter by
+            category: Optional filter by category name (case-insensitive)
+            categoryGroup: Optional filter by parent group name
             page: Page number for pagination (1-based)
             perPage: Results per page (max 50)
 
@@ -542,10 +588,32 @@ class SwaggerMcpServer:
                     "perPage", "perPage must be between 1 and 50", perPage
                 )
 
+            # Epic 6: Validate category filters
+            if category:
+                category = category.strip()
+                if len(category) == 0:
+                    category = None
+
+            if categoryGroup:
+                categoryGroup = categoryGroup.strip()
+                if len(categoryGroup) == 0:
+                    categoryGroup = None
+
+            # Validate mutual exclusivity
+            if category and categoryGroup:
+                raise ValidationError(
+                    parameter="category",
+                    message="Cannot filter by both category and categoryGroup simultaneously",
+                    value={"category": category, "categoryGroup": categoryGroup},
+                    suggestions=["Use category OR categoryGroup, not both"],
+                )
+
             self.logger.info(
-                "Enhanced endpoint search",
+                "Enhanced endpoint search with category filtering",
                 keywords=keywords,
                 httpMethods=httpMethods,
+                category=category,
+                categoryGroup=categoryGroup,
                 page=page,
                 perPage=perPage,
             )
@@ -558,6 +626,8 @@ class SwaggerMcpServer:
                 search_result = await self.endpoint_repo.search_endpoints_paginated(
                     query=keywords.strip(),
                     methods=httpMethods,
+                    category=category,
+                    category_group=categoryGroup,
                     limit=perPage,
                     offset=offset,
                 )
@@ -568,6 +638,8 @@ class SwaggerMcpServer:
                 endpoints = await self.endpoint_repo.search_endpoints(
                     query=keywords.strip(),
                     methods=httpMethods,
+                    category=category,
+                    category_group=categoryGroup,
                     limit=perPage
                     * 5,  # Get more results to simulate total count better
                 )
@@ -616,6 +688,8 @@ class SwaggerMcpServer:
                 "search_metadata": {
                     "keywords": keywords,
                     "http_methods_filter": httpMethods,
+                    "category_filter": category,
+                    "category_group_filter": categoryGroup,
                     "result_count": len(results),
                     "search_time_ms": 0,  # Will be populated if we add timing
                 },
@@ -1488,6 +1562,180 @@ def {func_name}({', '.join(func_params)}) -> Dict[Any, Any]:
             await self.cleanup()
 
     # Performance monitoring and health check methods
+
+    async def _get_endpoint_categories_with_resilience(
+        self, arguments: Dict[str, Any], request_id: str
+    ) -> Dict[str, Any]:
+        """Get endpoint categories with resilience patterns.
+
+        Epic 6: Story 6.2 - getEndpointCategories MCP method
+
+        Args:
+            arguments: Method arguments containing optional filters
+            request_id: Unique request identifier
+
+        Returns:
+            Category catalog response with categories, groups, and metadata
+        """
+
+        @monitor_performance("getEndpointCategories", global_monitor)
+        @with_timeout(30.0)
+        @with_circuit_breaker(database_circuit_breaker)
+        @retry_on_failure(max_retries=3)
+        async def _execute():
+            return await self._get_endpoint_categories(
+                categoryGroup=arguments.get("categoryGroup"),
+                includeEmpty=arguments.get("includeEmpty", False),
+                sortBy=arguments.get("sortBy", "name"),
+            )
+
+        try:
+            result = await _execute()
+            return result
+        except Exception as e:
+            # Convert to appropriate MCP error
+            if "no such table" in str(e).lower():
+                raise DatabaseConnectionError(
+                    "Category catalog not available. Ensure database migration has been applied.",
+                    operation="category_retrieval",
+                )
+            raise DatabaseConnectionError(
+                f"Failed to retrieve categories: {str(e)}",
+                operation="category_retrieval",
+            )
+
+    async def _get_endpoint_categories(
+        self,
+        categoryGroup: Optional[str] = None,
+        includeEmpty: bool = False,
+        sortBy: str = "name",
+    ) -> Dict[str, Any]:
+        """Get endpoint categories catalog.
+
+        Epic 6: Story 6.2 - Category catalog retrieval
+
+        Args:
+            categoryGroup: Optional filter by parent group
+            includeEmpty: Include categories with 0 endpoints
+            sortBy: Sort order (name, endpointCount, group)
+
+        Returns:
+            Category catalog with categories, groups, and metadata
+        """
+        if not self.endpoint_repo or not self.metadata_repo:
+            raise DatabaseConnectionError(
+                "Server not properly initialized",
+                operation="category_retrieval",
+            )
+
+        try:
+            # Validate sortBy parameter
+            if sortBy not in ["name", "endpointCount", "group"]:
+                raise ValidationError(
+                    parameter="sortBy",
+                    message=f"Invalid sort field: {sortBy}",
+                    value=sortBy,
+                    suggestions=["name", "endpointCount", "group"],
+                )
+
+            # Normalize inputs
+            if categoryGroup:
+                categoryGroup = categoryGroup.strip()
+                if len(categoryGroup) == 0:
+                    categoryGroup = None
+
+            self.logger.info(
+                "Retrieving endpoint categories",
+                categoryGroup=categoryGroup,
+                includeEmpty=includeEmpty,
+                sortBy=sortBy,
+            )
+
+            # Get categories from repository
+            categories = await self.endpoint_repo.get_categories(
+                api_id=None,  # Get all APIs for now
+                category_group=categoryGroup,
+                include_empty=includeEmpty,
+                sort_by=sortBy,
+            )
+
+            # Handle empty result
+            if not categories:
+                self.logger.warning("No categories found in database")
+                return {
+                    "categories": [],
+                    "groups": [],
+                    "metadata": {
+                        "totalCategories": 0,
+                        "totalEndpoints": 0,
+                        "totalGroups": 0,
+                        "apiTitle": None,
+                        "apiVersion": None,
+                    },
+                }
+
+            # Get category groups aggregation
+            groups = await self.endpoint_repo.get_category_groups(api_id=None)
+
+            # Get API metadata for metadata section
+            api_metadata = None
+            try:
+                # Get first API metadata
+                all_apis = await self.metadata_repo.list_all()
+                if all_apis:
+                    api_metadata = all_apis[0]
+            except Exception as e:
+                self.logger.warning(f"Failed to get API metadata: {e}")
+
+            # Calculate totals
+            total_categories = len(categories)
+            total_endpoints = sum(cat.get("endpointCount", 0) for cat in categories)
+            total_groups = len(groups)
+
+            # Build response
+            response = {
+                "categories": [
+                    {
+                        "name": cat["name"],
+                        "displayName": cat.get("displayName") or cat["name"],
+                        "description": cat.get("description"),
+                        "endpointCount": cat.get("endpointCount", 0),
+                        "group": cat.get("group"),
+                        "httpMethods": cat.get("httpMethods", []),
+                    }
+                    for cat in categories
+                ],
+                "groups": groups,
+                "metadata": {
+                    "totalCategories": total_categories,
+                    "totalEndpoints": total_endpoints,
+                    "totalGroups": total_groups,
+                    "apiTitle": api_metadata.title if api_metadata else None,
+                    "apiVersion": api_metadata.version if api_metadata else None,
+                },
+            }
+
+            self.logger.info(
+                "Categories retrieved successfully",
+                categories=total_categories,
+                groups=total_groups,
+                endpoints=total_endpoints,
+            )
+
+            return response
+
+        except ValidationError:
+            raise  # Re-raise validation errors
+        except Exception as e:
+            self.logger.error(
+                "Failed to retrieve endpoint categories",
+                error=str(e),
+                categoryGroup=categoryGroup,
+            )
+            raise DatabaseConnectionError(
+                f"Failed to retrieve categories: {str(e)}",
+                operation="category_retrieval",
+            )
 
     async def start_monitoring(self) -> None:
         """Start performance metrics collection."""

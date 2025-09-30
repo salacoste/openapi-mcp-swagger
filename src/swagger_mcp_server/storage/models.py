@@ -132,6 +132,12 @@ class Endpoint(Base, TimestampMixin):
     schema_dependencies = Column(JSON)  # List of referenced schema names
     security_dependencies = Column(JSON)  # List of referenced security scheme names
 
+    # Epic 6: Hierarchical categorization fields
+    category = Column(String(255))  # Primary category name (from tags or path analysis)
+    category_group = Column(String(255))  # Parent group name (from x-tagGroups)
+    category_display_name = Column(String(500))  # Human-readable category name (from x-displayName)
+    category_metadata = Column(JSON)  # Additional category information
+
     # Relationships
     api = relationship("APIMetadata", back_populates="endpoints")
     dependencies = relationship(
@@ -150,6 +156,8 @@ class Endpoint(Base, TimestampMixin):
         Index("ix_endpoints_deprecated", "deprecated"),
         Index("ix_endpoints_tags", "tags"),  # JSON index for tag queries
         Index("ix_endpoints_searchable_text", "searchable_text"),
+        Index("ix_endpoints_category", "category"),  # Epic 6: Category index
+        Index("ix_endpoints_category_group", "category_group"),  # Epic 6: Category group index
     )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -176,6 +184,10 @@ class Endpoint(Base, TimestampMixin):
             "content_types": self.content_types,
             "schema_dependencies": self.schema_dependencies,
             "security_dependencies": self.security_dependencies,
+            "category": self.category,
+            "category_group": self.category_group,
+            "category_display_name": self.category_display_name,
+            "category_metadata": self.category_metadata,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
@@ -433,6 +445,51 @@ class DatabaseMigration(Base, TimestampMixin):
         }
 
 
+class EndpointCategory(Base, TimestampMixin):
+    """Stores endpoint category catalog for hierarchical navigation.
+
+    Epic 6: Hierarchical endpoint catalog system.
+    Aggregates category information for efficient AI agent navigation.
+    """
+
+    __tablename__ = "endpoint_categories"
+
+    id = Column(Integer, primary_key=True)
+    api_id = Column(Integer, ForeignKey("api_metadata.id"), nullable=False)
+    category_name = Column(String(255), nullable=False)  # Machine-readable identifier
+    display_name = Column(String(500))  # Human-readable name
+    description = Column(Text)  # Category description
+    category_group = Column(String(255))  # Parent group reference
+    endpoint_count = Column(Integer, default=0)  # Number of endpoints in category
+    http_methods = Column(JSON)  # List of HTTP methods used in category
+
+    # Relationships
+    api = relationship("APIMetadata", backref="endpoint_categories")
+
+    # Constraints and indexes
+    __table_args__ = (
+        UniqueConstraint("api_id", "category_name", name="uq_category_name_per_api"),
+        Index("ix_categories_api_id", "api_id"),
+        Index("ix_categories_group", "category_group"),
+        Index("ix_categories_name", "category_name"),
+    )
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert model to dictionary."""
+        return {
+            "id": self.id,
+            "api_id": self.api_id,
+            "category_name": self.category_name,
+            "display_name": self.display_name,
+            "description": self.description,
+            "category_group": self.category_group,
+            "endpoint_count": self.endpoint_count,
+            "http_methods": self.http_methods,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+
 # FTS5 Virtual Table SQL (to be created separately)
 ENDPOINTS_FTS_SQL = """
 CREATE VIRTUAL TABLE IF NOT EXISTS endpoints_fts USING fts5(
@@ -443,6 +500,7 @@ CREATE VIRTUAL TABLE IF NOT EXISTS endpoints_fts USING fts5(
     description,
     tags,
     searchable_text,
+    category,
     content='endpoints',
     content_rowid='id',
     tokenize='porter ascii'
@@ -467,9 +525,9 @@ ENDPOINTS_FTS_TRIGGERS = [
     """
     CREATE TRIGGER IF NOT EXISTS endpoints_fts_insert AFTER INSERT ON endpoints
     BEGIN
-        INSERT INTO endpoints_fts(rowid, path, method, operation_id, summary, description, tags, searchable_text)
+        INSERT INTO endpoints_fts(rowid, path, method, operation_id, summary, description, tags, searchable_text, category)
         VALUES (new.id, new.path, new.method, new.operation_id, new.summary, new.description,
-                json_extract(new.tags, '$'), new.searchable_text);
+                json_extract(new.tags, '$'), new.searchable_text, new.category);
     END;
     """,
     """
@@ -488,7 +546,8 @@ ENDPOINTS_FTS_TRIGGERS = [
             summary = new.summary,
             description = new.description,
             tags = json_extract(new.tags, '$'),
-            searchable_text = new.searchable_text
+            searchable_text = new.searchable_text,
+            category = new.category
         WHERE rowid = new.id;
     END;
     """,

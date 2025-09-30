@@ -144,6 +144,13 @@ class MigrationManager:
                 up_sql=self._get_performance_indexes_sql(),
                 down_sql=self._get_drop_performance_indexes_sql(),
             ),
+            Migration(
+                version="004",
+                name="epic6_hierarchical_categories",
+                description="Epic 6: Add hierarchical endpoint categorization support",
+                up_sql=self._get_epic6_categories_upgrade_sql(),
+                down_sql=self._get_epic6_categories_downgrade_sql(),
+            ),
         ]
         return migrations
 
@@ -725,3 +732,209 @@ class MigrationManager:
         except Exception as e:
             self.logger.error("Failed to reset database", error=str(e))
             raise MigrationError(f"Failed to reset database: {str(e)}")
+
+    def _get_epic6_categories_upgrade_sql(self) -> str:
+        """Get SQL for Epic 6 category support upgrade.
+
+        Adds:
+        - category, category_group, category_display_name, category_metadata columns to endpoints
+        - endpoint_categories table
+        - indexes on category fields
+        - updated FTS5 schema with category field
+        """
+        return """
+        -- Epic 6: Add category fields to endpoints table
+        ALTER TABLE endpoints ADD COLUMN category TEXT;
+        ALTER TABLE endpoints ADD COLUMN category_group TEXT;
+        ALTER TABLE endpoints ADD COLUMN category_display_name TEXT;
+        ALTER TABLE endpoints ADD COLUMN category_metadata TEXT; -- JSON
+
+        -- Epic 6: Create endpoint_categories table
+        CREATE TABLE IF NOT EXISTS endpoint_categories (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            api_id INTEGER NOT NULL REFERENCES api_metadata(id) ON DELETE CASCADE,
+            category_name TEXT NOT NULL,
+            display_name TEXT,
+            description TEXT,
+            category_group TEXT,
+            endpoint_count INTEGER DEFAULT 0,
+            http_methods TEXT, -- JSON array
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(api_id, category_name)
+        );
+
+        -- Epic 6: Create indexes for category fields
+        CREATE INDEX IF NOT EXISTS ix_endpoints_category ON endpoints(category);
+        CREATE INDEX IF NOT EXISTS ix_endpoints_category_group ON endpoints(category_group);
+        CREATE INDEX IF NOT EXISTS ix_categories_api_id ON endpoint_categories(api_id);
+        CREATE INDEX IF NOT EXISTS ix_categories_group ON endpoint_categories(category_group);
+        CREATE INDEX IF NOT EXISTS ix_categories_name ON endpoint_categories(category_name);
+
+        -- Epic 6: Recreate FTS5 table with category field
+        DROP TABLE IF EXISTS endpoints_fts;
+
+        CREATE VIRTUAL TABLE IF NOT EXISTS endpoints_fts USING fts5(
+            path UNINDEXED,
+            method UNINDEXED,
+            operation_id,
+            summary,
+            description,
+            tags,
+            searchable_text,
+            category,
+            content='endpoints',
+            content_rowid='id',
+            tokenize='porter ascii'
+        );
+
+        -- Epic 6: Recreate FTS5 triggers
+        DROP TRIGGER IF EXISTS endpoints_fts_insert;
+        DROP TRIGGER IF EXISTS endpoints_fts_delete;
+        DROP TRIGGER IF EXISTS endpoints_fts_update;
+
+        CREATE TRIGGER IF NOT EXISTS endpoints_fts_insert AFTER INSERT ON endpoints
+        BEGIN
+            INSERT INTO endpoints_fts(rowid, path, method, operation_id, summary, description, tags, searchable_text, category)
+            VALUES (new.id, new.path, new.method, new.operation_id, new.summary, new.description,
+                    json_extract(new.tags, '$'), new.searchable_text, new.category);
+        END;
+
+        CREATE TRIGGER IF NOT EXISTS endpoints_fts_delete AFTER DELETE ON endpoints
+        BEGIN
+            DELETE FROM endpoints_fts WHERE rowid = old.id;
+        END;
+
+        CREATE TRIGGER IF NOT EXISTS endpoints_fts_update AFTER UPDATE ON endpoints
+        BEGIN
+            UPDATE endpoints_fts SET
+                path = new.path,
+                method = new.method,
+                operation_id = new.operation_id,
+                summary = new.summary,
+                description = new.description,
+                tags = json_extract(new.tags, '$'),
+                searchable_text = new.searchable_text,
+                category = new.category
+            WHERE rowid = new.id;
+        END;
+        """
+
+    def _get_epic6_categories_downgrade_sql(self) -> str:
+        """Get SQL for Epic 6 category support downgrade (rollback).
+
+        Removes:
+        - category fields from endpoints table
+        - endpoint_categories table
+        - category indexes
+        - category field from FTS5
+        """
+        return """
+        -- Epic 6 Rollback: Drop category indexes
+        DROP INDEX IF EXISTS ix_endpoints_category;
+        DROP INDEX IF EXISTS ix_endpoints_category_group;
+
+        -- Epic 6 Rollback: Drop endpoint_categories table
+        DROP TABLE IF EXISTS endpoint_categories;
+
+        -- Epic 6 Rollback: Remove category fields from endpoints
+        -- SQLite doesn't support DROP COLUMN, so we need to recreate the table
+        -- Create temporary table without category fields
+        CREATE TABLE endpoints_backup AS
+        SELECT id, api_id, path, method, operation_id, summary, description,
+               tags, parameters, request_body, responses, security, callbacks,
+               deprecated, extensions, searchable_text, parameter_names,
+               response_codes, content_types, schema_dependencies,
+               security_dependencies, created_at, updated_at
+        FROM endpoints;
+
+        -- Drop original table
+        DROP TABLE endpoints;
+
+        -- Recreate without category fields
+        CREATE TABLE endpoints (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            api_id INTEGER NOT NULL REFERENCES api_metadata(id) ON DELETE CASCADE,
+            path TEXT NOT NULL,
+            method TEXT NOT NULL,
+            operation_id TEXT,
+            summary TEXT,
+            description TEXT,
+            tags TEXT,
+            parameters TEXT,
+            request_body TEXT,
+            responses TEXT,
+            security TEXT,
+            callbacks TEXT,
+            deprecated BOOLEAN DEFAULT FALSE,
+            extensions TEXT,
+            searchable_text TEXT,
+            parameter_names TEXT,
+            response_codes TEXT,
+            content_types TEXT,
+            schema_dependencies TEXT,
+            security_dependencies TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(api_id, path, method)
+        );
+
+        -- Restore data
+        INSERT INTO endpoints SELECT * FROM endpoints_backup;
+
+        -- Drop backup table
+        DROP TABLE endpoints_backup;
+
+        -- Recreate indexes
+        CREATE INDEX IF NOT EXISTS ix_endpoints_api_id ON endpoints(api_id);
+        CREATE INDEX IF NOT EXISTS ix_endpoints_method ON endpoints(method);
+        CREATE INDEX IF NOT EXISTS ix_endpoints_path ON endpoints(path);
+        CREATE INDEX IF NOT EXISTS ix_endpoints_operation_id ON endpoints(operation_id);
+        CREATE INDEX IF NOT EXISTS ix_endpoints_deprecated ON endpoints(deprecated);
+
+        -- Epic 6 Rollback: Recreate FTS5 without category field
+        DROP TABLE IF EXISTS endpoints_fts;
+
+        CREATE VIRTUAL TABLE IF NOT EXISTS endpoints_fts USING fts5(
+            path UNINDEXED,
+            method UNINDEXED,
+            operation_id,
+            summary,
+            description,
+            tags,
+            searchable_text,
+            content='endpoints',
+            content_rowid='id',
+            tokenize='porter ascii'
+        );
+
+        -- Recreate FTS5 triggers without category
+        DROP TRIGGER IF EXISTS endpoints_fts_insert;
+        DROP TRIGGER IF EXISTS endpoints_fts_delete;
+        DROP TRIGGER IF EXISTS endpoints_fts_update;
+
+        CREATE TRIGGER IF NOT EXISTS endpoints_fts_insert AFTER INSERT ON endpoints
+        BEGIN
+            INSERT INTO endpoints_fts(rowid, path, method, operation_id, summary, description, tags, searchable_text)
+            VALUES (new.id, new.path, new.method, new.operation_id, new.summary, new.description,
+                    json_extract(new.tags, '$'), new.searchable_text);
+        END;
+
+        CREATE TRIGGER IF NOT EXISTS endpoints_fts_delete AFTER DELETE ON endpoints
+        BEGIN
+            DELETE FROM endpoints_fts WHERE rowid = old.id;
+        END;
+
+        CREATE TRIGGER IF NOT EXISTS endpoints_fts_update AFTER UPDATE ON endpoints
+        BEGIN
+            UPDATE endpoints_fts SET
+                path = new.path,
+                method = new.method,
+                operation_id = new.operation_id,
+                summary = new.summary,
+                description = new.description,
+                tags = json_extract(new.tags, '$'),
+                searchable_text = new.searchable_text
+            WHERE rowid = new.id;
+        END;
+        """

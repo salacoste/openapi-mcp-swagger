@@ -28,10 +28,15 @@ class EndpointRepository(BaseRepository[Endpoint]):
         methods: Optional[List[str]] = None,
         tags: Optional[List[str]] = None,
         deprecated: Optional[bool] = None,
+        category: Optional[str] = None,
+        category_group: Optional[str] = None,
         limit: int = 50,
         offset: int = 0,
     ) -> List[Endpoint]:
-        """Search endpoints using full-text search and filters."""
+        """Search endpoints using full-text search and filters.
+
+        Epic 6: Enhanced with category filtering support.
+        """
         try:
             if not query.strip():
                 # If no query, use regular filtering
@@ -40,6 +45,8 @@ class EndpointRepository(BaseRepository[Endpoint]):
                     methods=methods,
                     tags=tags,
                     deprecated=deprecated,
+                    category=category,
+                    category_group=category_group,
                     limit=limit,
                     offset=offset,
                 )
@@ -78,6 +85,15 @@ class EndpointRepository(BaseRepository[Endpoint]):
                 conditions.append("endpoints.deprecated = ?")
                 params.append(deprecated)
 
+            # Epic 6: Category filtering
+            if category:
+                conditions.append("LOWER(endpoints.category) = LOWER(?)")
+                params.append(category)
+
+            if category_group:
+                conditions.append("LOWER(endpoints.category_group) = LOWER(?)")
+                params.append(category_group)
+
             if conditions:
                 fts_query += " AND " + " AND ".join(conditions)
 
@@ -112,7 +128,7 @@ class EndpointRepository(BaseRepository[Endpoint]):
             )
             # Fallback to LIKE search if FTS fails
             return await self._like_search_endpoints(
-                query, api_id, methods, tags, deprecated, limit, offset
+                query, api_id, methods, tags, deprecated, category, category_group, limit, offset
             )
 
     async def _like_search_endpoints(
@@ -122,10 +138,12 @@ class EndpointRepository(BaseRepository[Endpoint]):
         methods: Optional[List[str]] = None,
         tags: Optional[List[str]] = None,
         deprecated: Optional[bool] = None,
+        category: Optional[str] = None,
+        category_group: Optional[str] = None,
         limit: int = 50,
         offset: int = 0,
     ) -> List[Endpoint]:
-        """Fallback search using LIKE operations."""
+        """Fallback search using LIKE operations. Epic 6: Enhanced with category filtering."""
         stmt = select(Endpoint)
 
         # Text search conditions
@@ -164,6 +182,13 @@ class EndpointRepository(BaseRepository[Endpoint]):
         if deprecated is not None:
             stmt = stmt.where(Endpoint.deprecated == deprecated)
 
+        # Epic 6: Category filtering
+        if category:
+            stmt = stmt.where(func.lower(Endpoint.category) == func.lower(category))
+
+        if category_group:
+            stmt = stmt.where(func.lower(Endpoint.category_group) == func.lower(category_group))
+
         stmt = stmt.limit(limit).offset(offset)
 
         result = await self.session.execute(stmt)
@@ -177,10 +202,12 @@ class EndpointRepository(BaseRepository[Endpoint]):
         methods: Optional[List[str]] = None,
         tags: Optional[List[str]] = None,
         deprecated: Optional[bool] = None,
+        category: Optional[str] = None,
+        category_group: Optional[str] = None,
         limit: int = 50,
         offset: int = 0,
     ) -> List[Endpoint]:
-        """Filter endpoints without text search."""
+        """Filter endpoints without text search. Epic 6: Enhanced with category filtering."""
         filters = {}
 
         if api_id:
@@ -206,6 +233,13 @@ class EndpointRepository(BaseRepository[Endpoint]):
                 tag_conditions.append(Endpoint.tags.like(f'%"{tag}"%'))
             if tag_conditions:
                 stmt = stmt.where(or_(*tag_conditions))
+
+        # Epic 6: Category filtering
+        if category:
+            stmt = stmt.where(func.lower(Endpoint.category) == func.lower(category))
+
+        if category_group:
+            stmt = stmt.where(func.lower(Endpoint.category_group) == func.lower(category_group))
 
         stmt = stmt.limit(limit).offset(offset)
 
@@ -502,3 +536,214 @@ class EndpointRepository(BaseRepository[Endpoint]):
                 error=str(e),
             )
             raise RepositoryError(f"Failed to find similar endpoints: {str(e)}")
+
+    async def get_categories(
+        self,
+        api_id: Optional[int] = None,
+        category_group: Optional[str] = None,
+        include_empty: bool = False,
+        sort_by: str = "name",
+    ) -> List[Dict[str, Any]]:
+        """Get endpoint categories with optional filtering and sorting.
+
+        Epic 6: Hierarchical Endpoint Catalog System
+
+        Args:
+            api_id: Optional API ID filter
+            category_group: Optional parent group filter
+            include_empty: Include categories with 0 endpoints
+            sort_by: Sort order ["name", "endpointCount", "group"]
+
+        Returns:
+            List of category dictionaries
+
+        Raises:
+            RepositoryError: If query fails
+        """
+        try:
+            # Build SQL query
+            query = """
+            SELECT
+                category_name,
+                display_name,
+                description,
+                category_group,
+                endpoint_count,
+                http_methods,
+                api_id
+            FROM endpoint_categories
+            WHERE (? IS NULL OR api_id = ?)
+              AND (? IS NULL OR category_group = ?)
+              AND (? = 1 OR endpoint_count > 0)
+            """
+
+            # Add sorting
+            if sort_by == "name":
+                query += " ORDER BY category_name ASC"
+            elif sort_by == "endpointCount":
+                query += " ORDER BY endpoint_count DESC, category_name ASC"
+            elif sort_by == "group":
+                query += " ORDER BY category_group ASC, category_name ASC"
+            else:
+                query += " ORDER BY category_name ASC"
+
+            # Execute query
+            result = await self.session.execute(
+                text(query),
+                [
+                    api_id,
+                    api_id,
+                    category_group,
+                    category_group,
+                    1 if include_empty else 0,
+                ],
+            )
+
+            rows = result.fetchall()
+
+            # Convert to dictionaries
+            categories = []
+            for row in rows:
+                import json
+
+                categories.append(
+                    {
+                        "name": row[0],
+                        "displayName": row[1],
+                        "description": row[2],
+                        "group": row[3],
+                        "endpointCount": row[4],
+                        "httpMethods": json.loads(row[5]) if row[5] else [],
+                        "api_id": row[6],
+                    }
+                )
+
+            self.logger.debug(
+                "Categories retrieved",
+                count=len(categories),
+                api_id=api_id,
+                category_group=category_group,
+            )
+
+            return categories
+
+        except Exception as e:
+            self.logger.error(
+                "Failed to get categories",
+                api_id=api_id,
+                category_group=category_group,
+                error=str(e),
+            )
+            raise RepositoryError(f"Failed to get categories: {str(e)}")
+
+    async def get_category_groups(
+        self, api_id: Optional[int] = None
+    ) -> List[Dict[str, Any]]:
+        """Get category groups with aggregated statistics.
+
+        Epic 6: Hierarchical Endpoint Catalog System
+
+        Args:
+            api_id: Optional API ID filter
+
+        Returns:
+            List of group dictionaries with categoryCount, totalEndpoints, categories
+
+        Raises:
+            RepositoryError: If query fails
+        """
+        try:
+            query = """
+            SELECT
+                category_group,
+                COUNT(DISTINCT category_name) as category_count,
+                SUM(endpoint_count) as total_endpoints,
+                GROUP_CONCAT(category_name, ',') as categories
+            FROM endpoint_categories
+            WHERE category_group IS NOT NULL
+              AND (? IS NULL OR api_id = ?)
+            GROUP BY category_group
+            ORDER BY category_group ASC
+            """
+
+            result = await self.session.execute(text(query), [api_id, api_id])
+            rows = result.fetchall()
+
+            groups = []
+            for row in rows:
+                groups.append(
+                    {
+                        "name": row[0],
+                        "categoryCount": row[1],
+                        "totalEndpoints": row[2],
+                        "categories": row[3].split(",") if row[3] else [],
+                    }
+                )
+
+            self.logger.debug("Category groups retrieved", count=len(groups))
+
+            return groups
+
+        except Exception as e:
+            self.logger.error("Failed to get category groups", error=str(e))
+            raise RepositoryError(f"Failed to get category groups: {str(e)}")
+
+    async def get_endpoints_by_category(
+        self,
+        category: str,
+        api_id: Optional[int] = None,
+        include_deprecated: bool = True,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> List[Endpoint]:
+        """Get endpoints filtered by category with pagination.
+
+        Epic 6: Hierarchical Endpoint Catalog System - AC 5
+
+        Args:
+            category: Category name to filter by (case-insensitive)
+            api_id: Optional API ID filter
+            include_deprecated: Include deprecated endpoints
+            limit: Maximum number of results
+            offset: Pagination offset
+
+        Returns:
+            List of Endpoint objects matching the category
+
+        Raises:
+            RepositoryError: If query fails
+        """
+        try:
+            stmt = select(Endpoint).where(
+                func.lower(Endpoint.category) == func.lower(category)
+            )
+
+            if api_id:
+                stmt = stmt.where(Endpoint.api_id == api_id)
+
+            if not include_deprecated:
+                stmt = stmt.where(Endpoint.deprecated == False)
+
+            stmt = stmt.order_by(Endpoint.path, Endpoint.method)
+            stmt = stmt.limit(limit).offset(offset)
+
+            result = await self.session.execute(stmt)
+            endpoints = result.scalars().all()
+
+            self.logger.debug(
+                "Endpoints retrieved by category",
+                category=category,
+                count=len(endpoints),
+                api_id=api_id,
+            )
+
+            return list(endpoints)
+
+        except Exception as e:
+            self.logger.error(
+                "Failed to get endpoints by category",
+                category=category,
+                api_id=api_id,
+                error=str(e),
+            )
+            raise RepositoryError(f"Failed to get endpoints by category: {str(e)}")

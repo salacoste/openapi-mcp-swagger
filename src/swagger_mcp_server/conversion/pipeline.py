@@ -90,7 +90,8 @@ class ConversionPipeline:
 
             # Phase 2: Core processing pipeline
             parsed_data = await self._execute_parsing_phase()
-            normalized_data = await self._execute_normalization_phase(parsed_data)
+            categorized_data = await self._execute_categorization_phase(parsed_data)
+            normalized_data = await self._execute_normalization_phase(categorized_data)
             database_path = await self._execute_storage_phase(normalized_data)
             search_index = await self._execute_indexing_phase(
                 normalized_data, database_path
@@ -218,6 +219,80 @@ class ConversionPipeline:
 
             except Exception as e:
                 raise ConversionError(f"Failed to parse Swagger file: {str(e)}")
+
+    async def _execute_categorization_phase(
+        self, parsed_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Execute categorization phase with Epic 6 integration."""
+        with self.progress_tracker.track_phase("Categorizing API endpoints"):
+            try:
+                from ..parser.endpoint_processor import enrich_endpoints_with_categories
+
+                # Get endpoints from parsed data
+                endpoints = parsed_data.get("endpoints", [])
+
+                if not endpoints:
+                    logger.info("No endpoints to categorize, skipping categorization")
+                    return parsed_data
+
+                # Prepare endpoints for categorization
+                endpoint_list = []
+                for endpoint in endpoints:
+                    endpoint_list.append(
+                        {
+                            "path": endpoint.get("path"),
+                            "method": endpoint.get("method"),
+                            "operation": {
+                                "tags": endpoint.get("tags", []),
+                                "operationId": endpoint.get("operation_id"),
+                                "summary": endpoint.get("summary"),
+                                "description": endpoint.get("description"),
+                            },
+                        }
+                    )
+
+                # Enrich endpoints with category information
+                enriched_endpoints, category_catalog = enrich_endpoints_with_categories(
+                    endpoint_list, parsed_data
+                )
+
+                # Update endpoints in parsed_data with category fields
+                for i, endpoint in enumerate(endpoints):
+                    enriched = enriched_endpoints[i]
+                    endpoint["category"] = enriched.get("category")
+                    endpoint["category_group"] = enriched.get("category_group")
+                    endpoint["category_display_name"] = enriched.get(
+                        "category_display_name"
+                    )
+                    endpoint["category_metadata"] = enriched.get("category_metadata")
+
+                # Add category catalog to parsed data
+                parsed_data["category_catalog"] = category_catalog
+
+                # Update statistics
+                self.conversion_stats.update(
+                    {
+                        "categorization_completed": True,
+                        "categories_found": len(category_catalog),
+                        "categorized_endpoints": len(enriched_endpoints),
+                    }
+                )
+
+                logger.info(
+                    "Categorization completed",
+                    endpoints=len(enriched_endpoints),
+                    categories=len(category_catalog),
+                )
+
+                return parsed_data
+
+            except Exception as e:
+                logger.warning(
+                    "Categorization failed, continuing without categories",
+                    error=str(e),
+                )
+                # Don't fail the entire conversion if categorization fails
+                return parsed_data
 
     async def _execute_normalization_phase(
         self, parsed_data: Dict[str, Any]
