@@ -64,194 +64,361 @@ Generated on: {generation_date}
 API Version: {api_version}
 """
 
-import asyncio
-import os
 import sys
+import logging
+import warnings
+import os
 from pathlib import Path
+from typing import Optional
+
+# Redirect stderr to devnull BEFORE any imports that might log
+_devnull = open(os.devnull, 'w')
+sys.stderr = _devnull
+
+# Suppress all warnings and debug output
+warnings.filterwarnings("ignore")
+os.environ["PYTHONWARNINGS"] = "ignore"
+
+# Disable all logging to prevent debug output
+logging.disable(logging.CRITICAL)
+# Also set root logger level to prevent any output
+logging.getLogger().setLevel(logging.CRITICAL + 1)
+
+# Suppress structlog output
+try:
+    import structlog
+    structlog.configure(
+        processors=[],
+        wrapper_class=structlog.make_filtering_bound_logger(logging.CRITICAL),
+        context_class=dict,
+        logger_factory=structlog.PrintLoggerFactory(_devnull),
+        cache_logger_on_first_use=False,
+    )
+except ImportError:
+    pass
 
 # Add the swagger_mcp_server package to Python path
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
 try:
-    from swagger_mcp_server.server.mcp_server import MCPServer
-    from swagger_mcp_server.storage.database import Database
-    from swagger_mcp_server.search.search_engine import SearchEngine
-    from swagger_mcp_server.search.index_manager import SearchIndexManager
-    from swagger_mcp_server.config.settings import Settings
+    from mcp.server.fastmcp import FastMCP
+    from swagger_mcp_server.storage.database import DatabaseManager, DatabaseConfig
+    from swagger_mcp_server.storage.repositories import (
+        EndpointRepository,
+        MetadataRepository,
+        SchemaRepository,
+    )
 except ImportError as e:
-    print(f"Error importing required modules: {{e}}")
-    print("Please ensure swagger-mcp-server is properly installed:")
-    print("  pip install -r requirements.txt")
     sys.exit(1)
 
-import structlog
+# Global database manager
+db_manager = None
+_initialized = False
 
-# Configure logging
-structlog.configure(
-    processors=[
-        structlog.dev.ConsoleRenderer(colors=True)
-    ],
-    wrapper_class=structlog.make_filtering_bound_logger(20),  # INFO level
-    logger_factory=structlog.WriteLoggerFactory(),
-    cache_logger_on_first_use=True,
-)
+async def ensure_initialized():
+    """Ensure database is initialized (lazy initialization)."""
+    global db_manager, _initialized
 
-logger = structlog.get_logger(__name__)
+    if _initialized:
+        return
 
+    try:
+        # Initialize database with correct path
+        database_path = str(Path(__file__).parent / "data" / "mcp_server.db")
 
-class {server_class_name}:
-    """Generated MCP Server for {api_title}."""
+        db_config = DatabaseConfig(
+            database_path=database_path,
+            vacuum_on_startup=False
+        )
+        db_manager = DatabaseManager(db_config)
+        await db_manager.initialize()
 
-    def __init__(self):
-        self.config = self._load_config()
-        self.database = None
-        self.search_engine = None
-        self.mcp_server = None
+        _initialized = True
 
-    def _load_config(self) -> Dict[str, Any]:
-        """Load server configuration."""
-        base_config = {{
-            "api_title": "{api_title}",
-            "api_version": "{api_version}",
-            "server_name": "{server_name}",
-            "host": "{host}",
-            "port": {port},
-            "database_path": "{database_path}",
-            "search_index_path": "{search_index_path}",
-        }}
+    except Exception as e:
+        raise
 
-        # Load from config file if exists
-        config_file = Path(__file__).parent / "config" / "server.yaml"
-        if config_file.exists():
-            try:
-                import yaml
-                with open(config_file) as f:
-                    file_config = yaml.safe_load(f) or {{}}
-                base_config.update(file_config)
-            except ImportError:
-                logger.warning("PyYAML not installed, using default configuration")
-            except Exception as e:
-                logger.warning("Failed to load config file", error=str(e))
+def create_server() -> FastMCP:
+    """Create and configure the MCP server."""
+    mcp = FastMCP("{server_name}")
 
-        # Override with environment variables
-        env_overrides = {{
-            "host": os.getenv("MCP_HOST"),
-            "port": os.getenv("MCP_PORT"),
-            "database_path": os.getenv("MCP_DATABASE_PATH"),
-        }}
+    @mcp.tool()
+    async def searchEndpoints(
+        query: str,
+        method: Optional[str] = None,
+        limit: int = 10
+    ) -> str:
+        """Search API endpoints by keyword, HTTP method, or path pattern.
 
-        for key, value in env_overrides.items():
-            if value is not None:
-                if key == "port":
-                    try:
-                        base_config[key] = int(value)
-                    except ValueError:
-                        logger.warning("Invalid port value in environment", port=value)
+        Args:
+            query: Search query (keywords, endpoint path, description)
+            method: HTTP method filter (GET, POST, PUT, DELETE, etc.)
+            limit: Maximum number of results to return (1-100)
+        """
+        await ensure_initialized()
+        global db_manager
+
+        try:
+            # Create repository with database session
+            async with db_manager.get_session() as session:
+                endpoint_repo = EndpointRepository(session)
+                endpoints = await endpoint_repo.search_endpoints(
+                    query=query,
+                    methods=[method] if method else None,
+                    limit=min(limit, 100)
+                )
+
+            results = []
+            for endpoint in endpoints:
+                results.append({{
+                    "id": endpoint.id,
+                    "path": endpoint.path,
+                    "method": endpoint.method,
+                    "summary": endpoint.summary,
+                    "description": endpoint.description,
+                    "operationId": endpoint.operation_id
+                }})
+
+            # Format detailed response
+            response = f"Found {{len(results)}} endpoints:\\n\\n"
+            for i, r in enumerate(results[:10], 1):
+                response += f"{{i}}. **{{r['method']}} {{r['path']}}**\\n"
+                if r['summary']:
+                    response += f"   Summary: {{r['summary']}}\\n"
+                if r['operationId']:
+                    response += f"   Operation ID: {{r['operationId']}}\\n"
+                response += f"   Endpoint ID: {{r['id']}} (use this with getExample)\\n"
+                response += "\\n"
+
+            if len(results) > 10:
+                response += f"... and {{len(results) - 10}} more endpoints\\n"
+
+            return response
+
+        except Exception as e:
+            return f"Error searching endpoints: {{str(e)}}"
+
+    @mcp.tool()
+    async def getSchema(
+        schema_name: str,
+        include_examples: bool = True
+    ) -> str:
+        """Get detailed schema definition for API components.
+
+        Args:
+            schema_name: Name of the schema/component to retrieve.
+                        Note: Schema names may be flattened from nested OpenAPI structures.
+                        For example: 'CreateProductCampaignRequestV2ProductCampaignPlacementV2'
+                        instead of 'CreateProductCampaignRequest.V2.ProductCampaignPlacement.V2'.
+                        Use searchEndpoints to find related schemas, or query the database directly.
+            include_examples: Include example values in the schema
+        """
+        await ensure_initialized()
+        global db_manager
+
+        try:
+            async with db_manager.get_session() as session:
+                schema_repo = SchemaRepository(session)
+                schema = await schema_repo.get_by_name(schema_name)
+
+            if not schema:
+                # Try to find similar schema names
+                async with db_manager.get_session() as session:
+                    schema_repo = SchemaRepository(session)
+                    similar = await schema_repo.search_schemas(query=schema_name, limit=5)
+
+                if similar:
+                    suggestions = "\\n".join([f"  - {{s.name}}" for s in similar[:5]])
+                    return f"Schema '{{schema_name}}' not found.\\n\\nDid you mean one of these?\\n{{suggestions}}\\n\\nNote: Schema names are flattened from OpenAPI structure."
                 else:
-                    base_config[key] = value
+                    return f"Schema '{{schema_name}}' not found. Tip: Schema names may be flattened (e.g., 'TypeNameSubType' instead of 'TypeName.SubType')."
 
-        return base_config
+            # Build detailed schema information
+            result = f"# Schema: {{schema.name}}\\n\\n"
+            result += f"**Type**: {{schema.type}}\\n"
 
-    async def initialize(self):
-        """Initialize database and search components."""
-        try:
-            logger.info("Initializing MCP server components")
+            if schema.description:
+                result += f"**Description**: {{schema.description}}\\n"
 
-            # Initialize database
-            database_path = self.config["database_path"]
-            if not os.path.isabs(database_path):
-                database_path = os.path.join(os.path.dirname(__file__), database_path)
+            # Parse and display properties
+            if schema.properties:
+                import json
+                try:
+                    props = json.loads(schema.properties) if isinstance(schema.properties, str) else schema.properties
+                    if props:
+                        result += f"\\n## Properties ({{len(props)}}):\\n\\n"
+                        for prop_name, prop_def in list(props.items())[:20]:  # Limit to 20 properties
+                            prop_type = prop_def.get('type', 'unknown')
+                            prop_desc = prop_def.get('description', '')
+                            result += f"- **{{prop_name}}** ({{prop_type}})"
+                            if prop_desc:
+                                result += f": {{prop_desc}}"
+                            result += "\\n"
+                        if len(props) > 20:
+                            result += f"\\n... and {{len(props) - 20}} more properties\\n"
+                except:
+                    pass
 
-            self.database = Database(database_path)
-            await self.database.connect()
-            logger.info("Database connected", path=database_path)
+            # Display required fields
+            if schema.required:
+                try:
+                    req = json.loads(schema.required) if isinstance(schema.required, str) else schema.required
+                    if req:
+                        result += f"\\n**Required fields**: {{', '.join(req)}}\\n"
+                except:
+                    pass
 
-            # Initialize search engine
-            search_index_path = self.config["search_index_path"]
-            if not os.path.isabs(search_index_path):
-                search_index_path = os.path.join(os.path.dirname(__file__), search_index_path)
-
-            index_manager = SearchIndexManager(search_index_path)
-            self.search_engine = SearchEngine(index_manager, {{}})
-            logger.info("Search engine initialized", path=search_index_path)
-
-            # Initialize MCP server
-            settings = Settings()
-            self.mcp_server = MCPServer(
-                database=self.database,
-                search_engine=self.search_engine,
-                settings=settings
-            )
-            logger.info("MCP server initialized")
+            return result
 
         except Exception as e:
-            logger.error("Failed to initialize server components", error=str(e))
-            raise
+            return f"Error retrieving schema: {{str(e)}}"
 
-    async def start(self):
-        """Start the MCP server."""
+    @mcp.tool()
+    async def getExample(
+        endpoint_id: str,
+        language: str = "curl"
+    ) -> str:
+        """Generate code examples for API endpoints.
+
+        Args:
+            endpoint_id: Endpoint ID (integer) or path (e.g., '/api/client/campaign')
+            language: Programming language for the example (curl, javascript, python, typescript)
+        """
+        await ensure_initialized()
+        global db_manager
+
         try:
-            await self.initialize()
+            async with db_manager.get_session() as session:
+                endpoint_repo = EndpointRepository(session)
+                metadata_repo = MetadataRepository(session)
 
-            logger.info("Starting MCP server for {{}}".format(self.config["api_title"]))
-            logger.info("Server configuration:")
-            logger.info("  API: {{}} v{{}}".format(
-                self.config["api_title"],
-                self.config["api_version"]
-            ))
-            logger.info("  Host: {{}}".format(self.config["host"]))
-            logger.info("  Port: {{}}".format(self.config["port"]))
-            logger.info("  Database: {{}}".format(self.config["database_path"]))
+                # Try to parse as integer ID first, otherwise search by path
+                endpoint = None
 
-            print("\\n🚀 MCP Server is starting...")
-            print(f"📊 API: {{self.config['api_title']}} v{{self.config['api_version']}}")
-            print(f"🌐 Server URL: http://{{self.config['host']}}:{{self.config['port']}}")
-            print(f"📚 Available MCP methods: searchEndpoints, getSchema, getExample")
-            print(f"🤖 AI agents can now connect and query API documentation")
-            print("\\n📋 To stop the server, press Ctrl+C")
-            print("📖 For usage examples, see README.md")
+                # Try integer ID (accept both int and string representations)
+                try:
+                    int_id = int(str(endpoint_id).strip())
+                    endpoint = await endpoint_repo.get_by_id(int_id)
+                except (ValueError, TypeError):
+                    pass
 
-            # Start the MCP server
-            await self.mcp_server.start(
-                host=self.config["host"],
-                port=self.config["port"]
-            )
+                # If not found by ID, try exact path match
+                if not endpoint:
+                    # Try to find by exact path match
+                    all_endpoints = await endpoint_repo.list(limit=1000)
+                    for ep in all_endpoints:
+                        if ep.path == endpoint_id or ep.path.strip('/') == str(endpoint_id).strip('/'):
+                            endpoint = ep
+                            break
 
-        except KeyboardInterrupt:
-            logger.info("Shutting down server")
-            print("\\n👋 Server shutting down...")
+                # If still not found, try fuzzy search
+                if not endpoint:
+                    endpoints = await endpoint_repo.search_endpoints(
+                        query=endpoint_id,
+                        methods=None,
+                        limit=1
+                    )
+                    if endpoints:
+                        endpoint = endpoints[0]
+
+                if not endpoint:
+                    return f"Endpoint '{{endpoint_id}}' not found. Try using endpoint ID from searchEndpoints."
+
+                # Get API metadata for base URL
+                api_metadata = await metadata_repo.get_by_id(endpoint.api_id)
+
+                # Determine base URL
+                base_url = "https://api.example.com"
+                if api_metadata:
+                    if api_metadata.servers:
+                        import json
+                        servers = json.loads(api_metadata.servers) if isinstance(api_metadata.servers, str) else api_metadata.servers
+                        if servers and len(servers) > 0:
+                            base_url = servers[0].get("url", base_url)
+                    elif api_metadata.base_url:
+                        base_url = api_metadata.base_url
+
+            # Build full URL
+            full_url = f"{{base_url}}{{endpoint.path}}"
+
+            # Generate language-specific examples
+            example = f"# {{language.upper()}} example for {{endpoint.method}} {{endpoint.path}}\\n\\n"
+
+            if language == "curl":
+                example += f"curl -X {{endpoint.method}} '{{full_url}}'"
+                if endpoint.method in ["POST", "PUT", "PATCH"]:
+                    example += " \\\\\\n"
+                    example += "  -H 'Content-Type: application/json' \\\\\\n"
+                    example += "  -d '{{}}'"
+
+            elif language == "python":
+                example += "import requests\\n\\n"
+                example += f"url = '{{full_url}}'\\n"
+                if endpoint.method in ["POST", "PUT", "PATCH"]:
+                    example += "headers = {{'Content-Type': 'application/json'}}\\n"
+                    example += "data = {{}}\\n\\n"
+                    example += f"response = requests.{{endpoint.method.lower()}}(url, headers=headers, json=data)\\n"
+                else:
+                    example += f"response = requests.{{endpoint.method.lower()}}(url)\\n"
+                example += "print(response.json())"
+
+            elif language == "javascript":
+                example += f"const url = '{{full_url}}';\\n\\n"
+                if endpoint.method in ["POST", "PUT", "PATCH"]:
+                    example += "fetch(url, {{\\n"
+                    example += f"  method: '{{endpoint.method}}',\\n"
+                    example += "  headers: {{'Content-Type': 'application/json'}},\\n"
+                    example += "  body: JSON.stringify({{}})\\n"
+                    example += "}})\\n"
+                else:
+                    example += f"fetch(url, {{{{ method: '{{endpoint.method}}' }}}})\\n"
+                example += "  .then(response => response.json())\\n"
+                example += "  .then(data => console.log(data));"
+
+            elif language == "typescript":
+                example += f"const url: string = '{{full_url}}';\\n\\n"
+                if endpoint.method in ["POST", "PUT", "PATCH"]:
+                    example += "const response = await fetch(url, {{\\n"
+                    example += f"  method: '{{endpoint.method}}',\\n"
+                    example += "  headers: {{'Content-Type': 'application/json'}},\\n"
+                    example += "  body: JSON.stringify({{}})\\n"
+                    example += "}});\\n\\n"
+                else:
+                    example += f"const response = await fetch(url, {{{{ method: '{{endpoint.method}}' }}}});\\n\\n"
+                example += "const data = await response.json();\\n"
+                example += "console.log(data);"
+
+            else:
+                example += f"# {{language}} example not implemented yet\\n"
+                example += f"# URL: {{full_url}}\\n"
+                example += f"# Method: {{endpoint.method}}"
+
+            return example
+
         except Exception as e:
-            logger.error("Server error", error=str(e))
-            print(f"\\n❌ Server error: {{e}}")
-            raise
-        finally:
-            await self.cleanup()
+            return f"Error generating example: {{str(e)}}"
 
-    async def cleanup(self):
-        """Clean up resources."""
-        try:
-            if self.mcp_server:
-                await self.mcp_server.stop()
-            if self.database:
-                await self.database.close()
-        except Exception as e:
-            logger.error("Error during cleanup", error=str(e))
-
+    return mcp
 
 async def main():
     """Main entry point."""
-    server = {server_class_name}()
-    await server.start()
+    try:
+        # Initialize database first
+        await ensure_initialized()
 
+        # Create and run the MCP server
+        server = create_server()
+
+        # Run the server
+        server.run()
+
+    except Exception as e:
+        sys.exit(1)
 
 if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        print("\\n👋 Goodbye!")
-    except Exception as e:
-        print(f"\\n❌ Fatal error: {{e}}")
-        sys.exit(1)
+    # Let FastMCP handle everything - database will initialize on first request
+    server = create_server()
+    server.run()
 '''
 
         # Generate class name from server name
@@ -263,11 +430,6 @@ if __name__ == "__main__":
             swagger_file=config["swagger_file"],
             generation_date=config["generation_date"],
             server_name=config["server_name"],
-            server_class_name=server_class_name,
-            host=config["host"],
-            port=config["port"],
-            database_path=config["database_path"],
-            search_index_path=config["search_index_path"],
         )
 
         server_path = os.path.join(self.output_dir, "server.py")
@@ -522,6 +684,16 @@ schema = await client.getSchema("User")
 # Get schema with limited depth
 schema = await client.getSchema("UserProfile", maxDepth=2)
 ```
+
+**Important Note on Schema Names:**
+
+Schema names in this MCP server are flattened from nested OpenAPI structures. This means that nested components like `CreateProductCampaignRequest.V2.ProductCampaignPlacement.V2` become `CreateProductCampaignRequestV2ProductCampaignPlacementV2` in the database.
+
+If you encounter "Schema not found" errors:
+1. The server will suggest similar schema names automatically
+2. Check the exact schema names in your OpenAPI specification's `components.schemas` section
+3. Schema names are case-sensitive and concatenated without dots or separators
+4. Use `searchEndpoints` to discover related schemas in endpoint responses
 
 ### getExample
 Generate code examples for API endpoints.
@@ -1035,6 +1207,7 @@ This completes the usage examples for your generated MCP server.
             f"# Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
             "",
             "# Core MCP Server dependencies",
+            "mcp>=1.0.0",
             "swagger-mcp-server>=0.1.0",
             "",
             "# Optional dependencies for enhanced functionality",

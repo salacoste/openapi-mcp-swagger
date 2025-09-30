@@ -102,6 +102,9 @@ class ConversionPipeline:
             )
             deployment_package = await self._create_deployment_package(server_config)
 
+            # Phase 3.5: Populate real database with API data
+            await self._populate_database(parsed_data)
+
             # Phase 4: Validation and finalization
             if not self.options.get("skip_validation", False):
                 await self._validate_generated_server(deployment_package)
@@ -363,6 +366,127 @@ class ConversionPipeline:
 
             except Exception as e:
                 raise ConversionError(f"Failed to create deployment package: {str(e)}")
+
+    async def _populate_database(self, parsed_data: Dict[str, Any]):
+        """Populate database with actual API data from parsed swagger."""
+        try:
+            import json
+            from pathlib import Path
+
+            # Import storage components
+            from ..storage.database import DatabaseManager, DatabaseConfig
+            from ..storage.repositories import (
+                EndpointRepository,
+                SchemaRepository,
+                MetadataRepository,
+            )
+            from ..storage.models import APIMetadata, Endpoint, Schema
+
+            # Database path
+            db_path = Path(self.output_dir) / "data" / "mcp_server.db"
+
+            # Remove mock database if exists
+            if db_path.exists():
+                db_path.unlink()
+
+            # Initialize real database
+            db_config = DatabaseConfig(database_path=str(db_path))
+            db_manager = DatabaseManager(db_config)
+            await db_manager.initialize()
+
+            # Load swagger data
+            with open(self.swagger_file, "r", encoding="utf-8") as f:
+                swagger = json.load(f)
+
+            async with db_manager.get_session() as session:
+                # Create API metadata
+                metadata_repo = MetadataRepository(session)
+
+                # Extract servers info
+                servers = swagger.get('servers', [])
+                if not servers and swagger.get('host'):
+                    # Swagger 2.0 fallback
+                    scheme = swagger.get('schemes', ['https'])[0]
+                    host = swagger.get('host')
+                    base_path = swagger.get('basePath', '')
+                    servers = [{"url": f"{scheme}://{host}{base_path}"}]
+
+                api = APIMetadata(
+                    title=swagger["info"]["title"],
+                    version=swagger["info"]["version"],
+                    openapi_version=swagger.get("swagger", swagger.get("openapi", "3.0")),
+                    description=swagger["info"].get("description", ""),
+                    base_url=swagger.get("host", ""),
+                    contact_info=json.dumps(swagger.get("info", {}).get("contact", {})),
+                    servers=json.dumps(servers) if servers else None
+                )
+                api = await metadata_repo.create(api)
+
+                # Create endpoints
+                endpoint_repo = EndpointRepository(session)
+                endpoint_count = 0
+                for path, path_item in swagger.get("paths", {}).items():
+                    for method, operation in path_item.items():
+                        if method in ["get", "post", "put", "delete", "patch"]:
+                            endpoint = Endpoint(
+                                api_id=api.id,
+                                path=path,
+                                method=method.upper(),
+                                operation_id=operation.get("operationId", ""),
+                                summary=operation.get("summary", ""),
+                                description=operation.get("description", ""),
+                                tags=json.dumps(operation.get("tags", [])),
+                                parameters=json.dumps(operation.get("parameters", [])),
+                                request_body=json.dumps(operation.get("requestBody", {})),
+                                responses=json.dumps(operation.get("responses", {}))
+                            )
+                            await endpoint_repo.create(endpoint)
+                            endpoint_count += 1
+
+                # Create schemas
+                schema_repo = SchemaRepository(session)
+                schemas = swagger.get('components', {}).get('schemas', {})
+                # Swagger 2.0 fallback
+                if not schemas:
+                    schemas = swagger.get('definitions', {})
+
+                schema_count = 0
+                for schema_name, schema_def in schemas.items():
+                    schema_obj = Schema(
+                        api_id=api.id,
+                        name=schema_name,
+                        type=schema_def.get("type", "object"),
+                        title=schema_def.get("title", ""),
+                        description=schema_def.get("description", ""),
+                        properties=json.dumps(schema_def.get("properties", {})),
+                        required=json.dumps(schema_def.get("required", [])),
+                        example=json.dumps(schema_def.get("example", {})),
+                        format=schema_def.get("format", "")
+                    )
+                    await schema_repo.create(schema_obj)
+                    schema_count += 1
+
+                await session.commit()
+
+            await db_manager.close()
+
+            logger.info(
+                "Database populated successfully",
+                endpoints=endpoint_count,
+                schemas=schema_count
+            )
+
+            # Update conversion stats
+            self.conversion_stats.update({
+                "database_populated": True,
+                "endpoints_inserted": endpoint_count,
+                "schemas_inserted": schema_count
+            })
+
+        except Exception as e:
+            logger.error("Failed to populate database", error=str(e))
+            # Don't fail conversion, just log warning
+            logger.warning("Database population failed, server generated with empty database")
 
     async def _validate_generated_server(self, deployment_package: str):
         """Validate generated MCP server functionality."""
