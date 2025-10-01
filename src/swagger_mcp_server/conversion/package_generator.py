@@ -874,6 +874,56 @@ curl_example = await client.getExample("/api/v1/users/{{id}}", "curl")
 python_example = await client.getExample("/api/v1/users", "python", "POST")
 ```
 
+## Authentication & Authorization
+
+⚠️ **Important**: This MCP server provides **API documentation and code examples only**. It does not handle authentication or make actual API calls.
+
+### If the original Swagger/OpenAPI specification lacks authentication details:
+
+The generated code examples may not include authentication headers. You will need to:
+
+1. **Consult the API documentation** from the API provider for authentication requirements
+2. **Add authentication headers** to the generated code examples manually
+3. **Common authentication methods**:
+   - **API Key**: Add header like `'X-API-Key': 'your-api-key'` or `'Authorization': 'Bearer your-token'`
+   - **OAuth 2.0**: Obtain access token and add `'Authorization': 'Bearer access-token'`
+   - **Basic Auth**: Add `'Authorization': 'Basic base64(username:password)'`
+
+### Example: Adding Authentication to Generated Code
+
+If `getExample` returns code without auth headers, modify it:
+
+```python
+# Generated code (without auth)
+response = requests.get('https://api.example.com/users')
+
+# Modified code (with API key)
+headers = {{'X-API-Key': 'your-api-key-here'}}
+response = requests.get('https://api.example.com/users', headers=headers)
+
+# Modified code (with Bearer token)
+headers = {{'Authorization': 'Bearer your-access-token'}}
+response = requests.get('https://api.example.com/users', headers=headers)
+```
+
+### For API Providers
+
+If you're maintaining this API, consider adding security schemes to your OpenAPI specification:
+
+```yaml
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+    BearerAuth:
+      type: http
+      scheme: bearer
+security:
+  - ApiKeyAuth: []
+```
+
 ## Configuration
 
 Edit `config/server.yaml` to customize server behavior:
