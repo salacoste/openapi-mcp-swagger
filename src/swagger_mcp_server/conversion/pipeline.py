@@ -455,7 +455,7 @@ class ConversionPipeline:
                 SchemaRepository,
                 MetadataRepository,
             )
-            from ..storage.models import APIMetadata, Endpoint, Schema
+            from ..storage.models import APIMetadata, Endpoint, Schema, EndpointCategory
 
             # Database path
             db_path = Path(self.output_dir) / "data" / "mcp_server.db"
@@ -496,6 +496,21 @@ class ConversionPipeline:
                     servers=json.dumps(servers) if servers else None
                 )
                 api = await metadata_repo.create(api)
+
+                # Extract category catalog from parsed data (Story 8.2)
+                categories = parsed_data.get("category_catalog", [])
+                logger.info(
+                    "Retrieved categories from categorization phase",
+                    count=len(categories)
+                )
+
+                # Add api_id to each category (Story 8.2)
+                enriched_categories = []
+                if categories:
+                    for cat in categories:
+                        cat_with_id = cat.copy()
+                        cat_with_id["api_id"] = api.id
+                        enriched_categories.append(cat_with_id)
 
                 # Create endpoints
                 endpoint_repo = EndpointRepository(session)
@@ -543,19 +558,56 @@ class ConversionPipeline:
 
                 await session.commit()
 
+            # Create categories (Story 8.2) - after commit to ensure api_id exists
+            category_count = 0
+            if enriched_categories:
+                logger.info(
+                    "Persisting categories to database",
+                    count=len(enriched_categories)
+                )
+
+                for category_data in enriched_categories:
+                    try:
+                        # Use DatabaseManager's create_endpoint_category (Story 8.1)
+                        await db_manager.create_endpoint_category(
+                            api_id=category_data["api_id"],
+                            category_name=category_data["category_name"],
+                            display_name=category_data.get("display_name"),
+                            description=category_data.get("description"),
+                            category_group=category_data.get("category_group"),
+                            endpoint_count=category_data.get("endpoint_count", 0),
+                            http_methods=category_data.get("http_methods", [])
+                        )
+                        category_count += 1
+                    except Exception as e:
+                        logger.warning(
+                            "Failed to persist category",
+                            category=category_data.get("category_name"),
+                            error=str(e)
+                        )
+
+                logger.info(
+                    "Categories persisted successfully",
+                    count=category_count
+                )
+            else:
+                logger.warning("No categories found, skipping category population")
+
             await db_manager.close()
 
             logger.info(
                 "Database populated successfully",
                 endpoints=endpoint_count,
-                schemas=schema_count
+                schemas=schema_count,
+                categories=category_count
             )
 
             # Update conversion stats
             self.conversion_stats.update({
                 "database_populated": True,
                 "endpoints_inserted": endpoint_count,
-                "schemas_inserted": schema_count
+                "schemas_inserted": schema_count,
+                "categories_inserted": category_count
             })
 
         except Exception as e:

@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any, AsyncGenerator, Dict, List, Optional
 
 import aiosqlite
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, select
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
@@ -25,6 +25,8 @@ from swagger_mcp_server.storage.models import (
     SCHEMAS_FTS_TRIGGERS,
     Base,
     DatabaseMigration,
+    EndpointCategory,
+    APIMetadata,
 )
 
 logger = get_logger(__name__)
@@ -439,6 +441,157 @@ class DatabaseManager:
         except Exception as e:
             self.logger.error("Failed to validate database integrity", error=str(e))
             return {"error": str(e)}
+
+    async def populate_database(
+        self,
+        api_metadata: "APIMetadata",
+        endpoints: Optional[List["Endpoint"]] = None,
+        schemas: Optional[List["Schema"]] = None,
+        categories: Optional[List[Dict[str, Any]]] = None,
+    ) -> None:
+        """Populate database with parsed Swagger data.
+
+        Args:
+            api_metadata: API metadata to create
+            endpoints: List of endpoint models to create
+            schemas: List of schema models to create
+            categories: List of category dictionaries to create
+
+        Note: This is a convenience method for batch population.
+        The conversion pipeline typically uses repositories directly.
+        """
+        from swagger_mcp_server.storage.repositories import (
+            EndpointRepository,
+            SchemaRepository,
+            MetadataRepository,
+        )
+
+        async with self.get_session() as session:
+            # Create API metadata
+            api_id = None
+            if api_metadata:
+                metadata_repo = MetadataRepository(session)
+                api_metadata = await metadata_repo.create(api_metadata)
+                api_id = api_metadata.id
+
+            # Create endpoints
+            if endpoints:
+                endpoint_repo = EndpointRepository(session)
+                for endpoint in endpoints:
+                    await endpoint_repo.create(endpoint)
+                self.logger.info(f"Created {len(endpoints)} endpoints")
+
+            # Create schemas
+            if schemas:
+                schema_repo = SchemaRepository(session)
+                for schema in schemas:
+                    await schema_repo.create(schema)
+                self.logger.info(f"Created {len(schemas)} schemas")
+
+            # Commit before creating categories to ensure api_id is available
+            await session.commit()
+
+            # Create categories (in separate session to avoid validation issues)
+            if categories:
+                self.logger.info(f"Populating {len(categories)} categories...")
+                success_count = 0
+                failure_count = 0
+
+                for category_data in categories:
+                    try:
+                        await self.create_endpoint_category(
+                            api_id=category_data["api_id"],
+                            category_name=category_data["name"],
+                            display_name=category_data.get("display_name"),
+                            description=category_data.get("description"),
+                            category_group=category_data.get("group"),
+                            endpoint_count=category_data.get("endpoint_count", 0),
+                            http_methods=category_data.get("http_methods", []),
+                        )
+                        success_count += 1
+                    except Exception as e:
+                        self.logger.error(
+                            f"Failed to insert category {category_data['name']}: {e}"
+                        )
+                        failure_count += 1
+
+                self.logger.info(
+                    f"Category population complete: "
+                    f"{success_count} success, {failure_count} failed"
+                )
+
+    async def create_endpoint_category(
+        self,
+        api_id: int,
+        category_name: str,
+        display_name: Optional[str] = None,
+        description: Optional[str] = None,
+        category_group: Optional[str] = None,
+        endpoint_count: int = 0,
+        http_methods: Optional[List[str]] = None,
+    ) -> EndpointCategory:
+        """Create endpoint category record in database.
+
+        Args:
+            api_id: Foreign key to api_metadata table
+            category_name: Machine-readable category identifier (e.g., "campaign")
+            display_name: Human-readable category name (e.g., "Кампании")
+            description: Category description from OpenAPI tags
+            category_group: Parent group name from x-tagGroups
+            endpoint_count: Number of endpoints in this category
+            http_methods: List of HTTP methods used in category (e.g., ["GET", "POST"])
+
+        Returns:
+            EndpointCategory: Created category model instance
+
+        Raises:
+            ValueError: If api_id does not exist
+            IntegrityError: If duplicate category_name for same api_id
+        """
+        from sqlalchemy.exc import IntegrityError
+
+        # Validate api_id exists
+        async with self.get_session() as session:
+            result = await session.execute(
+                select(APIMetadata).filter(APIMetadata.id == api_id)
+            )
+            api_exists = result.scalar_one_or_none()
+            if not api_exists:
+                raise ValueError(f"API with id {api_id} does not exist")
+
+        # Create category instance
+        # Note: TimestampMixin automatically handles created_at/updated_at
+        # Note: http_methods as list - SQLAlchemy JSON column handles serialization
+        category = EndpointCategory(
+            api_id=api_id,
+            category_name=category_name,
+            display_name=display_name,
+            description=description,
+            category_group=category_group,
+            endpoint_count=endpoint_count,
+            http_methods=http_methods or [],  # Pass list directly, not JSON string
+        )
+
+        # Insert with error handling
+        try:
+            async with self.get_session() as session:
+                session.add(category)
+                await session.commit()
+                await session.refresh(category)
+                self.logger.info(
+                    "Category created successfully",
+                    category_name=category_name,
+                    api_id=api_id,
+                )
+                return category
+        except IntegrityError as e:
+            self.logger.warning(
+                "Category creation failed - integrity error",
+                category_name=category_name,
+                api_id=api_id,
+                error=str(e),
+            )
+            raise
 
     async def close(self) -> None:
         """Close database connections and cleanup."""
