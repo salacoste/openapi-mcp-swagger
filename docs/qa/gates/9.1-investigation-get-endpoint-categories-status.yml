@@ -1,0 +1,155 @@
+schema: 1
+story: "9.1"
+story_title: "Investigation - getEndpointCategories Production Status"
+gate: PASS
+status_reason: "Investigation story properly structured with comprehensive checklist, evidence-based approach, and clear decision criteria. Ready for execution."
+reviewer: "Quinn (Test Architect)"
+updated: "2025-10-01T00:00:00Z"
+
+waiver: { active: false }
+
+top_issues: []
+
+quality_score: 95
+
+story_type: "Investigation"
+investigation_readiness: true
+
+evidence:
+  investigation_phases: 7
+  total_tasks: 25
+  estimated_duration: "2 hours"
+  decision_criteria_clear: true
+  evidence_collection_comprehensive: true
+
+investigation_structure:
+  phase_1_code_verification:
+    status: "Well-defined"
+    tasks: 3
+    expected_duration: "30 min"
+    notes: "Verifies tool registration in source code, method handler existence, MCP framework usage"
+
+  phase_2_runtime_testing:
+    status: "Well-defined"
+    tasks: 4
+    expected_duration: "1 hour"
+    notes: "Tests template and generated server startup, tools/list response, method execution"
+
+  phase_3_database_verification:
+    status: "Well-defined"
+    tasks: 3
+    expected_duration: "15 min"
+    notes: "Checks endpoint_categories table, validates Epic 8 dependency"
+
+  phase_4_production_testing:
+    status: "Well-defined"
+    tasks: 4
+    expected_duration: "30 min"
+    notes: "Claude Desktop integration testing, tool discovery, execution validation"
+
+  phase_5_log_analysis:
+    status: "Well-defined"
+    tasks: 3
+    expected_duration: "15 min"
+    notes: "Production log review, error pattern analysis"
+
+  phase_6_root_cause_determination:
+    status: "Well-defined"
+    tasks: 3
+    expected_duration: "15 min"
+    notes: "Evidence analysis, root cause selection (4 options), confidence assessment"
+
+  phase_7_recommendations:
+    status: "Well-defined"
+    tasks: 4
+    expected_duration: "15 min"
+    notes: "Epic disposition, story specifications if needed, documentation updates"
+
+root_cause_options:
+  option_a_tool_not_registered:
+    probability: "5%"
+    evidence_required: "Tool missing from tools/list response"
+    action: "Rewrite Epic 9 for registration fix"
+
+  option_b_database_empty:
+    probability: "80%"
+    evidence_required: "endpoint_categories table has 0 records"
+    action: "Close Epic 9, prioritize Epic 8 completion"
+    notes: "Most likely scenario based on SM Bob's technical review"
+
+  option_c_configuration_deployment:
+    probability: "10%"
+    evidence_required: "Server not starting, Claude Desktop not connecting"
+    action: "Create deployment/config fix epic"
+
+  option_d_tool_works_fine:
+    probability: "5%"
+    evidence_required: "Tool registered, callable, returns data (6 categories)"
+    action: "Close Epic 9 as 'No problem exists'"
+
+nfr_validation:
+  methodology:
+    status: PASS
+    notes: "Evidence-based investigation approach, systematic root cause analysis, clear decision criteria"
+
+  completeness:
+    status: PASS
+    notes: "All 7 phases comprehensive, 25 tasks cover all verification angles, thorough evidence collection"
+
+  risk_management:
+    status: PASS
+    notes: "Addresses risk of wasted development effort, validates assumptions before implementation"
+
+  documentation:
+    status: PASS
+    notes: "Investigation report template provided, clear deliverables specified, stakeholder sign-off included"
+
+key_strengths:
+  - "Systematic 7-phase investigation structure"
+  - "Evidence-based decision framework with 4 possible outcomes"
+  - "Comprehensive coverage: code, runtime, database, production, logs"
+  - "Clear acceptance criteria and success criteria"
+  - "Probability estimates for each root cause option"
+  - "Investigation report template for structured documentation"
+  - "Prevents wasted development effort on false assumptions"
+  - "Stakeholder communication and sign-off process defined"
+
+sm_bob_technical_review_validation:
+  original_story_9_1_invalid: true
+  rewrite_to_investigation: "Excellent decision"
+  framework_clarification: "Native MCP SDK confirmed (not FastMCP)"
+  tool_registration_status: "Already registered in source code"
+  epic_8_dependency_likelihood: "80% probability"
+  investigation_necessity: "Critical before proceeding with Epic 9"
+
+recommendations:
+  immediate:
+    - action: "Execute investigation immediately"
+      refs: ["Story 9.1 investigation tasks"]
+      priority: high
+      rationale: "Blocks all Epic 9 direction decisions, prevents wasted development effort"
+
+  future:
+    - action: "Based on investigation findings, update Epic 9 direction"
+      refs: ["Epic 9"]
+      priority: high
+      rationale: "Close, rewrite, or redirect Epic 9 based on evidence"
+
+    - action: "Document MCP architecture patterns in project documentation"
+      refs: ["docs/architecture/mcp-architecture.md"]
+      priority: medium
+      rationale: "Prevent future confusion about FastMCP vs Native MCP SDK"
+
+epic_9_disposition_pending_investigation:
+  current_status: "BLOCKED - Awaiting investigation results"
+  possible_outcomes:
+    - "Close Epic 9 - No problem exists (5% probability)"
+    - "Redirect to Epic 8 - Database dependency (80% probability)"
+    - "Rewrite Epic 9 - Real problem needs different fix (10% probability)"
+    - "Create New Epic - Different problem identified (5% probability)"
+
+success_criteria:
+  investigation_value: "Finding that Epic 9 is unnecessary is a valid and valuable outcome"
+  decision_clarity: "Root cause identified with >70% confidence"
+  waste_prevention: "Wasted development effort prevented by investigation"
+  learnings_documented: "Process improvements captured for future epics"

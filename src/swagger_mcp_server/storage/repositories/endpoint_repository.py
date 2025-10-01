@@ -85,13 +85,35 @@ class EndpointRepository(BaseRepository[Endpoint]):
                 conditions.append("endpoints.deprecated = ?")
                 params.append(deprecated)
 
-            # Epic 6: Category filtering
+            # Epic 6: Category filtering using JOIN with endpoint_categories table
+            # Match category by finding tag in endpoints that matches category_name
+            # Tags are stored as JSON strings like ["Campaign"] or ["Ad", "Edit"]
+            # Categories are normalized (lowercase, underscores): "campaign", "ad", "search_promo"
+            # Tags use Title-Case: "Campaign", "Ad", "Search-Promo"
             if category:
-                conditions.append("LOWER(endpoints.category) = LOWER(?)")
+                conditions.append("""
+                    EXISTS (
+                        SELECT 1 FROM endpoint_categories ec
+                        WHERE ec.api_id = endpoints.api_id
+                          AND LOWER(ec.category_name) = LOWER(?)
+                          AND (
+                              endpoints.tags LIKE '%' || UPPER(SUBSTR(ec.category_name, 1, 1)) || SUBSTR(REPLACE(ec.category_name, '_', '-'), 2) || '%'
+                          )
+                    )
+                """)
                 params.append(category)
 
             if category_group:
-                conditions.append("LOWER(endpoints.category_group) = LOWER(?)")
+                conditions.append("""
+                    EXISTS (
+                        SELECT 1 FROM endpoint_categories ec
+                        WHERE ec.api_id = endpoints.api_id
+                          AND LOWER(ec.category_group) = LOWER(?)
+                          AND (
+                              endpoints.tags LIKE '%' || UPPER(SUBSTR(ec.category_name, 1, 1)) || SUBSTR(REPLACE(ec.category_name, '_', '-'), 2) || '%'
+                          )
+                    )
+                """)
                 params.append(category_group)
 
             if conditions:
@@ -182,12 +204,32 @@ class EndpointRepository(BaseRepository[Endpoint]):
         if deprecated is not None:
             stmt = stmt.where(Endpoint.deprecated == deprecated)
 
-        # Epic 6: Category filtering
+        # Epic 6: Category filtering using subquery with endpoint_categories table
+        # Tags are stored as JSON strings like ["Campaign"] with Title-Case
+        # Categories use lowercase with underscores: "campaign", "search_promo"
         if category:
-            stmt = stmt.where(func.lower(Endpoint.category) == func.lower(category))
+            # Use raw SQL for EXISTS subquery with tag matching
+            category_filter = text("""
+                EXISTS (
+                    SELECT 1 FROM endpoint_categories ec
+                    WHERE ec.api_id = endpoints.api_id
+                      AND LOWER(ec.category_name) = LOWER(:category_param)
+                      AND endpoints.tags LIKE '%' || UPPER(SUBSTR(ec.category_name, 1, 1)) || SUBSTR(REPLACE(ec.category_name, '_', '-'), 2) || '%'
+                )
+            """)
+            stmt = stmt.where(category_filter.bindparams(category_param=category))
 
         if category_group:
-            stmt = stmt.where(func.lower(Endpoint.category_group) == func.lower(category_group))
+            # Use raw SQL for EXISTS subquery with tag matching
+            group_filter = text("""
+                EXISTS (
+                    SELECT 1 FROM endpoint_categories ec
+                    WHERE ec.api_id = endpoints.api_id
+                      AND LOWER(ec.category_group) = LOWER(:group_param)
+                      AND endpoints.tags LIKE '%' || UPPER(SUBSTR(ec.category_name, 1, 1)) || SUBSTR(REPLACE(ec.category_name, '_', '-'), 2) || '%'
+                )
+            """)
+            stmt = stmt.where(group_filter.bindparams(group_param=category_group))
 
         stmt = stmt.limit(limit).offset(offset)
 
@@ -234,12 +276,32 @@ class EndpointRepository(BaseRepository[Endpoint]):
             if tag_conditions:
                 stmt = stmt.where(or_(*tag_conditions))
 
-        # Epic 6: Category filtering
+        # Epic 6: Category filtering using subquery with endpoint_categories table
+        # Tags are stored as JSON strings like ["Campaign"] with Title-Case
+        # Categories use lowercase with underscores: "campaign", "search_promo"
         if category:
-            stmt = stmt.where(func.lower(Endpoint.category) == func.lower(category))
+            # Use raw SQL for EXISTS subquery with tag matching
+            category_filter = text("""
+                EXISTS (
+                    SELECT 1 FROM endpoint_categories ec
+                    WHERE ec.api_id = endpoints.api_id
+                      AND LOWER(ec.category_name) = LOWER(:category_param)
+                      AND endpoints.tags LIKE '%' || UPPER(SUBSTR(ec.category_name, 1, 1)) || SUBSTR(REPLACE(ec.category_name, '_', '-'), 2) || '%'
+                )
+            """)
+            stmt = stmt.where(category_filter.bindparams(category_param=category))
 
         if category_group:
-            stmt = stmt.where(func.lower(Endpoint.category_group) == func.lower(category_group))
+            # Use raw SQL for EXISTS subquery with tag matching
+            group_filter = text("""
+                EXISTS (
+                    SELECT 1 FROM endpoint_categories ec
+                    WHERE ec.api_id = endpoints.api_id
+                      AND LOWER(ec.category_group) = LOWER(:group_param)
+                      AND endpoints.tags LIKE '%' || UPPER(SUBSTR(ec.category_name, 1, 1)) || SUBSTR(REPLACE(ec.category_name, '_', '-'), 2) || '%'
+                )
+            """)
+            stmt = stmt.where(group_filter.bindparams(group_param=category_group))
 
         stmt = stmt.limit(limit).offset(offset)
 
