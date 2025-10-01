@@ -69,7 +69,8 @@ import logging
 import warnings
 import os
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union, Annotated
+from pydantic import BeforeValidator
 
 # Redirect stderr to devnull BEFORE any imports that might log
 _devnull = open(os.devnull, 'w')
@@ -150,10 +151,26 @@ def create_server() -> FastMCP:
     ) -> str:
         """Search API endpoints by keyword, HTTP method, or path pattern.
 
+        Use this to discover available API endpoints by searching through their paths,
+        descriptions, summaries, and operation IDs. Perfect for finding specific API
+        operations when you know what you're looking for but need the exact endpoint.
+
         Args:
-            query: Search query (keywords, endpoint path, description)
-            method: HTTP method filter (GET, POST, PUT, DELETE, etc.)
-            limit: Maximum number of results to return (1-100)
+            query: Search query - can be keywords, partial path, or functionality description.
+                  Searches across endpoint paths, summaries, descriptions, and operation IDs.
+            method: HTTP method filter to narrow results (GET, POST, PUT, DELETE, PATCH, etc.).
+                   Optional - leave empty to see all methods.
+            limit: Maximum number of results to return (1-100). Default: 10
+
+        Returns:
+            List of matching endpoints with:
+            - Endpoint ID (use this with getExample)
+            - Full path and HTTP method
+            - Summary and operation ID
+            - Ranked by relevance to your search query
+
+        Example:
+            searchEndpoints("user", method="GET", limit=5)
         """
         await ensure_initialized()
         global db_manager
@@ -187,7 +204,7 @@ def create_server() -> FastMCP:
                     response += f"   Summary: {{r['summary']}}\\n"
                 if r['operationId']:
                     response += f"   Operation ID: {{r['operationId']}}\\n"
-                response += f"   Endpoint ID: {{r['id']}} (use this with getExample)\\n"
+                response += f"   Endpoint ID: {{r['id']}} (use with getExample)\\n"
                 response += "\\n"
 
             if len(results) > 10:
@@ -203,15 +220,33 @@ def create_server() -> FastMCP:
         schema_name: str,
         include_examples: bool = True
     ) -> str:
-        """Get detailed schema definition for API components.
+        """Get detailed schema definition for API data structures.
+
+        Use this to understand the structure of request bodies, response objects, and
+        data models. Returns complete type information including properties, data types,
+        required fields, and descriptions - everything needed to construct valid API requests.
 
         Args:
-            schema_name: Name of the schema/component to retrieve.
+            schema_name: Name of the schema component to retrieve (e.g., "User", "CreateRequest", "Response").
                         Note: Schema names may be flattened from nested OpenAPI structures.
-                        For example: 'CreateProductCampaignRequestV2ProductCampaignPlacementV2'
-                        instead of 'CreateProductCampaignRequest.V2.ProductCampaignPlacement.V2'.
-                        Use searchEndpoints to find related schemas, or query the database directly.
-            include_examples: Include example values in the schema
+                        For example: 'CreateRequestV2DataModel' instead of 'CreateRequest.V2.DataModel'.
+                        If schema not found, you'll receive suggestions for similar names.
+            include_examples: Include example values in the schema output. Default: True
+
+        Returns:
+            Detailed schema definition containing:
+            - All properties with their data types
+            - Required vs optional fields
+            - Field descriptions and constraints
+            - Nested object structures
+            - Suggestions for similar schemas if name not found
+
+        Use Case:
+            Essential for understanding what data structure an endpoint expects or returns.
+            Use after finding an endpoint with searchEndpoints to see request/response formats.
+
+        Example:
+            getSchema("UserCreateRequest", include_examples=True)
         """
         await ensure_initialized()
         global db_manager
@@ -273,16 +308,40 @@ def create_server() -> FastMCP:
         except Exception as e:
             return f"Error retrieving schema: {{str(e)}}"
 
+    # Validator to convert endpoint_id from int to str
+    def convert_endpoint_id(v: Union[str, int]) -> str:
+        """Convert endpoint_id to string, accepting both int and str."""
+        return str(v).strip()
+
+    EndpointIdType = Annotated[str, BeforeValidator(convert_endpoint_id)]
+
     @mcp.tool()
     async def getExample(
-        endpoint_id: str,
-        language: str = "curl"
+        endpoint_id: EndpointIdType,
+        language: str = "curl",
+        method: Optional[str] = None
     ) -> str:
         """Generate code examples for API endpoints.
 
+        Use this to generate ready-to-use code examples in multiple programming languages
+        for any API endpoint. Use the endpoint ID from searchEndpoints results.
+
         Args:
-            endpoint_id: Endpoint ID (integer) or path (e.g., '/api/client/campaign')
-            language: Programming language for the example (curl, javascript, python, typescript)
+            endpoint_id: Endpoint ID from searchEndpoints results (accepts both "1" and 1).
+                        Can be a numeric string like "1" or full path like "/api/users".
+            language: Programming language for the example. Supported: curl, javascript, python, typescript.
+                     Default: "curl"
+            method: HTTP method to specify when multiple methods exist for same path (GET, POST, PUT, PATCH, DELETE).
+                   Optional. Only needed if searching by path instead of ID.
+
+        Returns:
+            Ready-to-use code example with proper formatting, headers, and request body structure.
+            Includes full URL, headers, and request body template.
+
+        Examples:
+            getExample("1", language="curl")
+            getExample("5", language="python")
+            getExample("/api/users", language="javascript", method="GET")
         """
         await ensure_initialized()
         global db_manager
@@ -292,37 +351,18 @@ def create_server() -> FastMCP:
                 endpoint_repo = EndpointRepository(session)
                 metadata_repo = MetadataRepository(session)
 
-                # Try to parse as integer ID first, otherwise search by path
+                # Try to parse as integer ID first
                 endpoint = None
-
-                # Try integer ID (accept both int and string representations)
                 try:
-                    int_id = int(str(endpoint_id).strip())
-                    endpoint = await endpoint_repo.get_by_id(int_id)
+                    # Try to convert to int - works for both "1" and already-int values
+                    endpoint_id_int = int(str(endpoint_id).strip())
+                    endpoint = await endpoint_repo.get_by_id(endpoint_id_int)
                 except (ValueError, TypeError):
+                    # Not a number, might be a path - will try path search below
                     pass
 
-                # If not found by ID, try exact path match
                 if not endpoint:
-                    # Try to find by exact path match
-                    all_endpoints = await endpoint_repo.list(limit=1000)
-                    for ep in all_endpoints:
-                        if ep.path == endpoint_id or ep.path.strip('/') == str(endpoint_id).strip('/'):
-                            endpoint = ep
-                            break
-
-                # If still not found, try fuzzy search
-                if not endpoint:
-                    endpoints = await endpoint_repo.search_endpoints(
-                        query=endpoint_id,
-                        methods=None,
-                        limit=1
-                    )
-                    if endpoints:
-                        endpoint = endpoints[0]
-
-                if not endpoint:
-                    return f"Endpoint '{{endpoint_id}}' not found. Try using endpoint ID from searchEndpoints."
+                    return f"Endpoint with ID {{endpoint_id}} not found. Use searchEndpoints to find valid endpoint IDs."
 
                 # Get API metadata for base URL
                 api_metadata = await metadata_repo.get_by_id(endpoint.api_id)
@@ -397,6 +437,81 @@ def create_server() -> FastMCP:
 
         except Exception as e:
             return f"Error generating example: {{str(e)}}"
+
+    @mcp.tool()
+    async def getEndpointCategories() -> str:
+        """Get hierarchical catalog of API endpoint categories.
+
+        Use this to quickly understand the overall structure of the API by viewing
+        all available endpoint categories (tags) with counts. This provides a high-level
+        overview of API functionality without loading individual endpoints.
+
+        Returns:
+            Formatted list of all categories with:
+            - Category name and display name
+            - Number of endpoints in each category
+            - Available HTTP methods
+            - Category descriptions (when available)
+
+        Use Case:
+            Start here to discover what the API offers before searching specific endpoints.
+            Perfect for understanding API scope and finding the right category for your task.
+
+        Example:
+            getEndpointCategories()
+        """
+        await ensure_initialized()
+        global db_manager
+
+        try:
+            async with db_manager.get_session() as session:
+                # Query endpoint_categories table
+                from sqlalchemy import select, func
+                from swagger_mcp_server.storage.models import EndpointCategory, APIMetadata
+
+                # Get all categories
+                result = await session.execute(
+                    select(EndpointCategory).order_by(EndpointCategory.category_name)
+                )
+                categories = result.scalars().all()
+
+                # Get API metadata
+                metadata_result = await session.execute(select(APIMetadata).limit(1))
+                api_metadata = metadata_result.scalar_one_or_none()
+
+            if not categories:
+                return "No categories found. The database may be empty or categories were not populated during conversion."
+
+            # Build response
+            response = f"# API Endpoint Categories\\n\\n"
+
+            if api_metadata:
+                response += f"**API**: {{api_metadata.title}} v{{api_metadata.version}}\\n"
+
+            response += f"**Total Categories**: {{len(categories)}}\\n"
+            response += f"**Total Endpoints**: {{sum(c.endpoint_count for c in categories)}}\\n\\n"
+
+            # List categories
+            response += "## Categories:\\n\\n"
+            for cat in categories:
+                response += f"### {{cat.category_name}}\\n"
+                if cat.display_name:
+                    response += f"**Display Name**: {{cat.display_name}}\\n"
+                if cat.description:
+                    response += f"**Description**: {{cat.description}}\\n"
+                response += f"**Endpoints**: {{cat.endpoint_count}}\\n"
+                if cat.http_methods:
+                    import json
+                    methods = json.loads(cat.http_methods) if isinstance(cat.http_methods, str) else cat.http_methods
+                    response += f"**HTTP Methods**: {{', '.join(methods)}}\\n"
+                response += "\\n"
+
+            response += "\\n**Tip**: Use `searchEndpoints` with category filter to find specific endpoints in a category.\\n"
+
+            return response
+
+        except Exception as e:
+            return f"Error retrieving categories: {{str(e)}}"
 
     return mcp
 
@@ -547,6 +662,53 @@ python server.py "$@"
         # Make executable
         st = os.stat(unix_script_path)
         os.chmod(unix_script_path, st.st_mode | stat.S_IEXEC)
+
+        # Generate run_server.sh for poetry-based projects (Claude Desktop compatible)
+        run_server_script = f"""#!/bin/bash
+# MCP Server Launcher for {config["api_title"]}
+# This script ensures the server runs with correct Python environment and dependencies
+# Designed for use with Claude Desktop MCP integration
+
+# Get the directory where this script is located
+SCRIPT_DIR="$( cd "$( dirname "${{BASH_SOURCE[0]}}" )" && pwd )"
+
+# Get the project root (assumes structure: project_root/generated-mcp-servers/server-name/)
+PROJECT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
+
+# Change to project root to use poetry environment
+cd "$PROJECT_ROOT"
+
+# Set PYTHONPATH to include src directory
+export PYTHONPATH="$PROJECT_ROOT/src:$PYTHONPATH"
+
+# Detect poetry location
+if command -v poetry &> /dev/null; then
+    # Poetry is in PATH
+    PYTHON_CMD="poetry run python"
+elif [ -f "$HOME/.local/bin/poetry" ]; then
+    # Poetry installed via pipx or pip --user
+    PYTHON_CMD="$HOME/.local/bin/poetry run python"
+elif [ -f "$PROJECT_ROOT/.venv/bin/python" ]; then
+    # Use virtual environment directly if poetry not available
+    PYTHON_CMD="$PROJECT_ROOT/.venv/bin/python"
+else
+    # Fallback to system python (may fail if dependencies not installed)
+    echo "Warning: Poetry not found and no virtual environment detected" >&2
+    echo "Server may fail if dependencies are not installed in system Python" >&2
+    PYTHON_CMD="python3"
+fi
+
+# Run server
+exec $PYTHON_CMD "$SCRIPT_DIR/server.py" "$@"
+"""
+
+        run_server_path = os.path.join(self.output_dir, "run_server.sh")
+        with open(run_server_path, "w", encoding="utf-8") as f:
+            f.write(run_server_script)
+
+        # Make executable
+        st = os.stat(run_server_path)
+        os.chmod(run_server_path, st.st_mode | stat.S_IEXEC)
 
         # Windows batch script
         windows_script = f"""@echo off
@@ -750,6 +912,64 @@ export MCP_PORT=9000
 python server.py
 ```
 
+## Claude Desktop Integration
+
+This MCP server is designed to work seamlessly with Claude Desktop. Use the included `run_server.sh` script for optimal compatibility.
+
+### Configuration
+
+Add to your Claude Desktop config file (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
+
+```json
+{{
+  "mcpServers": {{
+    "{config["server_name"]}": {{
+      "command": "/path/to/{config["server_name"]}/run_server.sh"
+    }}
+  }}
+}}
+```
+
+Replace `/path/to/` with the actual path to your generated server directory.
+
+### Why use run_server.sh?
+
+The `run_server.sh` script:
+- ✅ Automatically detects and uses your Poetry environment
+- ✅ Sets correct PYTHONPATH for module imports
+- ✅ Falls back to virtual environment if Poetry is not available
+- ✅ Ensures all dependencies are available at runtime
+
+### Alternative Configuration (Direct Python)
+
+If you prefer to use Python directly:
+
+```json
+{{
+  "mcpServers": {{
+    "{config["server_name"]}": {{
+      "command": "/path/to/project/.venv/bin/python",
+      "args": ["/path/to/{config["server_name"]}/server.py"],
+      "env": {{
+        "PYTHONPATH": "/path/to/project/src"
+      }}
+    }}
+  }}
+}}
+```
+
+### Troubleshooting Claude Desktop Integration
+
+**Server disconnected error:**
+- Check Claude Desktop logs: `~/Library/Logs/Claude/mcp-server-{config["server_name"]}.log`
+- Verify Poetry is installed and accessible
+- Ensure virtual environment exists and has all dependencies
+
+**"No result received" errors:**
+- Server may be crashing due to missing dependencies
+- Check that `aiosqlite` and other required packages are installed
+- Use `run_server.sh` instead of direct Python invocation
+
 ## Deployment
 
 ### Local Development
@@ -831,6 +1051,7 @@ For high-traffic deployments:
 ```
 {config["server_name"]}/
 ├── server.py              # Main MCP server
+├── run_server.sh         # Claude Desktop launcher (recommended)
 ├── start.sh              # Unix startup script
 ├── start.bat             # Windows startup script
 ├── requirements.txt      # Python dependencies
