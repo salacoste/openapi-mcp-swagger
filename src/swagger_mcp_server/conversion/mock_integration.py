@@ -50,6 +50,7 @@ class MockSwaggerParser:
                 "schemas": schemas,
                 "swagger_version": swagger_data.get("swagger")
                 or swagger_data.get("openapi"),
+                "tags": swagger_data.get("tags", []),  # Include root-level tags with descriptions
             }
 
             return parsed_data

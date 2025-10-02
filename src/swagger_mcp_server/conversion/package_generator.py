@@ -5,7 +5,7 @@ import os
 import stat
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 import structlog
 
@@ -323,8 +323,11 @@ def create_server() -> FastMCP:
     ) -> str:
         """Generate code examples for API endpoints.
 
-        Use this to generate ready-to-use code examples in multiple programming languages
-        for any API endpoint. Use the endpoint ID from searchEndpoints results.
+        This method generates code examples showing URL structure and request format.
+
+        Note: Examples show basic request structure. If the API requires authentication,
+        you may need to add auth headers. Call getApiDocumentation("authentication")
+        to see authentication methods for this API.
 
         Args:
             endpoint_id: Endpoint ID from searchEndpoints results (accepts both "1" and 1).
@@ -335,8 +338,8 @@ def create_server() -> FastMCP:
                    Optional. Only needed if searching by path instead of ID.
 
         Returns:
-            Ready-to-use code example with proper formatting, headers, and request body structure.
-            Includes full URL, headers, and request body template.
+            Code example with URL, headers, and request body structure.
+            May need authentication headers added for actual API calls.
 
         Examples:
             getExample("1", language="curl")
@@ -382,7 +385,9 @@ def create_server() -> FastMCP:
             full_url = f"{{base_url}}{{endpoint.path}}"
 
             # Generate language-specific examples
-            example = f"# {{language.upper()}} example for {{endpoint.method}} {{endpoint.path}}\\n\\n"
+            example = f"# {{language.upper()}} example for {{endpoint.method}} {{endpoint.path}}\\n"
+            example += "# ⚠️ NOTE: This example does NOT include authentication.\\n"
+            example += "#    Call getApiDocumentation('authentication') to learn how to add auth headers.\\n\\n"
 
             if language == "curl":
                 example += f"curl -X {{endpoint.method}} '{{full_url}}'"
@@ -432,6 +437,17 @@ def create_server() -> FastMCP:
                 example += f"# {{language}} example not implemented yet\\n"
                 example += f"# URL: {{full_url}}\\n"
                 example += f"# Method: {{endpoint.method}}"
+
+            # Add footer with authentication reminder
+            example += "\\n\\n"
+            example += "# " + "=" * 78 + "\\n"
+            example += "# ⚠️  AUTHENTICATION NOTE\\n"
+            example += "# " + "=" * 78 + "\\n"
+            example += "# This example shows the basic request structure but may need authentication.\\n"
+            example += "#\\n"
+            example += "# If you get 401/403 errors, the API requires authentication.\\n"
+            example += "# Call getApiDocumentation(\\"authentication\\") to see how to add auth headers.\\n"
+            example += "# " + "=" * 78
 
             return example
 
@@ -512,6 +528,83 @@ def create_server() -> FastMCP:
 
         except Exception as e:
             return f"Error retrieving categories: {{str(e)}}"
+
+    @mcp.tool()
+    async def getApiDocumentation(section: Optional[str] = None) -> str:
+        """Get comprehensive API documentation including authentication, usage examples, and setup instructions.
+
+        ⚠️ IMPORTANT: Always call this method FIRST when user asks about:
+        - How to authenticate or authorize API requests
+        - Adding API keys, tokens, or credentials to requests
+        - Getting "401 Unauthorized" or "403 Forbidden" errors
+        - How to make actual API calls (examples from getExample don't include auth!)
+
+        This method provides complete authentication workflows with step-by-step examples
+        for API Key, Bearer Token, OAuth 2.0, and Basic Auth methods.
+
+        Args:
+            section: Optional section to retrieve. Available sections:
+                    - "authentication" - Authentication and authorization guide (USE THIS FOR AUTH!)
+                    - "quickstart" - Quick start and setup instructions
+                    - "methods" - Available MCP methods documentation
+                    - "configuration" - Server configuration options
+                    - "troubleshooting" - Common issues and solutions
+                    - "all" or None - Full documentation (default)
+
+        Returns:
+            Formatted documentation content for the requested section.
+
+        Use Case:
+            REQUIRED when user needs to make authenticated API calls.
+            Call getApiDocumentation("authentication") to get complete auth workflow.
+
+        Example:
+            getApiDocumentation("authentication")  # Returns auth methods and examples
+        """
+        try:
+            # README.md is in the same directory as server.py
+            readme_path = Path(__file__).parent / "README.md"
+
+            if not readme_path.exists():
+                return "Documentation not found. README.md file is missing."
+
+            with open(readme_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+
+            # If no section specified or "all", return full content
+            if not section or section.lower() == "all":
+                return content
+
+            # Extract specific section
+            section_map = {{
+                "authentication": "## Authentication & Authorization",
+                "quickstart": "## Quick Start",
+                "methods": "## MCP Methods",
+                "configuration": "## Configuration",
+                "troubleshooting": "## Troubleshooting",
+            }}
+
+            section_header = section_map.get(section.lower())
+            if not section_header:
+                return f"Unknown section: {{section}}. Available sections: {{', '.join(section_map.keys())}}, all"
+
+            # Find section in content
+            if section_header not in content:
+                return f"Section '{{section}}' not found in documentation."
+
+            # Extract section content (from header to next ## or end)
+            start_idx = content.find(section_header)
+            next_section_idx = content.find("\\n## ", start_idx + len(section_header))
+
+            if next_section_idx == -1:
+                section_content = content[start_idx:]
+            else:
+                section_content = content[start_idx:next_section_idx]
+
+            return section_content.strip()
+
+        except Exception as e:
+            return f"Error reading documentation: {{str(e)}}"
 
     return mcp
 
@@ -747,8 +840,75 @@ python server.py %*
         with open(windows_script_path, "w", encoding="utf-8") as f:
             f.write(windows_script)
 
+    def _extract_auth_info_from_tags(self, tags: List[Dict[str, Any]]) -> str:
+        """Extract authentication information from root-level tags.
+
+        Args:
+            tags: List of tag objects with name and description fields
+
+        Returns:
+            Formatted authentication section or default warning
+        """
+        auth_keywords = ['token', 'auth', 'authentication', 'authorization', 'security']
+        intro_keywords = ['intro', 'introduction', 'getting started', 'overview']
+
+        auth_sections = []
+        intro_section = None
+
+        for tag in tags:
+            tag_name = tag.get('name', '').lower()
+            description = tag.get('description', '')
+
+            # Check if this tag contains intro/getting started info
+            if any(keyword in tag_name for keyword in intro_keywords):
+                intro_section = description
+
+            # Check if this tag is related to authentication
+            if any(keyword in tag_name for keyword in auth_keywords):
+                auth_sections.append(f"""### {tag.get('name', 'Authentication')}
+
+{description}
+""")
+
+        if auth_sections or intro_section:
+            result = """### Authentication Information from API Documentation
+
+"""
+            # Add intro section first if it contains credential info
+            if intro_section and ('client_id' in intro_section or 'api-key' in intro_section.lower() or 'credentials' in intro_section.lower()):
+                result += f"""#### Getting API Credentials
+
+{intro_section}
+
+"""
+
+            # Add authentication sections
+            result += chr(10).join(auth_sections)
+
+            result += """
+
+⚠️ **Important**: The examples shown above contain placeholder/mock credentials. You must obtain your own valid API credentials as described in the documentation.
+
+**Note**: The information above is extracted from the API specification. Use this as a guide for implementing authentication in your code.
+
+"""
+            return result
+        else:
+            return """### If the original Swagger/OpenAPI specification lacks authentication details:
+
+The generated code examples may not include authentication headers. You will need to:
+
+1. **Consult the API documentation** from the API provider for authentication requirements
+2. **Add authentication headers** to the generated code examples manually
+
+"""
+
     async def _generate_readme(self, config: Dict[str, Any]):
         """Generate comprehensive README for converted MCP server."""
+        # Extract authentication info from tags if available
+        tags = config.get('tags', [])
+        auth_info_section = self._extract_auth_info_from_tags(tags)
+
         readme_template = f"""# MCP Server for {config["api_title"]}
 
 Generated MCP server providing intelligent access to {config["api_title"]} API documentation.
@@ -874,37 +1034,177 @@ curl_example = await client.getExample("/api/v1/users/{{id}}", "curl")
 python_example = await client.getExample("/api/v1/users", "python", "POST")
 ```
 
+### getApiDocumentation
+Get comprehensive API documentation including authentication, usage, and setup instructions.
+
+**Parameters:**
+- `section` (optional string): Specific section to retrieve. Options:
+  - `"authentication"` - Authentication and authorization guide
+  - `"quickstart"` - Quick start and setup instructions
+  - `"methods"` - Available MCP methods documentation
+  - `"configuration"` - Server configuration options
+  - `"troubleshooting"` - Common issues and solutions
+  - `"all"` or omit - Full documentation (default)
+
+**Example:**
+```python
+# Get authentication documentation
+auth_docs = await client.getApiDocumentation("authentication")
+
+# Get full documentation
+full_docs = await client.getApiDocumentation()
+```
+
 ## Authentication & Authorization
 
 ⚠️ **Important**: This MCP server provides **API documentation and code examples only**. It does not handle authentication or make actual API calls.
 
-### If the original Swagger/OpenAPI specification lacks authentication details:
+{auth_info_section}
 
-The generated code examples may not include authentication headers. You will need to:
+### How to Use API Credentials and Authentication
 
-1. **Consult the API documentation** from the API provider for authentication requirements
-2. **Add authentication headers** to the generated code examples manually
-3. **Common authentication methods**:
-   - **API Key**: Add header like `'X-API-Key': 'your-api-key'` or `'Authorization': 'Bearer your-token'`
-   - **OAuth 2.0**: Obtain access token and add `'Authorization': 'Bearer access-token'`
-   - **Basic Auth**: Add `'Authorization': 'Basic base64(username:password)'`
+**General Approach for Any API:**
 
-### Example: Adding Authentication to Generated Code
+This MCP server provides documentation and examples, but **does not handle authentication**. When working with APIs that require authentication, you need to:
 
-If `getExample` returns code without auth headers, modify it:
+1. **Ask the user for credentials** - Never hardcode credentials in your code
+2. **Obtain authentication token/key** from the API provider
+3. **Add authentication to each request** using appropriate headers
+4. **Handle token expiration** and refresh when needed
 
+### Common Authentication Methods
+
+#### 1. API Key Authentication
 ```python
-# Generated code (without auth)
-response = requests.get('https://api.example.com/users')
+import requests
 
-# Modified code (with API key)
-headers = {{'X-API-Key': 'your-api-key-here'}}
-response = requests.get('https://api.example.com/users', headers=headers)
+# User provides their API key
+api_key = input("Enter your API key: ")  # or from environment variable
 
-# Modified code (with Bearer token)
-headers = {{'Authorization': 'Bearer your-access-token'}}
-response = requests.get('https://api.example.com/users', headers=headers)
+# Add API key to request headers
+response = requests.get(
+    'https://api.example.com/endpoint',
+    headers={{
+        'X-API-Key': api_key,
+        'Accept': 'application/json'
+    }}
+)
 ```
+
+**Common header names:**
+- `X-API-Key: your-api-key`
+- `Authorization: ApiKey your-api-key`
+- `api_key: your-api-key`
+
+#### 2. Bearer Token Authentication
+```python
+import requests
+
+# User provides their token
+bearer_token = input("Enter your bearer token: ")  # or from environment variable
+
+# Add Bearer token to request headers
+response = requests.get(
+    'https://api.example.com/endpoint',
+    headers={{
+        'Authorization': f'Bearer {{bearer_token}}',
+        'Accept': 'application/json'
+    }}
+)
+```
+
+#### 3. OAuth 2.0 (Client Credentials Flow)
+```python
+import requests
+
+# Step 1: User provides OAuth credentials
+client_id = input("Enter client_id: ")
+client_secret = input("Enter client_secret: ")
+
+# Step 2: Request access token from OAuth server
+auth_response = requests.post(
+    'https://auth.example.com/oauth/token',  # Check API documentation for correct URL
+    headers={{
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+    }},
+    json={{
+        'client_id': client_id,
+        'client_secret': client_secret,
+        'grant_type': 'client_credentials'
+    }}
+)
+
+token_data = auth_response.json()
+access_token = token_data['access_token']
+expires_in = token_data.get('expires_in', 3600)  # Token lifetime in seconds
+
+print(f"Token obtained. Expires in {{expires_in}} seconds ({{expires_in/60:.1f}} minutes)")
+
+# Step 3: Use access token for API requests
+api_response = requests.get(
+    'https://api.example.com/endpoint',
+    headers={{
+        'Authorization': f'Bearer {{access_token}}',
+        'Accept': 'application/json'
+    }}
+)
+
+# Step 4: Handle token expiration
+if api_response.status_code == 401:
+    print("Token expired. Requesting new token...")
+    # Repeat Step 2 to get fresh token
+```
+
+#### 4. Basic Authentication
+```python
+import requests
+from base64 import b64encode
+
+# User provides username and password
+username = input("Enter username: ")
+password = input("Enter password: ")
+
+# Option A: Using requests built-in basic auth
+response = requests.get(
+    'https://api.example.com/endpoint',
+    auth=(username, password)
+)
+
+# Option B: Manual basic auth header
+credentials = f"{{username}}:{{password}}"
+encoded = b64encode(credentials.encode()).decode()
+response = requests.get(
+    'https://api.example.com/endpoint',
+    headers={{
+        'Authorization': f'Basic {{encoded}}',
+        'Accept': 'application/json'
+    }}
+)
+```
+
+### Best Practices for Credential Management
+
+1. **Never hardcode credentials** in source code
+2. **Use environment variables** for sensitive data:
+   ```python
+   import os
+   api_key = os.getenv('API_KEY')
+   ```
+3. **Ask user for credentials** during execution
+4. **Store securely** using system keychain or secret management tools
+5. **Rotate credentials** regularly per API provider's recommendations
+6. **Check token expiration** and refresh proactively
+7. **Handle 401/403 errors** gracefully with clear user messages
+
+### Security Reminders
+
+⚠️ **Important Security Notes:**
+- API credentials are **private** - never commit them to version control
+- Never log or print credentials to console or files
+- Use HTTPS (not HTTP) for all API calls with credentials
+- Implement proper error handling for authentication failures
+- Follow the principle of least privilege - use credentials with minimal required permissions
 
 ### For API Providers
 

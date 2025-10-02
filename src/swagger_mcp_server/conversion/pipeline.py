@@ -404,6 +404,7 @@ class ConversionPipeline:
                     "generation_date": datetime.now().isoformat(),
                     "endpoint_count": self.conversion_stats.get("endpoints_found", 0),
                     "schema_count": self.conversion_stats.get("schemas_found", 0),
+                    "tags": normalized_data.get("tags", []),  # Include root-level tags with descriptions
                 }
 
                 return server_config
